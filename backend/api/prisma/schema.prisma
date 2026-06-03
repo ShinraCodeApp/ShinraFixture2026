@@ -1,0 +1,895 @@
+// ShinraFixture 2026 - Prisma Schema
+// World Cup 2026: 48 teams, 12 groups, 80 matches
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ══════════════════════════════════════════════════════
+// ENUMS
+// ══════════════════════════════════════════════════════
+
+enum UserRole {
+  USER
+  PREMIUM
+  MODERATOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum PlayerPosition {
+  GOALKEEPER
+  DEFENDER
+  MIDFIELDER
+  FORWARD
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  HALF_TIME
+  FINISHED
+  POSTPONED
+  CANCELLED
+  ABANDONED
+}
+
+enum MatchStage {
+  GROUP
+  ROUND_OF_32
+  ROUND_OF_16
+  QUARTER_FINAL
+  SEMI_FINAL
+  THIRD_PLACE
+  FINAL
+}
+
+enum EventType {
+  GOAL
+  OWN_GOAL
+  PENALTY_SCORED
+  PENALTY_MISSED
+  YELLOW_CARD
+  RED_CARD
+  SECOND_YELLOW
+  SUBSTITUTION_IN
+  SUBSTITUTION_OUT
+  VAR_REVIEW
+  KICKOFF
+  HALF_TIME
+  FULL_TIME
+  EXTRA_TIME_START
+  PENALTY_SHOOTOUT
+}
+
+enum PredictionStatus {
+  PENDING
+  WON
+  LOST
+  VOID
+}
+
+enum NotificationType {
+  MATCH_START
+  GOAL
+  HALF_TIME
+  MATCH_END
+  RED_CARD
+  PREDICTION_RESULT
+  QUINIELA_UPDATE
+  NEWS
+  SYSTEM
+}
+
+enum TournamentType {
+  WORLD_CUP
+  COPA_AMERICA
+  EURO
+  CHAMPIONS_LEAGUE
+  LIBERTADORES
+  NATIONS_LEAGUE
+  FRIENDLY
+}
+
+enum Region {
+  UEFA
+  CONMEBOL
+  CONCACAF
+  CAF
+  AFC
+  OFC
+}
+
+enum AchievementType {
+  FIRST_PREDICTION
+  PERFECT_WEEK
+  TOP_PREDICTOR
+  EARLY_ADOPTER
+  WORLD_CUP_CHAMPION_CALL
+  STREAK_5
+  STREAK_10
+  STREAK_20
+  SOCIAL_BUTTERFLY
+  QUINIELA_WINNER
+}
+
+// ══════════════════════════════════════════════════════
+// USER MODELS
+// ══════════════════════════════════════════════════════
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  username      String    @unique
+  displayName   String
+  avatar        String?
+  bio           String?
+  country       String?
+  role          UserRole  @default(USER)
+  isPremium     Boolean   @default(false)
+  premiumUntil  DateTime?
+  isBanned      Boolean   @default(false)
+  bannedReason  String?
+  isVerified    Boolean   @default(false)
+
+  // OAuth providers
+  googleId      String?   @unique
+  appleId       String?   @unique
+  facebookId    String?   @unique
+  passwordHash  String?
+
+  // Profile stats
+  level         Int       @default(1)
+  xp            Int       @default(0)
+  predictionPoints Int    @default(0)
+  totalPredictions Int    @default(0)
+  correctPredictions Int  @default(0)
+
+  // Settings
+  notificationsEnabled Boolean @default(true)
+  language            String  @default("es")
+  timezone            String  @default("America/Mexico_City")
+  tokenVersion        Int     @default(0)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  favoriteTeams     UserFavoriteTeam[]
+  predictions       Prediction[]
+  comments          Comment[]
+  reactions         Reaction[]
+  achievements      UserAchievement[]
+  quinielaGroups    QuinielaGroupMember[]
+  notifications     Notification[]
+  refreshTokens     RefreshToken[]
+  simulatorSessions SimulatorSession[]
+  polls             PollVote[]
+  devices           UserDevice[]
+  subscriptions     Subscription[]
+  forumPosts        ForumPost[]
+  forumReplies      ForumReply[]
+
+  @@index([email])
+  @@index([username])
+  @@index([role])
+  @@index([isPremium])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model UserDevice {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fcmToken    String
+  deviceType  String   // ios | android | web
+  deviceModel String?
+  appVersion  String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, fcmToken])
+  @@index([userId])
+}
+
+model UserFavoriteTeam {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, teamId])
+}
+
+// ══════════════════════════════════════════════════════
+// TOURNAMENT & TEAM MODELS
+// ══════════════════════════════════════════════════════
+
+model Tournament {
+  id          String          @id @default(uuid())
+  name        String
+  shortName   String?
+  year        Int
+  type        TournamentType
+  startDate   DateTime
+  endDate     DateTime
+  hostCountries String[]
+  logo        String?
+  banner      String?
+  isActive    Boolean         @default(false)
+  isFeatured  Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  matches     Match[]
+  groups      TournamentGroup[]
+  news        News[]
+
+  @@unique([type, year])
+  @@index([isActive])
+}
+
+model Team {
+  id            String    @id @default(uuid())
+  name          String
+  shortName     String
+  code          String    @unique  // BRA, ARG, FRA, etc.
+  flagUrl       String?
+  shieldUrl     String?
+  region        Region
+  fifaRanking   Int?
+  confederation String?
+
+  // World Cup specific
+  group         String?   // A through L (12 groups)
+  isEliminated  Boolean   @default(false)
+  tournamentId  String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  homeMatches       Match[]           @relation("HomeTeam")
+  awayMatches       Match[]           @relation("AwayTeam")
+  players           Player[]
+  stats             TeamTournamentStats[]
+  favorites         UserFavoriteTeam[]
+  groupParticipations TournamentGroupTeam[]
+
+  @@index([code])
+  @@index([region])
+  @@index([group])
+}
+
+model TournamentGroup {
+  id           String    @id @default(uuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+  name         String    // A, B, C...
+  letter       String    // A, B, C...
+
+  teams        TournamentGroupTeam[]
+
+  @@unique([tournamentId, letter])
+}
+
+model TournamentGroupTeam {
+  id            String          @id @default(uuid())
+  groupId       String
+  group         TournamentGroup @relation(fields: [groupId], references: [id])
+  teamId        String
+  team          Team            @relation(fields: [teamId], references: [id])
+
+  // Standing
+  played        Int     @default(0)
+  won           Int     @default(0)
+  drawn         Int     @default(0)
+  lost          Int     @default(0)
+  goalsFor      Int     @default(0)
+  goalsAgainst  Int     @default(0)
+  goalDifference Int    @default(0)
+  points        Int     @default(0)
+  position      Int?    // 1-4 within group
+  qualified     Boolean @default(false)
+
+  @@unique([groupId, teamId])
+  @@index([groupId])
+}
+
+// ══════════════════════════════════════════════════════
+// PLAYER MODELS
+// ══════════════════════════════════════════════════════
+
+model Player {
+  id            String         @id @default(uuid())
+  name          String
+  shortName     String?
+  position      PlayerPosition
+  number        Int?
+  birthDate     DateTime?
+  nationality   String?
+  height        Int?           // cm
+  weight        Int?           // kg
+  club          String?
+  clubCountry   String?
+  photoUrl      String?
+  isActive      Boolean        @default(true)
+  teamId        String
+  team          Team           @relation(fields: [teamId], references: [id])
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  // Relations
+  stats         PlayerTournamentStats[]
+  goals         MatchEvent[]   @relation("GoalScorer")
+  assists       MatchEvent[]   @relation("GoalAssist")
+  cards         MatchEvent[]   @relation("CardReceiver")
+  substitutionsIn  MatchEvent[] @relation("SubstitutionIn")
+  substitutionsOut MatchEvent[] @relation("SubstitutionOut")
+
+  @@index([teamId])
+  @@index([position])
+}
+
+// ══════════════════════════════════════════════════════
+// MATCH MODELS
+// ══════════════════════════════════════════════════════
+
+model Match {
+  id              String      @id @default(uuid())
+  tournamentId    String
+  tournament      Tournament  @relation(fields: [tournamentId], references: [id])
+  homeTeamId      String
+  homeTeam        Team        @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeamId      String
+  awayTeam        Team        @relation("AwayTeam", fields: [awayTeamId], references: [id])
+
+  // Score
+  homeScore       Int?
+  awayScore       Int?
+  homeScoreHT     Int?        // Half time
+  awayScoreHT     Int?
+  homePenalties   Int?
+  awayPenalties   Int?
+  homeExtraTime   Int?
+  awayExtraTime   Int?
+
+  // Match info
+  stage           MatchStage
+  group           String?     // A-L or null for knockouts
+  round           Int?        // Match number
+  matchDate       DateTime
+  venue           String?
+  city            String?
+  country         String?
+  attendance      Int?
+  referee         String?
+  status          MatchStatus @default(SCHEDULED)
+  minute          Int?        // Current minute for live matches
+
+  // AI / Predictions
+  homeWinProb     Float?      // AI probability
+  drawProb        Float?
+  awayWinProb     Float?
+  aiAnalysis      String?
+
+  externalId      String?     // External API ID
+  broadcastUrl    String?
+  highlightUrl    String?
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  events          MatchEvent[]
+  stats           MatchStats?
+  predictions     Prediction[]
+  comments        Comment[]
+  playerStats     PlayerMatchStats[]
+
+  @@index([tournamentId])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
+  @@index([status])
+  @@index([matchDate])
+  @@index([stage])
+  @@index([group])
+}
+
+model MatchEvent {
+  id          String    @id @default(uuid())
+  matchId     String
+  match       Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  minute      Int
+  extraTime   Int?      // Added minutes
+  type        EventType
+  teamId      String?
+  description String?
+
+  // Player refs depending on event type
+  scorerId        String?
+  scorer          Player?   @relation("GoalScorer", fields: [scorerId], references: [id])
+  assistId        String?
+  assist          Player?   @relation("GoalAssist", fields: [assistId], references: [id])
+  cardReceiverId  String?
+  cardReceiver    Player?   @relation("CardReceiver", fields: [cardReceiverId], references: [id])
+  playerInId      String?
+  playerIn        Player?   @relation("SubstitutionIn", fields: [playerInId], references: [id])
+  playerOutId     String?
+  playerOut       Player?   @relation("SubstitutionOut", fields: [playerOutId], references: [id])
+
+  isConfirmed     Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+
+  @@index([matchId])
+  @@index([type])
+  @@index([minute])
+}
+
+model MatchStats {
+  id              String  @id @default(uuid())
+  matchId         String  @unique
+  match           Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  // Possession
+  homePossession  Float?
+  awayPossession  Float?
+
+  // Shots
+  homeShots       Int?
+  awayShots       Int?
+  homeShotsOnTarget Int?
+  awayShotsOnTarget Int?
+
+  // Passes
+  homePasses      Int?
+  awayPasses      Int?
+  homePassAccuracy Float?
+  awayPassAccuracy Float?
+
+  // Duels
+  homeFouls       Int?
+  awayFouls       Int?
+  homeCorners     Int?
+  awayCorners     Int?
+  homeOffsides    Int?
+  awayOffsides    Int?
+
+  // Cards (summary)
+  homeYellowCards Int?
+  awayYellowCards Int?
+  homeRedCards    Int?
+  awayRedCards    Int?
+
+  // Expected goals
+  homeXG          Float?
+  awayXG          Float?
+
+  updatedAt       DateTime @updatedAt
+}
+
+model PlayerMatchStats {
+  id          String  @id @default(uuid())
+  matchId     String
+  match       Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  playerId    String
+  teamId      String
+
+  minutesPlayed Int?
+  goals         Int     @default(0)
+  assists       Int     @default(0)
+  yellowCards   Int     @default(0)
+  redCards      Int     @default(0)
+  shots         Int?
+  shotsOnTarget Int?
+  passes        Int?
+  passAccuracy  Float?
+  tackles       Int?
+  interceptions Int?
+  rating        Float?
+
+  @@unique([matchId, playerId])
+  @@index([matchId])
+  @@index([playerId])
+}
+
+model TeamTournamentStats {
+  id              String     @id @default(uuid())
+  teamId          String
+  team            Team       @relation(fields: [teamId], references: [id])
+  tournamentId    String
+
+  // Overall
+  matchesPlayed   Int        @default(0)
+  wins            Int        @default(0)
+  draws           Int        @default(0)
+  losses          Int        @default(0)
+  goalsScored     Int        @default(0)
+  goalsConceded   Int        @default(0)
+  cleanSheets     Int        @default(0)
+
+  // Attack
+  totalShots      Int?
+  shotsOnTarget   Int?
+  xG              Float?
+
+  // Cards
+  yellowCards     Int        @default(0)
+  redCards        Int        @default(0)
+
+  // Possession
+  avgPossession   Float?
+
+  bestResult      String?    // "Champions", "Runner-up", "3rd Place", etc.
+
+  @@unique([teamId, tournamentId])
+  @@index([teamId])
+}
+
+model PlayerTournamentStats {
+  id              String     @id @default(uuid())
+  playerId        String
+  player          Player     @relation(fields: [playerId], references: [id])
+  tournamentId    String
+
+  matchesPlayed   Int        @default(0)
+  minutesPlayed   Int        @default(0)
+  goals           Int        @default(0)
+  assists         Int        @default(0)
+  yellowCards     Int        @default(0)
+  redCards        Int        @default(0)
+  shots           Int        @default(0)
+  shotsOnTarget   Int        @default(0)
+  passes          Int        @default(0)
+  keyPasses       Int        @default(0)
+  tackles         Int        @default(0)
+  interceptions   Int        @default(0)
+  avgRating       Float?
+
+  @@unique([playerId, tournamentId])
+  @@index([playerId])
+  @@index([tournamentId])
+}
+
+// ══════════════════════════════════════════════════════
+// PREDICTIONS & QUINIELA
+// ══════════════════════════════════════════════════════
+
+model Prediction {
+  id              String           @id @default(uuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  matchId         String
+  match           Match            @relation(fields: [matchId], references: [id])
+
+  homeScore       Int
+  awayScore       Int
+  predictedWinner String?          // home | away | draw
+
+  // Results
+  status          PredictionStatus @default(PENDING)
+  pointsEarned    Int              @default(0)
+
+  // For champion prediction
+  championTeamId  String?
+  topScorerPlayerId String?
+
+  quinielaGroupId String?
+  quinielaGroup   QuinielaGroup?   @relation(fields: [quinielaGroupId], references: [id])
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@unique([userId, matchId])
+  @@index([userId])
+  @@index([matchId])
+  @@index([status])
+}
+
+model QuinielaGroup {
+  id            String    @id @default(uuid())
+  name          String
+  description   String?
+  ownerId       String
+  isPrivate     Boolean   @default(true)
+  inviteCode    String    @unique @default(uuid())
+  maxMembers    Int       @default(20)
+  prizeDescription String?
+  isActive      Boolean   @default(true)
+  tournamentId  String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  members       QuinielaGroupMember[]
+  predictions   Prediction[]
+
+  @@index([ownerId])
+  @@index([inviteCode])
+}
+
+model QuinielaGroupMember {
+  id            String        @id @default(uuid())
+  groupId       String
+  group         QuinielaGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role          String        @default("MEMBER")  // OWNER | ADMIN | MEMBER
+  totalPoints   Int           @default(0)
+  rank          Int?
+  joinedAt      DateTime      @default(now())
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+}
+
+// ══════════════════════════════════════════════════════
+// SIMULATOR
+// ══════════════════════════════════════════════════════
+
+model SimulatorSession {
+  id            String    @id @default(uuid())
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id])
+  name          String?
+  isPublic      Boolean   @default(false)
+  tournamentId  String
+  results       Json      // Serialized simulation results
+  champion      String?
+  runnerUp      String?
+  thirdPlace    String?
+  shareCode     String?   @unique
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([shareCode])
+}
+
+// ══════════════════════════════════════════════════════
+// COMMUNITY
+// ══════════════════════════════════════════════════════
+
+model Comment {
+  id          String    @id @default(uuid())
+  content     String
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  matchId     String?
+  match       Match?    @relation(fields: [matchId], references: [id])
+  parentId    String?
+  parent      Comment?  @relation("Replies", fields: [parentId], references: [id])
+  replies     Comment[] @relation("Replies")
+  isDeleted   Boolean   @default(false)
+  isFlagged   Boolean   @default(false)
+  likesCount  Int       @default(0)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  reactions   Reaction[]
+
+  @@index([matchId])
+  @@index([userId])
+  @@index([parentId])
+}
+
+model Reaction {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  commentId String?
+  comment   Comment? @relation(fields: [commentId], references: [id])
+  type      String   // LIKE | LOVE | FIRE | SAD | ANGRY
+
+  @@unique([userId, commentId])
+  @@index([commentId])
+}
+
+model Poll {
+  id          String     @id @default(uuid())
+  question    String
+  options     String[]
+  matchId     String?
+  isActive    Boolean    @default(true)
+  expiresAt   DateTime?
+  createdBy   String
+  createdAt   DateTime   @default(now())
+
+  votes       PollVote[]
+}
+
+model PollVote {
+  id        String   @id @default(uuid())
+  pollId    String
+  poll      Poll     @relation(fields: [pollId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  option    Int      // index of selected option
+  createdAt DateTime @default(now())
+
+  @@unique([pollId, userId])
+}
+
+model ForumPost {
+  id          String       @id @default(uuid())
+  title       String
+  content     String
+  category    String
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  viewsCount  Int          @default(0)
+  likesCount  Int          @default(0)
+  isPinned    Boolean      @default(false)
+  isLocked    Boolean      @default(false)
+  isFeatured  Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  replies     ForumReply[]
+
+  @@index([category])
+  @@index([userId])
+}
+
+model ForumReply {
+  id        String     @id @default(uuid())
+  content   String
+  postId    String
+  post      ForumPost  @relation(fields: [postId], references: [id])
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  parentId  String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([postId])
+  @@index([userId])
+}
+
+// ══════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ══════════════════════════════════════════════════════
+
+model Notification {
+  id          String           @id @default(uuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  title       String
+  body        String
+  data        Json?
+  isRead      Boolean          @default(false)
+  sentAt      DateTime?
+  createdAt   DateTime         @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([type])
+}
+
+// ══════════════════════════════════════════════════════
+// ACHIEVEMENTS
+// ══════════════════════════════════════════════════════
+
+model Achievement {
+  id          String          @id @default(uuid())
+  type        AchievementType @unique
+  name        String
+  description String
+  icon        String?
+  xpReward    Int             @default(0)
+  condition   Json            // Condition to unlock
+
+  users       UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  unlockedAt    DateTime    @default(now())
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+}
+
+// ══════════════════════════════════════════════════════
+// CONTENT & MONETIZATION
+// ══════════════════════════════════════════════════════
+
+model News {
+  id            String     @id @default(uuid())
+  title         String
+  slug          String     @unique
+  excerpt       String?
+  content       String
+  imageUrl      String?
+  author        String?
+  category      String?
+  tags          String[]
+  isPublished   Boolean    @default(false)
+  isPremium     Boolean    @default(false)
+  isFeatured    Boolean    @default(false)
+  tournamentId  String?
+  tournament    Tournament? @relation(fields: [tournamentId], references: [id])
+  teamId        String?
+  matchId       String?
+  viewsCount    Int        @default(0)
+  publishedAt   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([slug])
+  @@index([isPublished])
+  @@index([isPremium])
+}
+
+model Advertisement {
+  id          String    @id @default(uuid())
+  name        String
+  imageUrl    String?
+  videoUrl    String?
+  targetUrl   String?
+  placement   String    // BANNER | INTERSTITIAL | NATIVE | REWARDED
+  isActive    Boolean   @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  impressions Int       @default(0)
+  clicks      Int       @default(0)
+  createdAt   DateTime  @default(now())
+}
+
+model Subscription {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  stripeSubId     String?   @unique
+  stripePriceId   String?
+  status          String    // active | canceled | past_due | trialing
+  planType        String    // monthly | annual
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd Boolean @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ══════════════════════════════════════════════════════
+// APP CONFIG
+// ══════════════════════════════════════════════════════
+
+model AppConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       Json
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@index([key])
+}

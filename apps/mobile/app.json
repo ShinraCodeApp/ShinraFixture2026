@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "ShinraFixture 2026",
+    "slug": "shinrafixture-2026",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#001489"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.shinra.fixture2026",
+      "buildNumber": "1"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#001489"
+      },
+      "package": "com.shinra.fixture2026",
+      "versionCode": 1,
+      "permissions": [
+        "NOTIFICATIONS",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-splash-screen",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#001489"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "ca54987c-9913-406b-b6ca-6903fb0f507e"
+      }
+    },
+    "owner": "shinracode"
+  }
+}

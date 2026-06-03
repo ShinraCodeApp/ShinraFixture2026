@@ -1,0 +1,53 @@
+{
+  "name": "shinra-fixture-2026",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ShinraFixture 2026 - Plataforma completa para el Mundial de Fútbol FIFA 2026",
+  "workspaces": [
+    "apps/*",
+    "backend/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"yarn workspace @shinra/api dev\" \"yarn workspace @shinra/web dev\"",
+    "dev:mobile": "yarn workspace @shinra/mobile start",
+    "dev:api": "yarn workspace @shinra/api dev",
+    "dev:web": "yarn workspace @shinra/web dev",
+    "dev:admin": "yarn workspace @shinra/admin dev",
+    "build": "yarn workspaces run build",
+    "build:api": "yarn workspace @shinra/api build",
+    "build:web": "yarn workspace @shinra/web build",
+    "build:admin": "yarn workspace @shinra/admin build",
+    "test": "yarn workspaces run test",
+    "lint": "yarn workspaces run lint",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:build": "docker-compose build",
+    "db:migrate": "yarn workspace @shinra/api prisma migrate deploy",
+    "db:seed": "yarn workspace @shinra/api prisma db seed",
+    "db:studio": "yarn workspace @shinra/api prisma studio",
+    "db:reset": "yarn workspace @shinra/api prisma migrate reset"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "prettier": "^3.2.5",
+    "eslint": "^8.57.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "yarn": ">=1.22.0"
+  }
+}
