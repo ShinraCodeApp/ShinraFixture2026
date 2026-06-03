@@ -1,6 +1,6 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist';
-import { MMKV } from 'react-native-mmkv';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import authReducer from './slices/authSlice';
 import matchesReducer from './slices/matchesSlice';
@@ -9,13 +9,7 @@ import predictionsReducer from './slices/predictionsSlice';
 import notificationsReducer from './slices/notificationsSlice';
 import settingsReducer from './slices/settingsSlice';
 
-// MMKV for Redux Persist (faster than AsyncStorage)
-const storage = new MMKV();
-const mmkvStorage = {
-  setItem: (key: string, value: string) => { storage.set(key, value); return Promise.resolve(true); },
-  getItem: (key: string) => { const value = storage.getString(key); return Promise.resolve(value); },
-  removeItem: (key: string) => { storage.delete(key); return Promise.resolve(); },
-};
+const mmkvStorage = AsyncStorage;
 
 const rootReducer = combineReducers({
   auth: authReducer,
