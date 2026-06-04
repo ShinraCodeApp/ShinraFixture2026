@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { spacing, typography, borderRadius, colors } from '../../theme';
-import { apiClient } from '../../services/api';
+import { apiService as apiClient } from '../../services/api';
 
 interface Props {
   matchId: string;

@@ -7,7 +7,7 @@ import dayjs from 'dayjs';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme';
 import { LoadingSkeleton } from '../common/LoadingSkeleton';
-import { apiClient } from '../../services/api';
+import { apiService as apiClient } from '../../services/api';
 
 interface News {
   id: string;

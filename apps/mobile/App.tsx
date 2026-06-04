@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -9,7 +9,6 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { ApolloProvider } from '@apollo/client';
 import FlashMessage from 'react-native-flash-message';
 import * as SplashScreen from 'expo-splash-screen';
-import * as Font from 'expo-font';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_900Black } from '@expo-google-fonts/inter';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 
@@ -23,7 +22,7 @@ import { useAppTheme } from './src/hooks/useAppTheme';
 import { ThemeProvider } from './src/theme/ThemeProvider';
 import { LoadingScreen } from './src/screens/Loading/LoadingScreen';
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function AppContent() {
   const { theme, colorScheme } = useAppTheme();
@@ -41,7 +40,7 @@ function AppContent() {
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
 
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
@@ -50,11 +49,21 @@ export default function App() {
   });
 
   useEffect(() => {
-    if (fontsLoaded) {
+    // Proceed whether fonts loaded or errored — don't hang forever
+    if (fontsLoaded || fontError) {
       setAppIsReady(true);
-      SplashScreen.hideAsync();
+      SplashScreen.hideAsync().catch(() => {});
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, fontError]);
+
+  // Safety timeout: if fonts don't resolve in 5s, proceed anyway
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setAppIsReady(true);
+      SplashScreen.hideAsync().catch(() => {});
+    }, 5000);
+    return () => clearTimeout(timeout);
+  }, []);
 
   if (!appIsReady) return null;
 
