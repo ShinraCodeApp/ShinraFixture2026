@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { MaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useMatchDetail } from '../../hooks/useMatchDetail';
@@ -23,7 +23,7 @@ import { CommentSection } from '../../components/community/CommentSection';
 import { AIAnalysisCard } from '../../components/ai/AIAnalysisCard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const Tab = MaterialTopTabNavigator();
+const Tab = createMaterialTopTabNavigator();
 
 export function MatchDetailScreen() {
   const navigation = useNavigation();

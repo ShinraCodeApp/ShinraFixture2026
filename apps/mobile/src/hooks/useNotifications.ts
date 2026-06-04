@@ -7,20 +7,23 @@ import { AppDispatch } from '../store';
 import { apiService } from '../services/api';
 import { logger } from '../utils/logger';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
-
 export function useNotifications() {
   const dispatch = useDispatch<AppDispatch>();
   const notificationListener = useRef<any>();
   const responseListener = useRef<any>();
 
   useEffect(() => {
+    try {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+        }),
+      });
+    } catch (e) {
+      logger.warn('setNotificationHandler failed:', e);
+    }
     registerForPushNotificationsAsync().then(async (token) => {
       if (token) {
         try {

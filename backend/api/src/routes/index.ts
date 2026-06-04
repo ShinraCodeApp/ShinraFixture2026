@@ -13,6 +13,7 @@ import { simulatorRoutes } from './simulator.routes';
 import { statsRoutes } from './stats.routes';
 import { adminRoutes } from './admin.routes';
 import { paymentRoutes } from './payments.routes';
+import { tournamentRoutes } from './tournaments.routes';
 
 export const router = Router();
 
@@ -30,6 +31,7 @@ router.use('/simulator', simulatorRoutes);
 router.use('/stats', statsRoutes);
 router.use('/admin', adminRoutes);
 router.use('/payments', paymentRoutes);
+router.use('/tournaments', tournamentRoutes);
 
 router.get('/', (_req, res) => {
   res.json({
@@ -39,7 +41,7 @@ router.get('/', (_req, res) => {
     endpoints: [
       '/auth', '/matches', '/teams', '/players', '/predictions',
       '/quiniela', '/users', '/community', '/notifications',
-      '/news', '/simulator', '/stats', '/admin', '/payments',
+      '/news', '/simulator', '/stats', '/admin', '/payments', '/tournaments',
     ],
   });
 });

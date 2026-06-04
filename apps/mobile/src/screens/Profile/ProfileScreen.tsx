@@ -1,18 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, Switch, Alert,
+  Image, Switch, Alert, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MotiView } from 'moti';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
 import { logout } from '../../store/slices/authSlice';
+import { setProfilePhoto } from '../../store/slices/settingsSlice';
+import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme';
 
 const XP_PER_LEVEL = [0, 100, 250, 500, 1000, 2500, 5000, 10000, 20000, 50000];
@@ -22,7 +23,27 @@ export function ProfileScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { appColors, isDark, toggleTheme } = useAppTheme();
   const { user } = useSelector((state: RootState) => state.auth);
+  const { favoriteTeam, profilePhotoUri } = useSelector((state: RootState) => state.settings);
   const [notificationsOn, setNotificationsOn] = useState(user?.predictionPoints !== undefined);
+
+  const handlePickPhoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galería para cambiar la foto.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      dispatch(setProfilePhoto(result.assets[0].uri));
+    }
+  };
+
+  const avatarUri = profilePhotoUri ?? user?.avatar ?? favoriteTeam?.flagUrl ?? null;
 
   const handleLogout = () => {
     Alert.alert('Cerrar sesión', '¿Estás seguro?', [
@@ -34,6 +55,15 @@ export function ProfileScreen() {
   const currentLevelXP = XP_PER_LEVEL[Math.min(user?.level ?? 1, XP_PER_LEVEL.length - 1)] ?? 0;
   const nextLevelXP = XP_PER_LEVEL[Math.min((user?.level ?? 1) + 1, XP_PER_LEVEL.length - 1)] ?? 0;
   const xpProgress = nextLevelXP > 0 ? ((user?.xp ?? 0) - currentLevelXP) / (nextLevelXP - currentLevelXP) : 1;
+
+  const xpAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(xpAnim, {
+      toValue: Math.min(xpProgress * 100, 100),
+      duration: 1000,
+      useNativeDriver: false,
+    }).start();
+  }, [xpProgress]);
 
   const menuItems = [
     { icon: 'heart', label: 'Equipos favoritos', onPress: () => {} },
@@ -52,20 +82,35 @@ export function ProfileScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* ── Hero ──────────────────────────────────── */}
         <LinearGradient colors={['#0D47A1', '#1565C0', '#0D47A1']} style={styles.hero}>
-          <View style={styles.avatarContainer}>
-            {user?.avatar ? (
-              <Image source={{ uri: user.avatar }} style={styles.avatar} />
+          <TouchableOpacity style={styles.avatarContainer} onPress={handlePickPhoto} activeOpacity={0.85}>
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
                 <Text style={styles.avatarInitial}>{user?.displayName?.[0]?.toUpperCase() ?? 'U'}</Text>
               </View>
             )}
+            {/* Camera badge */}
+            <View style={styles.cameraBadge}>
+              <MaterialCommunityIcons name="camera" size={12} color="white" />
+            </View>
             {user?.isPremium && (
               <View style={styles.premiumBadge}>
                 <MaterialCommunityIcons name="crown" size={12} color={colors.accent} />
               </View>
             )}
-          </View>
+          </TouchableOpacity>
+
+          {/* Favorite team badge top-right */}
+          {favoriteTeam?.flagUrl && (
+            <TouchableOpacity
+              style={styles.favoriteTeamBadge}
+              onPress={() => navigation.navigate('Settings')}
+              activeOpacity={0.8}
+            >
+              <Image source={{ uri: favoriteTeam.flagUrl }} style={styles.favoriteTeamFlag} />
+            </TouchableOpacity>
+          )}
 
           <Text style={styles.displayName}>{user?.displayName ?? 'Usuario'}</Text>
           <Text style={styles.username}>@{user?.username ?? 'username'}</Text>
@@ -77,11 +122,11 @@ export function ProfileScreen() {
               <Text style={styles.levelText}>Nivel {user?.level ?? 1}</Text>
             </View>
             <View style={styles.xpBar}>
-              <MotiView
-                from={{ width: '0%' }}
-                animate={{ width: `${Math.min(xpProgress * 100, 100)}%` as any }}
-                transition={{ type: 'timing', duration: 1000 }}
-                style={styles.xpFill}
+              <Animated.View
+                style={[
+                  styles.xpFill,
+                  { width: xpAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }) },
+                ]}
               />
             </View>
             <Text style={styles.xpText}>{user?.xp ?? 0} XP</Text>
@@ -175,12 +220,25 @@ const styles = StyleSheet.create({
   avatar: { width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: 'rgba(255,255,255,0.3)' },
   avatarPlaceholder: { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   avatarInitial: { color: 'white', fontSize: typography.fontSize.xxxl, fontFamily: typography.fontFamily.bold },
+  cameraBadge: {
+    position: 'absolute', bottom: 2, left: 2,
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: 'white',
+  },
   premiumBadge: {
     position: 'absolute', bottom: 0, right: 0,
     width: 22, height: 22, borderRadius: 11,
     backgroundColor: '#1565C0', alignItems: 'center', justifyContent: 'center',
     borderWidth: 2, borderColor: 'white',
   },
+  favoriteTeamBadge: {
+    position: 'absolute', top: 0, right: spacing.screen,
+    borderRadius: 8, overflow: 'hidden',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)',
+    ...shadows.md,
+  },
+  favoriteTeamFlag: { width: 44, height: 30 },
   displayName: { color: 'white', fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold },
   username: { color: 'rgba(255,255,255,0.7)', fontSize: typography.fontSize.sm, marginBottom: spacing.base },
   levelContainer: { width: '100%', marginBottom: spacing.base },

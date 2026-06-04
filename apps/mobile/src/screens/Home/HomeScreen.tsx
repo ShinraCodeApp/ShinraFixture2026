@@ -1,19 +1,19 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, RefreshControl,
-  TouchableOpacity, ImageBackground, Dimensions,
+  TouchableOpacity, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { FlashList } from '@shopify/flash-list';
-import { MotiView } from 'moti';
+import { useQuery } from '@tanstack/react-query';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useMatches } from '../../hooks/useMatches';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
+import { apiService } from '../../services/api';
 import { colors, spacing, borderRadius, typography } from '../../theme';
 import { MatchCard } from '../../components/match/MatchCard';
 import { LiveMatchCard } from '../../components/match/LiveMatchCard';
@@ -26,12 +26,81 @@ import { QuickPredictionCard } from '../../components/predictions/QuickPredictio
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const WC_START_DATE = new Date('2026-06-11T16:00:00Z');
 
+// ── Colores y datos por tipo de torneo ────────────────
+const TOURNAMENT_THEME: Record<string, { emoji: string; colors: [string, string]; label: string }> = {
+  WORLD_CUP:        { emoji: '🌍', colors: ['#003087', '#0D47A1'], label: 'Mundial' },
+  COPA_AMERICA:     { emoji: '🏆', colors: ['#1B5E20', '#2E7D32'], label: 'Copa América' },
+  EURO:             { emoji: '⭐', colors: ['#1A237E', '#283593'], label: 'Eurocopa' },
+  NATIONS_LEAGUE:   { emoji: '🏅', colors: ['#4A148C', '#6A1B9A'], label: 'Nations League' },
+  CHAMPIONS_LEAGUE: { emoji: '👑', colors: ['#1A1A2E', '#16213E'], label: 'Champions' },
+  LIBERTADORES:     { emoji: '🦅', colors: ['#B71C1C', '#C62828'], label: 'Libertadores' },
+  FRIENDLY:         { emoji: '🤝', colors: ['#37474F', '#455A64'], label: 'Amistoso' },
+};
+
+const TILE_GAP = spacing.sm;
+const TILE_SIZE = (SCREEN_WIDTH - spacing.screen * 2 - TILE_GAP) / 2;
+
+function TournamentTile({ tournament, onPress }: { tournament: any; onPress: () => void }) {
+  const theme = TOURNAMENT_THEME[tournament.type] ?? TOURNAMENT_THEME.FRIENDLY;
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.82} style={tileStyles.wrapper}>
+      <LinearGradient colors={theme.colors} style={tileStyles.tile}>
+        <Text style={tileStyles.emoji}>{theme.emoji}</Text>
+        <Text style={tileStyles.name} numberOfLines={2}>{tournament.shortName}</Text>
+        <View style={tileStyles.cta}>
+          <MaterialCommunityIcons name="lightning-bolt" size={12} color={colors.accent} />
+          <Text style={tileStyles.ctaText}>Predecir</Text>
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+}
+
+const tileStyles = StyleSheet.create({
+  wrapper: { width: TILE_SIZE },
+  tile: {
+    width: TILE_SIZE, height: TILE_SIZE,
+    borderRadius: borderRadius.xl,
+    padding: spacing.base,
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+  },
+  emoji: { fontSize: 36 },
+  name: {
+    color: 'white',
+    fontFamily: typography.fontFamily.bold,
+    fontSize: typography.fontSize.sm,
+    lineHeight: 18,
+    flex: 1,
+    marginTop: spacing.xs,
+  },
+  cta: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: borderRadius.full,
+  },
+  ctaText: {
+    color: colors.accent,
+    fontSize: typography.fontSize.xs,
+    fontFamily: typography.fontFamily.semiBold,
+  },
+});
+
 export function HomeScreen() {
   const navigation = useNavigation<any>();
   const { appColors, isDark } = useAppTheme();
   const { user } = useSelector((state: RootState) => state.auth);
   const { liveMatches, todayMatches, upcomingMatches, isLoading, refetch } = useMatches();
   const scrollRef = useRef<ScrollView>(null);
+
+  const { data: tournaments = [] } = useQuery({
+    queryKey: ['tournaments'],
+    queryFn: async () => (await apiService.get('/tournaments')).data.data ?? [],
+    staleTime: 60_000 * 10,
+  });
 
   const headerGradient = isDark
     ? ['#0F172A', '#1E293B', '#0F172A']
@@ -94,6 +163,27 @@ export function HomeScreen() {
             </View>
           </MotiView>
         </LinearGradient>
+
+        {/* ── Elegir torneo para predecir ─────────── */}
+        {tournaments.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: appColors.text }]}>¿Dónde ponés tus puntos?</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('PredictionsTab')}>
+                <Text style={[styles.seeAll, { color: colors.primary }]}>Ver todos</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.tilesGrid}>
+              {tournaments.map((t: any) => (
+                <TournamentTile
+                  key={t.id}
+                  tournament={t}
+                  onPress={() => navigation.navigate('PredictionsTab', { tournamentId: t.id, tournamentName: t.shortName })}
+                />
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* ── Live Matches ─────────────────────────── */}
         {liveMatches.length > 0 && (
@@ -228,6 +318,11 @@ const styles = StyleSheet.create({
   statItem: { flex: 1, alignItems: 'center', gap: 2 },
   statValue: { color: 'white', fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold },
   statLabel: { color: 'rgba(255,255,255,0.7)', fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.regular, textAlign: 'center' },
+  tilesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: TILE_GAP,
+  },
   section: { paddingHorizontal: spacing.screen, paddingTop: spacing.xl },
   lastSection: { paddingBottom: spacing.xxxl },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },

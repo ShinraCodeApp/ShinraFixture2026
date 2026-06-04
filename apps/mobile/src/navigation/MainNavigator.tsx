@@ -16,6 +16,7 @@ import { TeamDetailScreen } from '../screens/Teams/TeamDetailScreen';
 import { PredictionsScreen } from '../screens/Predictions/PredictionsScreen';
 import { CommunityScreen } from '../screens/Community/CommunityScreen';
 import { ProfileScreen } from '../screens/Profile/ProfileScreen';
+import { SettingsScreen } from '../screens/Settings/SettingsScreen';
 import { SimulatorScreen } from '../screens/Simulator/SimulatorScreen';
 import { StatsScreen } from '../screens/Stats/StatsScreen';
 import { NewsScreen } from '../screens/News/NewsScreen';
@@ -59,6 +60,15 @@ function PredictionsStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Predictions" component={PredictionsScreen} />
       <Stack.Screen name="Quiniela" component={QuinielaScreen} />
+    </Stack.Navigator>
+  );
+}
+
+function ProfileStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
 }
@@ -132,7 +142,7 @@ export function MainNavigator() {
       />
       <Tab.Screen
         name="ProfileTab"
-        component={ProfileScreen}
+        component={ProfileStack}
         options={{ tabBarLabel: 'Perfil', tabBarIcon: ProfileIcon }}
       />
     </Tab.Navigator>

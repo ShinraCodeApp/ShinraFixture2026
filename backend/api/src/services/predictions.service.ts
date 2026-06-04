@@ -130,8 +130,8 @@ export class PredictionService {
     await prisma.prediction.delete({ where: { userId_matchId: { userId, matchId } } });
   }
 
-  static async getGlobalRanking(tournamentId: string, page = 1, limit = 20) {
-    const cacheKey = `ranking:global:${tournamentId}:${page}`;
+  static async getGlobalRanking(tournamentId: string | undefined, page = 1, limit = 20) {
+    const cacheKey = `ranking:global:${tournamentId ?? 'all'}:${page}`;
     const cached = await cache.get(cacheKey);
     if (cached) return cached;
 

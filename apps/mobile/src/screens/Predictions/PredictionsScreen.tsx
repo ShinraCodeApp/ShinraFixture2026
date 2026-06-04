@@ -4,7 +4,7 @@ import {
   FlatList, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MotiView } from 'moti';
@@ -24,14 +24,19 @@ type Tab = 'predict' | 'history' | 'ranking';
 
 export function PredictionsScreen() {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { appColors } = useAppTheme();
   const { user } = useSelector((state: RootState) => state.auth);
   const [activeTab, setActiveTab] = useState<Tab>('predict');
 
+  const tournamentId: string | undefined = route.params?.tournamentId;
+  const tournamentName: string | undefined = route.params?.tournamentName;
+
   const { data: upcomingData, isLoading: loadingUpcoming, refetch } = useQuery({
-    queryKey: ['upcoming-matches'],
+    queryKey: ['upcoming-matches', tournamentId],
     queryFn: async () => {
-      const r = await apiService.get('/matches/upcoming?days=7');
+      const qs = tournamentId ? `&tournamentId=${tournamentId}` : '';
+      const r = await apiService.get(`/matches/upcoming?days=30${qs}`);
       return r.data.data;
     },
   });
@@ -72,8 +77,17 @@ export function PredictionsScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>
       {/* ── Header ─────────────────────────────────── */}
       <LinearGradient colors={['#1565C0', '#0D47A1']} style={styles.header}>
-        <Text style={styles.headerTitle}>Predicciones</Text>
-        <Text style={styles.headerSubtitle}>FIFA World Cup 2026™</Text>
+        <View style={styles.headerTop}>
+          {tournamentId ? (
+            <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="chevron-back" size={24} color="white" />
+            </TouchableOpacity>
+          ) : <View style={{ width: 24 }} />}
+          <View style={{ flex: 1, marginLeft: tournamentId ? spacing.sm : 0 }}>
+            <Text style={styles.headerTitle}>Predicciones</Text>
+            <Text style={styles.headerSubtitle}>{tournamentName ?? 'FIFA World Cup 2026™'}</Text>
+          </View>
+        </View>
 
         {/* Stats Row */}
         <View style={styles.statsRow}>
@@ -192,6 +206,7 @@ export function PredictionsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { padding: spacing.screen, paddingBottom: spacing.xl },
+  headerTop: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
   headerTitle: { color: 'white', fontSize: typography.fontSize.xxl, fontFamily: typography.fontFamily.bold },
   headerSubtitle: { color: 'rgba(255,255,255,0.7)', fontSize: typography.fontSize.sm, marginBottom: spacing.base },
   statsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.base },

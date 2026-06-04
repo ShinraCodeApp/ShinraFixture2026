@@ -2,89 +2,111 @@ import { createClient, RedisClientType } from 'redis';
 import { logger } from '../utils/logger';
 import { config } from './index';
 
-let redisClient: RedisClientType;
+let redisClient: RedisClientType | null = null;
+let redisAvailable = false;
 
-export function getRedisClient(): RedisClientType {
+export function getRedisClient(): RedisClientType | null {
   return redisClient;
 }
 
 export async function connectRedis(): Promise<void> {
-  redisClient = createClient({
-    url: config.redis.url,
-    socket: {
-      reconnectStrategy: (retries) => {
-        if (retries > 10) {
-          logger.error('Too many Redis reconnect attempts');
-          return new Error('Too many retries');
-        }
-        return Math.min(retries * 100, 3000);
+  try {
+    redisClient = createClient({
+      url: config.redis.url,
+      socket: {
+        connectTimeout: 3000,
+        reconnectStrategy: (retries) => {
+          if (retries > 3) return false;
+          return Math.min(retries * 200, 1000);
+        },
       },
-    },
-  }) as RedisClientType;
+    }) as RedisClientType;
 
-  redisClient.on('error', (err) => logger.error('Redis error:', err));
-  redisClient.on('connect', () => logger.info('Redis connected'));
-  redisClient.on('reconnecting', () => logger.warn('Redis reconnecting...'));
+    redisClient.on('error', () => {});
+    redisClient.on('connect', () => {
+      redisAvailable = true;
+      logger.info('Redis connected');
+    });
 
-  await redisClient.connect();
+    await redisClient.connect();
+    redisAvailable = true;
+  } catch {
+    logger.warn('Redis not available — running without cache');
+    redisClient = null;
+    redisAvailable = false;
+  }
 }
 
 export class CacheService {
-  private client: RedisClientType;
   private defaultTtl: number;
 
   constructor(ttl?: number) {
-    this.client = getRedisClient();
     this.defaultTtl = ttl ?? config.redis.ttl;
   }
 
   async get<T>(key: string): Promise<T | null> {
-    const value = await this.client.get(key);
-    if (!value) return null;
-    return JSON.parse(value) as T;
+    if (!redisClient || !redisAvailable) return null;
+    try {
+      const value = await redisClient.get(key);
+      if (!value) return null;
+      return JSON.parse(value) as T;
+    } catch { return null; }
   }
 
   async set<T>(key: string, value: T, ttl?: number): Promise<void> {
-    await this.client.setEx(key, ttl ?? this.defaultTtl, JSON.stringify(value));
+    if (!redisClient || !redisAvailable) return;
+    try {
+      await redisClient.setEx(key, ttl ?? this.defaultTtl, JSON.stringify(value));
+    } catch {}
   }
 
   async del(key: string): Promise<void> {
-    await this.client.del(key);
+    if (!redisClient || !redisAvailable) return;
+    try { await redisClient.del(key); } catch {}
   }
 
   async delPattern(pattern: string): Promise<void> {
-    const keys = await this.client.keys(pattern);
-    if (keys.length > 0) {
-      await this.client.del(keys);
-    }
+    if (!redisClient || !redisAvailable) return;
+    try {
+      const keys = await redisClient.keys(pattern);
+      if (keys.length > 0) await redisClient.del(keys);
+    } catch {}
   }
 
   async exists(key: string): Promise<boolean> {
-    const result = await this.client.exists(key);
-    return result === 1;
+    if (!redisClient || !redisAvailable) return false;
+    try {
+      return (await redisClient.exists(key)) === 1;
+    } catch { return false; }
   }
 
   async ttl(key: string): Promise<number> {
-    return this.client.ttl(key);
+    if (!redisClient || !redisAvailable) return -1;
+    try { return redisClient.ttl(key); } catch { return -1; }
   }
 
   async incr(key: string): Promise<number> {
-    return this.client.incr(key);
+    if (!redisClient || !redisAvailable) return 0;
+    try { return redisClient.incr(key); } catch { return 0; }
   }
 
   async hSet(key: string, field: string, value: string): Promise<void> {
-    await this.client.hSet(key, field, value);
+    if (!redisClient || !redisAvailable) return;
+    try { await redisClient.hSet(key, field, value); } catch {}
   }
 
   async hGet(key: string, field: string): Promise<string | null> {
-    return this.client.hGet(key, field);
+    if (!redisClient || !redisAvailable) return null;
+    try { return redisClient.hGet(key, field); } catch { return null; }
   }
 
   async hGetAll(key: string): Promise<Record<string, string>> {
-    return this.client.hGetAll(key);
+    if (!redisClient || !redisAvailable) return {};
+    try { return redisClient.hGetAll(key); } catch { return {}; }
   }
 
   async publish(channel: string, message: string): Promise<void> {
-    await this.client.publish(channel, message);
+    if (!redisClient || !redisAvailable) return;
+    try { await redisClient.publish(channel, message); } catch {}
   }
 }

@@ -7,6 +7,7 @@ interface UseMatchesParams {
   status?: string;
   date?: string;
   teamId?: string;
+  tournamentId?: string;
 }
 
 export function useMatches(params: UseMatchesParams = {}) {
