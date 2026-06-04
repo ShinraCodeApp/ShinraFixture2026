@@ -1,0 +1,10 @@
+backend/
+apps/web/
+apps/admin/
+infrastructure/
+.github/
+docker-compose.yml
+ARCHITECTURE.md
+README.md
+apps/mobile/node_modules/
+node_modules/

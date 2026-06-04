@@ -1,0 +1,9 @@
+../../backend
+../../apps/web
+../../apps/admin
+../../infrastructure
+../../.github
+../../docker-compose.yml
+../../ARCHITECTURE.md
+../../README.md
+node_modules
