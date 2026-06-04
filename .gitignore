@@ -85,3 +85,4 @@ apps/mobile/*.p12
 apps/mobile/*.mobileprovision
 apps/mobile/*.orig.*
 apps/mobile/web-build/
+.claude/
