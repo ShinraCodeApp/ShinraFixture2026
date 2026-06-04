@@ -6,7 +6,7 @@ import 'dayjs/locale/es';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme';
-import { TeamLogo } from './TeamLogo';
+import { TeamLogo } from '../common/TeamLogo';
 import { MatchStatusBadge } from './MatchStatusBadge';
 
 dayjs.locale('es');

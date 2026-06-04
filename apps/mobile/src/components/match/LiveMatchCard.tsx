@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, borderRadius } from '../../theme';
-import { TeamLogo } from './TeamLogo';
+import { TeamLogo } from '../common/TeamLogo';
 
 interface LiveMatchCardProps {
   match: {
