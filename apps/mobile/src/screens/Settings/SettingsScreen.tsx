@@ -16,7 +16,7 @@ import { colors, spacing, typography, borderRadius, shadows } from '../../theme'
 import { TeamPickerModal } from '../../components/common/TeamPickerModal';
 
 const APK_BUILD_URL =
-  'https://expo.dev/artifacts/eas/k9iRuLDPasnJWq3A6ot8yG.apk';
+  'https://github.com/ShinraCodeApp/ShinraFixture2026/releases/download/v1.0.0/ShinraFixture2026-v1.0.0.apk';
 
 const ICONS: { id: AppIconId; label: string; description: string; image: ReturnType<typeof require> }[] = [
   {
@@ -294,6 +294,35 @@ export function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* ── Redes ShinraCode ─────────────────── */}
+        <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>SHINRACODE</Text>
+        <View style={[styles.card, { backgroundColor: appColors.surface }]}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => Linking.openURL('https://shinracode.com')}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons name="web" size={20} color="#1565C0" />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.rowLabel, { color: appColors.text }]}>sitio web</Text>
+              <Text style={[styles.rowValue, { color: appColors.textSecondary }]}>shinracode.com</Text>
+            </View>
+            <Ionicons name="open-outline" size={16} color={appColors.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.row, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: appColors.border }]}
+            onPress={() => Linking.openURL('https://instagram.com/Shinracode')}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons name="instagram" size={20} color="#E1306C" />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.rowLabel, { color: appColors.text }]}>Instagram</Text>
+              <Text style={[styles.rowValue, { color: appColors.textSecondary }]}>@Shinracode</Text>
+            </View>
+            <Ionicons name="open-outline" size={16} color={appColors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
         {/* ── Branding ─────────────────────────── */}
         <View style={styles.branding}>
           <Image
@@ -303,7 +332,7 @@ export function SettingsScreen() {
           />
           <View style={styles.brandText}>
             <Text style={[styles.brandTitle, { color: appColors.text }]}>ShinraCode</Text>
-            <Text style={[styles.brandSub, { color: appColors.textSecondary }]}>Programador Yamil.D.Rueda</Text>
+            <Text style={[styles.brandSub, { color: appColors.textSecondary }]}>Desarrollado por Yamil D. Rueda</Text>
           </View>
         </View>
 
