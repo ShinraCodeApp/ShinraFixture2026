@@ -26,15 +26,22 @@ function mapESPNEventType(text: string): string | null {
   return null;
 }
 
-// Sync today's international matches from ESPN scoreboard
+// Sync today + next 6 days of international matches from ESPN scoreboard
 matchRoutes.post('/espn-sync', async (req, res) => {
   try {
     const today = dayjs().format('YYYYMMDD');
-    // Try multiple ESPN endpoints; FIFA.WORLD (undated) returns live/upcoming WC matches
+
+    // Build date range: today + 6 days ahead
+    const dates: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      dates.push(dayjs().add(i, 'day').format('YYYYMMDD'));
+    }
+
     const urls = [
       `https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.WORLD/scoreboard`,
       `https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.WORLD/scoreboard?dates=${today}&limit=50`,
-      `https://site.api.espn.com/apis/site/v2/sports/soccer/scoreboard?dates=${today}&limit=100`,
+      // General soccer scoreboard for today + next 6 days
+      ...dates.map(d => `https://site.api.espn.com/apis/site/v2/sports/soccer/scoreboard?dates=${d}&limit=100`),
     ];
 
     const events: any[] = [];

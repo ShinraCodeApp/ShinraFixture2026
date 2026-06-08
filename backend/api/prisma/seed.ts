@@ -510,7 +510,53 @@ async function seedFriendlyMatches() {
     // 8 junio
     { homeCode:'ENG', homeName:'Inglaterra',      awayCode:'NZL', awayName:'Nueva Zelanda',
       date:'2026-06-08T19:00:00Z', venue:'Wembley Stadium',                city:'Londres',         country:'England',        status:'FINISHED', homeScore:2, awayScore:0 },
-    // 9 junio — segunda fecha ventana FIFA
+    { homeCode:'NED', homeName:'Países Bajos',    awayCode:'UZB', awayName:'Uzbekistán',
+      date:'2026-06-08T18:00:00Z', venue:'Icahn Stadium',                  city:'New York City',   country:'United States',  status:'FINISHED' },
+    { homeCode:'FRA', homeName:'Francia',         awayCode:'NIR', awayName:'Irlanda del Norte',
+      date:'2026-06-08T19:00:00Z', venue:'Decathlon Arena - Stade Pierre-Mauroy', city:'Lille',   country:'France',         status:'FINISHED' },
+    { homeCode:'PER', homeName:'Perú',            awayCode:'ESP', awayName:'España',
+      date:'2026-06-09T02:00:00Z', venue:'Estadio Cuauhtémoc',             city:'Puebla',          country:'Mexico',         status:'SCHEDULED' },
+    // 9 junio — segunda fecha ventana FIFA + amistosos
+    { homeCode:'KHM', homeName:'Cambodia',        awayCode:'HKG', awayName:'Hong Kong',
+      date:'2026-06-09T10:00:00Z', venue:'National Olympic Stadium',       city:'Phnom Penh',      country:'Cambodia',       status:'SCHEDULED' },
+    { homeCode:'PHI', homeName:'Filipinas',       awayCode:'MYA', awayName:'Myanmar',
+      date:'2026-06-09T11:30:00Z', venue:'Rizal Memorial Stadium',         city:'Manila',          country:'Philippines',    status:'SCHEDULED' },
+    { homeCode:'CHN', homeName:'China',           awayCode:'THA', awayName:'Tailandia',
+      date:'2026-06-09T11:35:00Z', venue:'--',                             city:'--',              country:'China',          status:'SCHEDULED' },
+    { homeCode:'ANG', homeName:'Angola',          awayCode:'CAR', awayName:'Rep. Centroafricana',
+      date:'2026-06-09T12:00:00Z', venue:'--',                             city:'--',              country:'--',             status:'SCHEDULED' },
+    { homeCode:'ETH', homeName:'Ethiopia',        awayCode:'MWI', awayName:'Malawi',
+      date:'2026-06-09T12:00:00Z', venue:'Addis Ababa Stadium',            city:'Addis Ababa',     country:'Ethiopia',       status:'SCHEDULED' },
+    { homeCode:'OMA', homeName:'Omán',            awayCode:'KUW', awayName:'Kuwait',
+      date:'2026-06-09T12:00:00Z', venue:'Rajamangala National Stadium',   city:'Bangkok',         country:'Thailand',       status:'SCHEDULED' },
+    { homeCode:'IDN', homeName:'Indonesia',       awayCode:'MOZ', awayName:'Mozambique',
+      date:'2026-06-09T13:00:00Z', venue:'Gelora Bung Karno Stadium',      city:'Jakarta',         country:'Indonesia',      status:'SCHEDULED' },
+    { homeCode:'BHR', homeName:'Baréin',          awayCode:'SYR', awayName:'Siria',
+      date:'2026-06-09T14:00:00Z', venue:'Gloria Sports Arena',            city:'Belek',           country:'Turkey',         status:'SCHEDULED' },
+    { homeCode:'KGZ', homeName:'Kirguistán',      awayCode:'PLE', awayName:'Palestina',
+      date:'2026-06-09T14:30:00Z', venue:'Dolen Omurzakov Stadium',        city:'Bishkek',         country:'Kyrgyzstan',     status:'SCHEDULED' },
+    { homeCode:'ARM', homeName:'Armenia',         awayCode:'MDA', awayName:'Moldavia',
+      date:'2026-06-09T15:00:00Z', venue:'Vazgen Sargsyan Stadium',        city:'Ereván',          country:'Armenia',        status:'SCHEDULED' },
+    { homeCode:'COD', homeName:'RD del Congo',    awayCode:'CHI', awayName:'Chile',
+      date:'2026-06-09T16:00:00Z', venue:'Stade de la Source',             city:'Orleans',         country:'France',         status:'SCHEDULED' },
+    { homeCode:'EQG', homeName:'Guinea Ecuatorial',awayCode:'COM', awayName:'Comoros',
+      date:'2026-06-09T16:00:00Z', venue:'Stade de Marrakech',             city:'Marrakech',       country:'Morocco',        status:'SCHEDULED' },
+    { homeCode:'TAN', homeName:'Tanzania',        awayCode:'RWA', awayName:'Rwanda',
+      date:'2026-06-09T16:00:00Z', venue:'Stade de Marrakech',             city:'Marrakech',       country:'Morocco',        status:'SCHEDULED' },
+    { homeCode:'BLR', homeName:'Belarus',         awayCode:'BFA', awayName:'Burkina Faso',
+      date:'2026-06-09T16:30:00Z', venue:'--',                             city:'--',              country:'--',             status:'SCHEDULED' },
+    { homeCode:'HUN', homeName:'Hungría',         awayCode:'KAZ', awayName:'Kazajistán',
+      date:'2026-06-09T17:00:00Z', venue:'Nagyerdei Stadium',              city:'Debrecen',        country:'Hungary',        status:'SCHEDULED' },
+    { homeCode:'RUS', homeName:'Rusia',           awayCode:'TRI', awayName:'Trinidad y Tobago',
+      date:'2026-06-09T17:00:00Z', venue:'Kaliningrad Stadium',            city:'Kaliningrado',    country:'Russia',         status:'SCHEDULED' },
+    { homeCode:'AZE', homeName:'Azerbaiyán',      awayCode:'SMR', awayName:'San Marino',
+      date:'2026-06-09T18:00:00Z', venue:'Szombathelyi Haladás Stadion',   city:'Szombathely',     country:'Hungary',        status:'SCHEDULED' },
+    { homeCode:'KSA', homeName:'Arabia Saudita',  awayCode:'SEN', awayName:'Senegal',
+      date:'2026-06-09T23:00:00Z', venue:'Toyota Field',                   city:'San Antonio',     country:'United States',  status:'SCHEDULED' },
+    { homeCode:'ARG', homeName:'Argentina',       awayCode:'ISL', awayName:'Islandia',
+      date:'2026-06-10T01:00:00Z', venue:'--',                             city:'--',              country:'--',             status:'SCHEDULED' },
+    { homeCode:'IRQ', homeName:'Irak',            awayCode:'VEN', awayName:'Venezuela',
+      date:'2026-06-10T01:00:00Z', venue:'SeatGeek Stadium',               city:'Bridgeview',      country:'United States',  status:'SCHEDULED' },
     { homeCode:'ARG', homeName:'Argentina',       awayCode:'URU', awayName:'Uruguay',
       date:'2026-06-09T21:00:00Z', venue:'Estadio Monumental',             city:'Buenos Aires',    country:'Argentina',      status:'SCHEDULED' },
     { homeCode:'BRA', homeName:'Brasil',          awayCode:'COL', awayName:'Colombia',
@@ -529,6 +575,16 @@ async function seedFriendlyMatches() {
       date:'2026-06-09T20:45:00Z', venue:'Stade Roi Baudouin',             city:'Bruselas',        country:'Belgium',        status:'SCHEDULED' },
     { homeCode:'JPN', homeName:'Japón',           awayCode:'KOR', awayName:'Corea del Sur',
       date:'2026-06-09T11:00:00Z', venue:'Japan National Stadium',         city:'Tokio',           country:'Japan',          status:'SCHEDULED' },
+    // 10 junio
+    { homeCode:'POR', homeName:'Portugal',        awayCode:'NGA', awayName:'Nigeria',
+      date:'2026-06-10T19:45:00Z', venue:'Estádio Dr. Magalhaes Pessoa',   city:'Leiria',          country:'Portugal',       status:'SCHEDULED' },
+    { homeCode:'ENG', homeName:'Inglaterra',      awayCode:'CRC', awayName:'Costa Rica',
+      date:'2026-06-10T20:00:00Z', venue:'Inter&Co Stadium',               city:'Orlando',         country:'United States',  status:'SCHEDULED' },
+    { homeCode:'BOL', homeName:'Bolivia',         awayCode:'ALG', awayName:'Argelia',
+      date:'2026-06-11T00:00:00Z', venue:'--',                             city:'--',              country:'--',             status:'SCHEDULED' },
+    // 11 junio
+    { homeCode:'AUT', homeName:'Austria',         awayCode:'GUA', awayName:'Guatemala',
+      date:'2026-06-11T04:00:00Z', venue:'Rose Bowl',                      city:'Pasadena',        country:'United States',  status:'SCHEDULED' },
     // Post-Mundial (septiembre–noviembre 2026)
     { homeCode:'ARG', homeName:'Argentina',       awayCode:'BRA', awayName:'Brasil',
       date:'2026-09-06T21:00:00Z', venue:'Estadio Monumental',             city:'Buenos Aires',    country:'Argentina',      status:'SCHEDULED' },
@@ -568,6 +624,49 @@ async function seedFriendlyMatches() {
     ['CONCACAF', 'GUA', 'Guatemala',       'https://flagcdn.com/w40/gt.png'],
     ['OFC',      'NZL', 'Nueva Zelanda',   'https://flagcdn.com/w40/nz.png'],
     ['UEFA',     'CRO', 'Croacia',         'https://flagcdn.com/w40/hr.png'],
+    // Nuevos equipos junio 2026
+    ['AFC',      'UZB', 'Uzbekistán',      'https://flagcdn.com/w40/uz.png'],
+    ['UEFA',     'NIR', 'Irlanda del Norte','https://flagcdn.com/w40/gb-nir.png'],
+    ['AFC',      'KHM', 'Cambodia',        'https://flagcdn.com/w40/kh.png'],
+    ['AFC',      'HKG', 'Hong Kong',       'https://flagcdn.com/w40/hk.png'],
+    ['AFC',      'PHI', 'Filipinas',       'https://flagcdn.com/w40/ph.png'],
+    ['AFC',      'MYA', 'Myanmar',         'https://flagcdn.com/w40/mm.png'],
+    ['AFC',      'CHN', 'China',           'https://flagcdn.com/w40/cn.png'],
+    ['AFC',      'THA', 'Tailandia',       'https://flagcdn.com/w40/th.png'],
+    ['CAF',      'ANG', 'Angola',          'https://flagcdn.com/w40/ao.png'],
+    ['CAF',      'CAR', 'Rep. Centroafricana','https://flagcdn.com/w40/cf.png'],
+    ['CAF',      'ETH', 'Ethiopia',        'https://flagcdn.com/w40/et.png'],
+    ['CAF',      'MWI', 'Malawi',          'https://flagcdn.com/w40/mw.png'],
+    ['AFC',      'OMA', 'Omán',            'https://flagcdn.com/w40/om.png'],
+    ['AFC',      'KUW', 'Kuwait',          'https://flagcdn.com/w40/kw.png'],
+    ['AFC',      'IDN', 'Indonesia',       'https://flagcdn.com/w40/id.png'],
+    ['CAF',      'MOZ', 'Mozambique',      'https://flagcdn.com/w40/mz.png'],
+    ['AFC',      'BHR', 'Baréin',          'https://flagcdn.com/w40/bh.png'],
+    ['AFC',      'SYR', 'Siria',           'https://flagcdn.com/w40/sy.png'],
+    ['AFC',      'KGZ', 'Kirguistán',      'https://flagcdn.com/w40/kg.png'],
+    ['AFC',      'PLE', 'Palestina',       'https://flagcdn.com/w40/ps.png'],
+    ['UEFA',     'ARM', 'Armenia',         'https://flagcdn.com/w40/am.png'],
+    ['UEFA',     'MDA', 'Moldavia',        'https://flagcdn.com/w40/md.png'],
+    ['CAF',      'COD', 'RD del Congo',    'https://flagcdn.com/w40/cd.png'],
+    ['CAF',      'EQG', 'Guinea Ecuatorial','https://flagcdn.com/w40/gq.png'],
+    ['CAF',      'COM', 'Comoros',         'https://flagcdn.com/w40/km.png'],
+    ['CAF',      'TAN', 'Tanzania',        'https://flagcdn.com/w40/tz.png'],
+    ['CAF',      'RWA', 'Rwanda',          'https://flagcdn.com/w40/rw.png'],
+    ['UEFA',     'BLR', 'Belarus',         'https://flagcdn.com/w40/by.png'],
+    ['CAF',      'BFA', 'Burkina Faso',    'https://flagcdn.com/w40/bf.png'],
+    ['UEFA',     'HUN', 'Hungría',         'https://flagcdn.com/w40/hu.png'],
+    ['UEFA',     'KAZ', 'Kazajistán',      'https://flagcdn.com/w40/kz.png'],
+    ['UEFA',     'RUS', 'Rusia',           'https://flagcdn.com/w40/ru.png'],
+    ['CONCACAF', 'TRI', 'Trinidad y Tobago','https://flagcdn.com/w40/tt.png'],
+    ['UEFA',     'AZE', 'Azerbaiyán',      'https://flagcdn.com/w40/az.png'],
+    ['UEFA',     'SMR', 'San Marino',      'https://flagcdn.com/w40/sm.png'],
+    ['UEFA',     'ISL', 'Islandia',        'https://flagcdn.com/w40/is.png'],
+    ['CONMEBOL', 'VEN', 'Venezuela',       'https://flagcdn.com/w40/ve.png'],
+    ['CONCACAF', 'CRC', 'Costa Rica',      'https://flagcdn.com/w40/cr.png'],
+    ['CONMEBOL', 'BOL', 'Bolivia',         'https://flagcdn.com/w40/bo.png'],
+    ['UEFA',     'AUT', 'Austria',         'https://flagcdn.com/w40/at.png'],
+    ['AFC',      'KSA', 'Arabia Saudita',  'https://flagcdn.com/w40/sa.png'],
+    ['CAF',      'SEN', 'Senegal',         'https://flagcdn.com/w40/sn.png'],
   ];
   for (const [region, code, name, flag] of EXTRA_TEAMS) await ut(code, name, region, flag);
 
@@ -1840,11 +1939,21 @@ async function seedTeamLogos() {
   console.log('\n🚀 ShinraFixture 2026 is ready!');
 }
 
-main()
-  .catch((e) => {
-    console.error('Seed failed:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+// When called with --friendlies-only, only refresh friendly matches (fast, safe to run on every deploy)
+const friendliesOnly = process.argv.includes('--friendlies-only');
+
+if (friendliesOnly) {
+  seedFriendlyMatches()
+    .then(() => { console.log('✅ Friendly matches refreshed!'); })
+    .catch((e) => { console.error('Friendly seed failed:', e); process.exit(1); })
+    .finally(async () => { await prisma.$disconnect(); });
+} else {
+  main()
+    .catch((e) => {
+      console.error('Seed failed:', e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}
