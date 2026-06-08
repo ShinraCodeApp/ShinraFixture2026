@@ -10,8 +10,7 @@ RUN npm install
 COPY . .
 
 RUN npx prisma generate
-RUN npx tsc --project tsconfig.json --noEmitOnError false || true
 
 EXPOSE 4000
 
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/index.js"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx ts-node --transpile-only src/index.ts"]
