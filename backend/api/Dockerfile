@@ -12,12 +12,18 @@ COPY . .
 
 RUN npx prisma generate
 
-# Compile: esbuild bundles all local TS and resolves path aliases; node_modules stay external
+# Build API server (esbuild resolves @config, @services path aliases)
 RUN npx esbuild src/index.ts --bundle --platform=node --target=node20 \
   --outfile=dist/index.js --packages=external --tsconfig=tsconfig.json \
-  && echo "Build OK: dist/index.js created" \
-  && ls -la dist/index.js
+  && echo "==> dist/index.js OK" && ls -lh dist/index.js
+
+# Build seed script
+RUN npx esbuild prisma/seed.ts --bundle --platform=node --target=node20 \
+  --outfile=dist/seed.js --packages=external --tsconfig=tsconfig.json \
+  && echo "==> dist/seed.js OK"
+
+RUN chmod +x start.sh
 
 EXPOSE 4000
 
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/index.js"]
+CMD ["sh", "start.sh"]
