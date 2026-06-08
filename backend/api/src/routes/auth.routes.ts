@@ -8,9 +8,10 @@ import { z } from 'zod';
 
 const registerSchema = z.object({
   email: z.string().email(),
-  username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/),
+  // Allow optional @@ gifted prefix before the username
+  username: z.string().min(3).max(32).regex(/^(@@)?[a-zA-Z0-9_]+$/),
   displayName: z.string().min(2).max(50),
-  password: z.string().min(8).regex(/^(?=.*[A-Za-z])(?=.*\d).+$/),
+  password: z.string().min(8),
 });
 
 const loginSchema = z.object({

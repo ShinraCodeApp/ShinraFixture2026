@@ -225,6 +225,17 @@ matchRoutes.get('/:id/h2h', MatchController.getHeadToHead);
 matchRoutes.get('/:id/comments', optionalAuth, MatchController.getComments);
 matchRoutes.post('/:id/comments', authenticate, MatchController.addComment);
 
+// AI prediction endpoint — triggers Gemini analysis and caches result
+matchRoutes.post('/:id/ai-predict', async (req, res) => {
+  try {
+    const { AIService } = await import('../services/ai.service');
+    const prediction = await AIService.predictMatch(req.params.id);
+    res.json({ success: true, data: prediction });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Manual result entry + socket emit
 matchRoutes.patch('/:id/score', async (req, res) => {
   const { id } = req.params;

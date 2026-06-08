@@ -36,7 +36,7 @@ export function AIAnalysisCard({ analysis, matchId }: AIAnalysisCardProps) {
           <View style={styles.footer}>
             <MaterialCommunityIcons name="information-outline" size={12} color={appColors.textSecondary} />
             <Text style={[styles.footerText, { color: appColors.textSecondary }]}>
-              Generado por GPT-4 • Solo informativo
+              Generado por Gemini • Solo informativo
             </Text>
           </View>
         </View>

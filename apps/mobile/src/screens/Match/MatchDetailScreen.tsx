@@ -34,6 +34,21 @@ export function MatchDetailScreen() {
   const { appColors, isDark } = useAppTheme();
   const { match, isLoading, refetch } = useMatchDetail(matchId);
   const [activeTab, setActiveTab] = useState('info');
+  const [localAiAnalysis, setLocalAiAnalysis] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const handleGetAI = async () => {
+    setAiLoading(true);
+    try {
+      const { apiService } = await import('../../services/api');
+      const r = await apiService.post(`/matches/${matchId}/ai-predict`, {});
+      setLocalAiAnalysis(r.data.data?.aiAnalysis ?? null);
+    } catch {
+      setLocalAiAnalysis('No se pudo obtener el análisis. Intentá de nuevo más tarde.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const headerGradient = isDark
     ? ['#1E293B', '#0F172A']
@@ -182,7 +197,24 @@ export function MatchDetailScreen() {
           {activeTab === 'info' && (
             <View>
               <EventTimeline events={match.events ?? []} homeTeamId={match.homeTeamId} />
-              {match.aiAnalysis && <AIAnalysisCard analysis={match.aiAnalysis} matchId={matchId} />}
+              {(localAiAnalysis ?? match.aiAnalysis) ? (
+                <AIAnalysisCard analysis={localAiAnalysis ?? match.aiAnalysis!} matchId={matchId} />
+              ) : (
+                <TouchableOpacity
+                  style={[styles.aiButton, aiLoading && styles.aiButtonLoading]}
+                  onPress={handleGetAI}
+                  disabled={aiLoading}
+                >
+                  {aiLoading ? (
+                    <ActivityIndicator size={16} color="white" />
+                  ) : (
+                    <MaterialCommunityIcons name="robot" size={18} color="white" />
+                  )}
+                  <Text style={styles.aiButtonText}>
+                    {aiLoading ? 'Analizando...' : 'Análisis IA Gemini'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
           {activeTab === 'stats' && match.stats && (
@@ -249,4 +281,11 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 11, fontFamily: typography.fontFamily.medium },
   tabIndicator: { position: 'absolute', bottom: 0, left: 8, right: 8, height: 2, borderRadius: 1 },
   content: { padding: spacing.screen, paddingBottom: spacing.xxxl },
+  aiButton: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
+    backgroundColor: colors.primary, borderRadius: borderRadius.lg,
+    paddingVertical: spacing.md, marginBottom: spacing.sm,
+  },
+  aiButtonLoading: { opacity: 0.7 },
+  aiButtonText: { color: 'white', fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.bold },
 });

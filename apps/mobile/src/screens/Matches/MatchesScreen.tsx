@@ -40,6 +40,8 @@ export function MatchesScreen() {
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
   const syncedOnce = useRef(false);
+  const sectionListRef = useRef<SectionList<any>>(null);
+  const scrolledToToday = useRef(false);
   const { language } = useSelector((state: RootState) => state.settings);
   const selectedId = useSelector((state: RootState) => state.tournament.selectedId);
 
@@ -112,6 +114,22 @@ export function MatchesScreen() {
       data,
     }));
 
+  // Auto-scroll to today (or nearest future date) once data loads
+  useEffect(() => {
+    if (sections.length === 0 || scrolledToToday.current) return;
+    const today = dayjs().format('YYYY-MM-DD');
+    const todayIdx = sections.findIndex((s) => s.dateKey >= today);
+    if (todayIdx < 0) return;
+    scrolledToToday.current = true;
+    // Small delay to let SectionList finish layout
+    const t = setTimeout(() => {
+      try {
+        sectionListRef.current?.scrollToLocation({ sectionIndex: todayIdx, itemIndex: 0, animated: true, viewOffset: 0 });
+      } catch { /* ok if not ready */ }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [sections.length]);
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>
       {/* Header */}
@@ -158,6 +176,7 @@ export function MatchesScreen() {
 
       {/* Matches grouped by day */}
       <SectionList
+        ref={sectionListRef}
         sections={sections}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
