@@ -62,9 +62,27 @@ matchRoutes.post('/espn-sync', async (req, res) => {
       const homeCode = homeComp.team?.abbreviation?.toUpperCase();
       const awayCode = awayComp.team?.abbreviation?.toUpperCase();
 
+      const findOrCreateTeam = async (code: string, comp: any) => {
+        if (!code) return null;
+        let team = await prisma.team.findFirst({ where: { code } });
+        if (!team) {
+          const isoCode = code.toLowerCase().slice(0, 2);
+          team = await prisma.team.create({
+            data: {
+              code,
+              name: comp.team?.displayName ?? code,
+              shortName: comp.team?.abbreviation ?? code,
+              flagUrl: comp.team?.logo ?? `https://flagcdn.com/w40/${isoCode}.png`,
+              region: 'UEFA',
+            },
+          });
+        }
+        return team;
+      };
+
       const [homeTeam, awayTeam] = await Promise.all([
-        homeCode ? prisma.team.findFirst({ where: { code: homeCode } }) : null,
-        awayCode ? prisma.team.findFirst({ where: { code: awayCode } }) : null,
+        findOrCreateTeam(homeCode, homeComp),
+        findOrCreateTeam(awayCode, awayComp),
       ]);
       if (!homeTeam || !awayTeam) continue;
 
