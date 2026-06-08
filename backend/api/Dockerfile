@@ -5,7 +5,7 @@ RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /v
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+RUN npm install && npm install tsconfig-paths
 
 COPY . .
 
@@ -13,4 +13,4 @@ RUN npx prisma generate
 
 EXPOSE 4000
 
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx ts-node --transpile-only src/index.ts"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx ts-node -r tsconfig-paths/register --transpile-only src/index.ts"]
