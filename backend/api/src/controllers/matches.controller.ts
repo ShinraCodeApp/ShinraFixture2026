@@ -13,7 +13,7 @@ export class MatchController {
       date: date as string,
       teamId: teamId as string,
       page: parseInt(page as string),
-      limit: Math.min(parseInt(limit as string), 100),
+      limit: Math.min(parseInt(limit as string), 500),
       userId: req.user?.id,
     });
     res.json({ success: true, data: matches });

@@ -11,12 +11,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
-import { setAppIcon, setNotificationsEnabled, setFavoriteTeam, AppIconId, FavoriteTeam } from '../../store/slices/settingsSlice';
+import { setAppIcon, setNotificationsEnabled, setFavoriteTeam, setLanguage, AppIconId, FavoriteTeam } from '../../store/slices/settingsSlice';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme';
 import { TeamPickerModal } from '../../components/common/TeamPickerModal';
 
 const APK_BUILD_URL =
-  'https://expo.dev/accounts/shinracode/projects/shinrafixture-2026/builds/9b069655-1a41-4016-924e-514cacea9e9c';
+  'https://expo.dev/artifacts/eas/k9iRuLDPasnJWq3A6ot8yG.apk';
 
 const ICONS: { id: AppIconId; label: string; description: string; image: ReturnType<typeof require> }[] = [
   {
@@ -37,7 +37,7 @@ export function SettingsScreen() {
   const navigation = useNavigation();
   const dispatch = useDispatch<AppDispatch>();
   const { appColors, isDark, toggleTheme } = useAppTheme();
-  const { appIcon, notificationsEnabled, favoriteTeam } = useSelector((state: RootState) => state.settings);
+  const { appIcon, notificationsEnabled, favoriteTeam, language } = useSelector((state: RootState) => state.settings);
   const [teamPickerVisible, setTeamPickerVisible] = useState(false);
 
   const handleShareApk = async () => {
@@ -180,6 +180,28 @@ export function SettingsScreen() {
           </View>
         </View>
 
+        {/* ── Idioma ───────────────────────────── */}
+        <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>IDIOMA</Text>
+        <View style={[styles.card, { backgroundColor: appColors.surface }]}>
+          <View style={styles.row}>
+            <Ionicons name="language" size={20} color={appColors.textSecondary} />
+            <Text style={[styles.rowLabel, { color: appColors.text }]}>Idioma de la app</Text>
+            <View style={styles.langToggle}>
+              {(['es', 'en'] as const).map((lang) => (
+                <TouchableOpacity
+                  key={lang}
+                  style={[styles.langBtn, language === lang && { backgroundColor: colors.primary }]}
+                  onPress={() => dispatch(setLanguage(lang))}
+                >
+                  <Text style={[styles.langText, language === lang && { color: 'white' }]}>
+                    {lang === 'es' ? '🇦🇷 ES' : '🇺🇸 EN'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+
         {/* ── Notificaciones ───────────────────── */}
         <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>NOTIFICACIONES</Text>
         <View style={[styles.card, { backgroundColor: appColors.surface }]}>
@@ -247,36 +269,41 @@ export function SettingsScreen() {
         {/* ── Acerca de ────────────────────────── */}
         <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>ACERCA DE</Text>
         <View style={[styles.card, { backgroundColor: appColors.surface }]}>
-          {[
-            { icon: 'information-outline', label: 'Versión', value: '1.0.0' },
-            { icon: 'shield-check-outline', label: 'Política de privacidad', value: null },
-            { icon: 'file-document-outline', label: 'Términos y condiciones', value: null },
-          ].map((item, index, arr) => (
-            <TouchableOpacity
-              key={item.label}
-              style={[
-                styles.row,
-                index < arr.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: appColors.border },
-              ]}
-              activeOpacity={item.value ? 1 : 0.7}
-            >
-              <MaterialCommunityIcons name={item.icon as any} size={20} color={appColors.textSecondary} />
-              <Text style={[styles.rowLabel, { color: appColors.text }]}>{item.label}</Text>
-              {item.value ? (
-                <Text style={[styles.rowValue, { color: appColors.textSecondary }]}>{item.value}</Text>
-              ) : (
-                <Ionicons name="chevron-forward" size={16} color={appColors.textSecondary} />
-              )}
-            </TouchableOpacity>
-          ))}
+          <View style={styles.row}>
+            <MaterialCommunityIcons name="information-outline" size={20} color={appColors.textSecondary} />
+            <Text style={[styles.rowLabel, { color: appColors.text }]}>Versión</Text>
+            <Text style={[styles.rowValue, { color: appColors.textSecondary }]}>1.0.0</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.row, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: appColors.border }]}
+            onPress={() => (navigation as any).navigate('PrivacyPolicy')}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons name="shield-check-outline" size={20} color={appColors.textSecondary} />
+            <Text style={[styles.rowLabel, { color: appColors.text }]}>Política de privacidad</Text>
+            <Ionicons name="chevron-forward" size={16} color={appColors.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.row, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: appColors.border }]}
+            onPress={() => (navigation as any).navigate('PrivacyPolicy')}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons name="file-document-outline" size={20} color={appColors.textSecondary} />
+            <Text style={[styles.rowLabel, { color: appColors.text }]}>Términos y condiciones</Text>
+            <Ionicons name="chevron-forward" size={16} color={appColors.textSecondary} />
+          </TouchableOpacity>
         </View>
 
         {/* ── Branding ─────────────────────────── */}
         <View style={styles.branding}>
-          <MaterialCommunityIcons name="code-braces" size={20} color={colors.primary} />
-          <View>
+          <Image
+            source={require('../../../assets/ShinraCodeLogo1.png')}
+            style={styles.brandLogo}
+            resizeMode="contain"
+          />
+          <View style={styles.brandText}>
             <Text style={[styles.brandTitle, { color: appColors.text }]}>ShinraCode</Text>
-            <Text style={[styles.brandSub, { color: appColors.textSecondary }]}>Programador Ymil.D.Rueda</Text>
+            <Text style={[styles.brandSub, { color: appColors.textSecondary }]}>Programador Yamil.D.Rueda</Text>
           </View>
         </View>
 
@@ -425,14 +452,26 @@ const styles = StyleSheet.create({
 
   // Branding
   branding: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    flexDirection: 'row', alignItems: 'center', gap: spacing.base,
     justifyContent: 'center', paddingVertical: spacing.xl, marginTop: spacing.sm,
   },
+  langToggle: { flexDirection: 'row', gap: spacing.xs },
+  langBtn: {
+    paddingHorizontal: spacing.sm, paddingVertical: 5,
+    borderRadius: borderRadius.sm, backgroundColor: 'rgba(0,0,0,0.06)',
+  },
+  langText: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.bold },
+  brandLogo: {
+    width: 48, height: 48, borderRadius: borderRadius.md,
+  },
+  brandText: {
+    alignItems: 'flex-start',
+  },
   brandTitle: {
-    fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold, textAlign: 'center',
+    fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold,
   },
   brandSub: {
-    fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.regular, textAlign: 'center',
+    fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.regular,
   },
 
   // Generic row

@@ -8,6 +8,7 @@ import teamsReducer from './slices/teamsSlice';
 import predictionsReducer from './slices/predictionsSlice';
 import notificationsReducer from './slices/notificationsSlice';
 import settingsReducer from './slices/settingsSlice';
+import tournamentReducer from './slices/tournamentSlice';
 
 const mmkvStorage = AsyncStorage;
 
@@ -18,12 +19,13 @@ const rootReducer = combineReducers({
   predictions: predictionsReducer,
   notifications: notificationsReducer,
   settings: settingsReducer,
+  tournament: tournamentReducer,
 });
 
 const persistConfig = {
   key: 'shinra-root',
   storage: mmkvStorage,
-  whitelist: ['auth', 'settings'],
+  whitelist: ['auth', 'settings', 'tournament'],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

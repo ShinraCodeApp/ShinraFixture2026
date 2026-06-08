@@ -17,22 +17,37 @@ export function TeamsScreen() {
   const [search, setSearch] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
 
-  const { data: teams, isLoading } = useQuery({
-    queryKey: ['teams'],
-    queryFn: async () => (await apiService.get('/teams')).data.data ?? [],
+  const { data: tournaments = [] } = useQuery({
+    queryKey: ['tournaments'],
+    queryFn: async () => (await apiService.get('/tournaments')).data.data ?? [],
     staleTime: 10 * 60_000,
   });
 
+  const wcTournament: any = (tournaments as any[]).find((t: any) => t.type === 'WORLD_CUP') ?? (tournaments as any[])[0];
+
+  const { data: tournamentDetail } = useQuery({
+    queryKey: ['tournament-detail', wcTournament?.id],
+    queryFn: async () => (await apiService.get(`/tournaments/${wcTournament!.id}`)).data.data,
+    enabled: !!wcTournament?.id,
+    staleTime: 10 * 60_000,
+  });
+
+  const teams = useMemo(() => {
+    if (!tournamentDetail?.groups) return [];
+    return (tournamentDetail.groups as any[]).flatMap((g: any) =>
+      (g.teams as any[]).map((t: any) => ({ ...t.team, group: g.letter }))
+    );
+  }, [tournamentDetail]);
+
   const filtered = useMemo(() => {
-    if (!teams) return [];
-    return (teams as any[]).filter((t) => {
-      const s = search.toLowerCase();
-      return (
-        (!search || t.name.toLowerCase().includes(s) || t.code.toLowerCase().includes(s)) &&
-        (!selectedGroup || t.group === selectedGroup)
-      );
-    });
+    const s = search.toLowerCase();
+    return teams.filter((t: any) =>
+      (!search || t.name.toLowerCase().includes(s) || t.code.toLowerCase().includes(s)) &&
+      (!selectedGroup || t.group === selectedGroup)
+    );
   }, [teams, search, selectedGroup]);
+
+  const isLoading = !wcTournament || !tournamentDetail;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>
@@ -81,6 +96,15 @@ export function TeamsScreen() {
         keyExtractor={(t: any) => t.id}
         numColumns={3}
         contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          isLoading ? null : (
+            <View style={styles.empty}>
+              <Text style={[styles.emptyText, { color: appColors.textSecondary }]}>
+                No se encontraron selecciones
+              </Text>
+            </View>
+          )
+        }
         renderItem={({ item }: { item: any }) => (
           <TouchableOpacity
             style={[styles.teamCard, { backgroundColor: appColors.surface }]}
@@ -122,6 +146,8 @@ const styles = StyleSheet.create({
   },
   groupText: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.medium },
   list: { padding: spacing.sm, gap: spacing.xs },
+  empty: { padding: spacing.xl, alignItems: 'center' },
+  emptyText: { fontSize: typography.fontSize.sm },
   teamCard: {
     flex: 1, margin: spacing.xs, borderRadius: borderRadius.lg,
     padding: spacing.sm, alignItems: 'center', gap: 4,

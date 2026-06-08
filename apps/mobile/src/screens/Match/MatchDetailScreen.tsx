@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -21,6 +21,8 @@ import { ProbabilityBars } from '../../components/match/ProbabilityBars';
 import { PredictionInput } from '../../components/predictions/PredictionInput';
 import { CommentSection } from '../../components/community/CommentSection';
 import { AIAnalysisCard } from '../../components/ai/AIAnalysisCard';
+import { LiveStreamTab } from '../../components/match/LiveStreamTab';
+import { WatchPartyBar } from '../../components/match/WatchPartyBar';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const Tab = createMaterialTopTabNavigator();
@@ -55,6 +57,13 @@ export function MatchDetailScreen() {
       <LinearGradient colors={headerGradient as any} style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color="white" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.radarButton}
+          onPress={() => (navigation as any).navigate('LiveRadar', { matchId: match.id })}
+        >
+          <MaterialCommunityIcons name="radar" size={18} color="white" />
+          <Text style={styles.radarButtonText}>Radar</Text>
         </TouchableOpacity>
 
         <View style={styles.stageInfo}>
@@ -143,6 +152,7 @@ export function MatchDetailScreen() {
           { key: 'info', label: 'Info' },
           { key: 'stats', label: 'Stats' },
           { key: 'lineups', label: 'Alineación' },
+          { key: 'live', label: '📺 En Vivo' },
           { key: 'predict', label: 'Pronosticar' },
           { key: 'comments', label: 'Comentarios' },
         ].map((tab) => (
@@ -159,27 +169,50 @@ export function MatchDetailScreen() {
         ))}
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        {activeTab === 'info' && (
-          <View>
-            <EventTimeline events={match.events ?? []} homeTeamId={match.homeTeamId} />
-            {match.aiAnalysis && <AIAnalysisCard analysis={match.aiAnalysis} matchId={matchId} />}
-          </View>
-        )}
-        {activeTab === 'stats' && match.stats && (
-          <MatchStatsView stats={match.stats} homeTeam={match.homeTeam} awayTeam={match.awayTeam} />
-        )}
-        {activeTab === 'lineups' && <MatchLineups matchId={matchId} />}
-        {activeTab === 'predict' && isScheduled && (
-          <PredictionInput
-            matchId={matchId}
-            homeTeam={match.homeTeam}
-            awayTeam={match.awayTeam}
-            userPrediction={match.userPrediction}
-          />
-        )}
-        {activeTab === 'comments' && <CommentSection matchId={matchId} />}
-      </ScrollView>
+      {/* En Vivo tab takes full height — outside ScrollView */}
+      {activeTab === 'live' ? (
+        <View style={{ flex: 1, marginBottom: 56 }}>
+          <LiveStreamTab />
+        </View>
+      ) : (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[styles.content, { paddingBottom: 80 }]}
+        >
+          {activeTab === 'info' && (
+            <View>
+              <EventTimeline events={match.events ?? []} homeTeamId={match.homeTeamId} />
+              {match.aiAnalysis && <AIAnalysisCard analysis={match.aiAnalysis} matchId={matchId} />}
+            </View>
+          )}
+          {activeTab === 'stats' && match.stats && (
+            <MatchStatsView stats={match.stats} homeTeam={match.homeTeam} awayTeam={match.awayTeam} />
+          )}
+          {activeTab === 'lineups' && <MatchLineups matchId={matchId} />}
+          {activeTab === 'predict' && (isScheduled || isLive) && (
+            <PredictionInput
+              matchId={matchId}
+              homeTeam={match.homeTeam}
+              awayTeam={match.awayTeam}
+              userPrediction={match.userPrediction}
+            />
+          )}
+          {activeTab === 'predict' && isFinished && (
+            <View style={{ alignItems: 'center', padding: 32 }}>
+              <Text style={{ color: '#6B7280', fontSize: 14 }}>Partido finalizado</Text>
+              {match.userPrediction && (
+                <Text style={{ color: '#10B981', fontSize: 13, marginTop: 8 }}>
+                  Tu pronóstico: {match.userPrediction.homeScore} - {match.userPrediction.awayScore}
+                </Text>
+              )}
+            </View>
+          )}
+          {activeTab === 'comments' && <CommentSection matchId={matchId} />}
+        </ScrollView>
+      )}
+
+      {/* Watch Party bar — always visible at the bottom */}
+      <WatchPartyBar matchId={matchId} />
     </SafeAreaView>
   );
 }
@@ -188,6 +221,13 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: spacing.screen, paddingBottom: spacing.xl },
   backButton: { marginTop: spacing.sm, marginBottom: spacing.md },
+  radarButton: {
+    position: 'absolute', top: spacing.sm, right: spacing.screen,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.sm, paddingVertical: 4,
+  },
+  radarButtonText: { color: 'white', fontSize: 11, fontFamily: typography.fontFamily.semiBold },
   stageInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.base },
   stageText: { color: 'rgba(255,255,255,0.8)', fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.medium, textTransform: 'uppercase' },
   scoreBoard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },

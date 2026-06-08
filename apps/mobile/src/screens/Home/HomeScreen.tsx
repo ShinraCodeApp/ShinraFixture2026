@@ -11,8 +11,9 @@ import { useQuery } from '@tanstack/react-query';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useMatches } from '../../hooks/useMatches';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
+import { selectTournament } from '../../store/slices/tournamentSlice';
 import { apiService } from '../../services/api';
 import { colors, spacing, borderRadius, typography } from '../../theme';
 import { MatchCard } from '../../components/match/MatchCard';
@@ -34,7 +35,15 @@ const TOURNAMENT_THEME: Record<string, { emoji: string; colors: [string, string]
   NATIONS_LEAGUE:   { emoji: '🏅', colors: ['#4A148C', '#6A1B9A'], label: 'Nations League' },
   CHAMPIONS_LEAGUE: { emoji: '👑', colors: ['#1A1A2E', '#16213E'], label: 'Champions' },
   LIBERTADORES:     { emoji: '🦅', colors: ['#B71C1C', '#C62828'], label: 'Libertadores' },
+  SUDAMERICANA:     { emoji: '🌎', colors: ['#E65100', '#BF360C'], label: 'Sudamericana' },
   FRIENDLY:         { emoji: '🤝', colors: ['#37474F', '#455A64'], label: 'Amistoso' },
+  PREMIER_LEAGUE:   { emoji: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', colors: ['#38003C', '#560053'], label: 'Premier League' },
+  LA_LIGA:          { emoji: '🇪🇸', colors: ['#B00020', '#C62828'], label: 'LaLiga' },
+  BUNDESLIGA:       { emoji: '🇩🇪', colors: ['#D32F2F', '#8B0000'], label: 'Bundesliga' },
+  SERIE_A:          { emoji: '🇮🇹', colors: ['#003DA5', '#1565C0'], label: 'Serie A' },
+  LIGUE_1:          { emoji: '🇫🇷', colors: ['#002395', '#0D1B80'], label: 'Ligue 1' },
+  LIGA_ARG:         { emoji: '🇦🇷', colors: ['#001489', '#0D47A1'], label: 'Liga Arg.' },
+  LEAGUE:           { emoji: '🏆', colors: ['#212121', '#424242'], label: 'Liga' },
 };
 
 const TILE_GAP = spacing.sm;
@@ -48,8 +57,8 @@ function TournamentTile({ tournament, onPress }: { tournament: any; onPress: () 
         <Text style={tileStyles.emoji}>{theme.emoji}</Text>
         <Text style={tileStyles.name} numberOfLines={2}>{tournament.shortName}</Text>
         <View style={tileStyles.cta}>
-          <MaterialCommunityIcons name="lightning-bolt" size={12} color={colors.accent} />
-          <Text style={tileStyles.ctaText}>Predecir</Text>
+          <MaterialCommunityIcons name="soccer" size={12} color={colors.accent} />
+          <Text style={tileStyles.ctaText}>Ver fixture</Text>
         </View>
       </LinearGradient>
     </TouchableOpacity>
@@ -93,12 +102,22 @@ export function HomeScreen() {
   const navigation = useNavigation<any>();
   const { appColors, isDark } = useAppTheme();
   const { user } = useSelector((state: RootState) => state.auth);
+  const dispatch = useDispatch();
   const { liveMatches, todayMatches, upcomingMatches, isLoading, refetch } = useMatches();
   const scrollRef = useRef<ScrollView>(null);
 
+  const currentYear = new Date().getFullYear();
+
   const { data: tournaments = [] } = useQuery({
-    queryKey: ['tournaments'],
-    queryFn: async () => (await apiService.get('/tournaments')).data.data ?? [],
+    queryKey: ['tournaments', 'current'],
+    queryFn: async () => {
+      const all: any[] = (await apiService.get('/tournaments')).data.data ?? [];
+      // Solo torneos del año actual o que terminen en el año actual
+      return all.filter((t) => {
+        const endYear = t.endDate ? new Date(t.endDate).getFullYear() : t.year;
+        return t.year >= currentYear || endYear >= currentYear;
+      });
+    },
     staleTime: 60_000 * 10,
   });
 
@@ -117,14 +136,14 @@ export function HomeScreen() {
       >
         {/* ── Hero Header ─────────────────────────── */}
         <LinearGradient colors={headerGradient as any} style={styles.hero}>
-          <MotiView from={{ opacity: 0, translateY: -20 }} animate={{ opacity: 1, translateY: 0 }} transition={{ duration: 600 }}>
+          <View>
             <View style={styles.heroTop}>
               <View>
                 <Text style={styles.heroGreeting}>
                   {user ? `Hola, ${user.displayName.split(' ')[0]} 👋` : 'Bienvenido'}
                 </Text>
                 <Text style={styles.heroTitle}>ShinraFixture</Text>
-                <Text style={styles.heroSubtitle}>FIFA World Cup 2026™</Text>
+                <Text style={styles.heroSubtitle}>Copa Mundial 2026</Text>
               </View>
               <View style={styles.heroActions}>
                 <TouchableOpacity style={styles.notifButton} onPress={() => navigation.navigate('Notifications')}>
@@ -161,7 +180,7 @@ export function HomeScreen() {
                 </View>
               ))}
             </View>
-          </MotiView>
+          </View>
         </LinearGradient>
 
         {/* ── Elegir torneo para predecir ─────────── */}
@@ -178,7 +197,10 @@ export function HomeScreen() {
                 <TournamentTile
                   key={t.id}
                   tournament={t}
-                  onPress={() => navigation.navigate('PredictionsTab', { tournamentId: t.id, tournamentName: t.shortName })}
+                  onPress={() => {
+                    dispatch(selectTournament(t.id));
+                    navigation.navigate('FixtureTab', { screen: 'Fixture', params: { tournamentId: t.id } });
+                  }}
                 />
               ))}
             </View>

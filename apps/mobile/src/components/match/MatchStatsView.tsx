@@ -20,31 +20,29 @@ interface Stats {
   awayXG?: number | null;
 }
 
-interface Team {
-  name: string;
-  code: string;
-}
-
-interface MatchStatsViewProps {
-  stats?: Stats | null;
-  homeTeam: Team;
-  awayTeam: Team;
-}
+interface Team { name: string; code: string }
+interface MatchStatsViewProps { stats?: Stats | null; homeTeam: Team; awayTeam: Team }
 
 function StatRow({ label, home, away }: { label: string; home: number; away: number }) {
   const { appColors } = useAppTheme();
-  const total = home + away || 1;
-  const homeW = home / total;
-  const awayW = away / total;
+  const total = (home + away) || 1;
+  const homeP = Math.round((home / total) * 100);
 
   return (
     <View style={styles.row}>
+      {/* Home value */}
       <Text style={[styles.value, { color: appColors.text }]}>{home}</Text>
-      <View style={styles.barContainer}>
-        <View style={[styles.homeBar, { flex: homeW, backgroundColor: '#001489' }]} />
+
+      {/* Bar + label stacked */}
+      <View style={styles.middle}>
         <Text style={[styles.label, { color: appColors.textSecondary }]}>{label}</Text>
-        <View style={[styles.awayBar, { flex: awayW, backgroundColor: '#C8102E' }]} />
+        <View style={styles.track}>
+          <View style={[styles.homeBar, { width: `${homeP}%` }]} />
+          <View style={[styles.awayBar, { width: `${100 - homeP}%` }]} />
+        </View>
       </View>
+
+      {/* Away value */}
       <Text style={[styles.value, { color: appColors.text }]}>{away}</Text>
     </View>
   );
@@ -70,18 +68,19 @@ export function MatchStatsView({ stats, homeTeam, awayTeam }: MatchStatsViewProp
     { label: 'Córners', home: stats.homeCorners ?? 0, away: stats.awayCorners ?? 0 },
     { label: 'Faltas', home: stats.homeFouls ?? 0, away: stats.awayFouls ?? 0 },
     { label: 'Amarillas', home: stats.homeYellowCards ?? 0, away: stats.awayYellowCards ?? 0 },
+    ...(stats.homeXG != null ? [{ label: 'xG', home: stats.homeXG ?? 0, away: stats.awayXG ?? 0 }] : []),
   ];
 
   return (
     <View style={[styles.container, { backgroundColor: appColors.surface, borderRadius: borderRadius.lg }]}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.teamName, { color: appColors.text }]}>{homeTeam.code}</Text>
+        <Text style={[styles.teamCode, { color: '#001489' }]}>{homeTeam.code}</Text>
         <Text style={[styles.title, { color: appColors.textSecondary }]}>Estadísticas</Text>
-        <Text style={[styles.teamName, { color: appColors.text }]}>{awayTeam.code}</Text>
+        <Text style={[styles.teamCode, { color: '#C8102E' }]}>{awayTeam.code}</Text>
       </View>
-      {rows.map((r) => (
-        <StatRow key={r.label} {...r} />
-      ))}
+
+      {rows.map((r) => <StatRow key={r.label} {...r} />)}
     </View>
   );
 }
@@ -90,15 +89,29 @@ const styles = StyleSheet.create({
   container: { padding: spacing.base, marginVertical: spacing.sm },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: spacing.base, paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)',
+    marginBottom: spacing.md, paddingBottom: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(0,0,0,0.1)',
   },
   title: { fontSize: typography.fontSize.sm, fontFamily: 'Inter_600SemiBold' },
-  teamName: { fontSize: typography.fontSize.md, fontFamily: 'Inter_700Bold' },
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm, gap: spacing.sm },
-  value: { width: 28, textAlign: 'center', fontSize: typography.fontSize.sm, fontFamily: 'Inter_700Bold' },
-  barContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', height: 6, borderRadius: 3, overflow: 'hidden', gap: 4 },
-  homeBar: { height: 6, borderRadius: 3 },
-  awayBar: { height: 6, borderRadius: 3 },
-  label: { fontSize: 9, textAlign: 'center', width: 70 },
+  teamCode: { fontSize: typography.fontSize.md, fontFamily: 'Inter_700Bold', minWidth: 36 },
+  row: {
+    flexDirection: 'row', alignItems: 'center',
+    marginBottom: spacing.sm, gap: spacing.sm,
+  },
+  value: {
+    width: 32, textAlign: 'center',
+    fontSize: typography.fontSize.sm, fontFamily: 'Inter_700Bold',
+  },
+  middle: { flex: 1, gap: 3 },
+  label: {
+    fontSize: 10, textAlign: 'center',
+    fontFamily: 'Inter_500Medium',
+  },
+  track: {
+    height: 8, borderRadius: 4, overflow: 'hidden',
+    flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.06)',
+  },
+  homeBar: { height: 8, backgroundColor: '#001489', borderRadius: 4 },
+  awayBar: { height: 8, backgroundColor: '#C8102E', borderRadius: 4 },
   empty: { padding: spacing.xl, alignItems: 'center' },
 });

@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useSelector } from 'react-redux';
-import { RootState } from '../store';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState, AppDispatch } from '../store';
 import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
 import { SplashScreen } from '../screens/Loading/SplashScreen';
@@ -29,8 +29,15 @@ export function AppNavigator() {
   const { isAuthenticated, hasSeenOnboarding, isLoading } = useSelector(
     (state: RootState) => state.auth
   );
+  // Safety: never stay on splash longer than 3 seconds
+  const [safetyExpired, setSafetyExpired] = useState(false);
+  useEffect(() => {
+    if (!isLoading) return;
+    const t = setTimeout(() => setSafetyExpired(true), 3000);
+    return () => clearTimeout(t);
+  }, [isLoading]);
 
-  if (isLoading) return <SplashScreen />;
+  if (isLoading && !safetyExpired) return <SplashScreen />;
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>

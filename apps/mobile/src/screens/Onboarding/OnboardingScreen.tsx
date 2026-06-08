@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions, FlatList } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { MotiView } from 'moti';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from '../../store';
 import { setHasSeenOnboarding } from '../../store/slices/authSlice';
@@ -75,9 +74,9 @@ export function OnboardingScreen() {
         }}
         renderItem={({ item }) => (
           <LinearGradient colors={item.gradient as any} style={styles.slide}>
-            <MotiView from={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring' }} style={styles.iconContainer}>
+            <View style={styles.iconContainer}>
               <MaterialCommunityIcons name={item.icon as any} size={80} color="white" />
-            </MotiView>
+            </View>
             <Text style={styles.slideTitle}>{item.title}</Text>
             <Text style={styles.slideSubtitle}>{item.subtitle}</Text>
           </LinearGradient>

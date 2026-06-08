@@ -1,6 +1,5 @@
-import React from 'react';
-import { ViewStyle } from 'react-native';
-import { MotiView } from 'moti';
+import React, { useEffect, useRef } from 'react';
+import { Animated, ViewStyle } from 'react-native';
 import { useAppTheme } from '../../hooks/useAppTheme';
 
 interface LoadingSkeletonProps {
@@ -11,14 +10,22 @@ interface LoadingSkeletonProps {
 
 export function LoadingSkeleton({ style, width, height = 16 }: LoadingSkeletonProps) {
   const { appColors } = useAppTheme();
+  const opacity = useRef(new Animated.Value(0.5)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.5, duration: 800, useNativeDriver: true }),
+      ])
+    ).start();
+    return () => opacity.stopAnimation();
+  }, []);
 
   return (
-    <MotiView
-      from={{ opacity: 0.5 }}
-      animate={{ opacity: 1 }}
-      transition={{ type: 'timing', duration: 800, loop: true }}
+    <Animated.View
       style={[
-        { height, width: width as any, backgroundColor: appColors.border, borderRadius: 6 },
+        { height, width: width as any, backgroundColor: appColors.border, borderRadius: 6, opacity },
         style,
       ]}
     />

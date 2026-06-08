@@ -26,7 +26,7 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { linking } from './src/navigation/linking';
 import { useNotifications } from './src/hooks/useNotifications';
 import { useAppTheme } from './src/hooks/useAppTheme';
-import { usePlayoffSync } from './src/hooks/usePlayoffSync';
+// import { usePlayoffSync } from './src/hooks/usePlayoffSync';
 import { ThemeProvider } from './src/theme/ThemeProvider';
 import { LoadingScreen } from './src/screens/Loading/LoadingScreen';
 
@@ -60,7 +60,7 @@ class ErrorBoundary extends Component<
 function AppContent() {
   const { theme, colorScheme } = useAppTheme();
   useNotifications();
-  usePlayoffSync(); // auto-updates play-off teams when results come in
+  // usePlayoffSync(); // desactivado hasta confirmar playoffs reales WC2026
 
   return (
     <NavigationContainer theme={theme} linking={linking}>

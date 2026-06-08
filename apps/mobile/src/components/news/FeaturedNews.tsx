@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { MotiView } from 'moti';
 import dayjs from 'dayjs';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -37,15 +36,11 @@ function useFeaturedNews(limit = 5) {
   });
 }
 
-function NewsItem({ item, onPress, index }: { item: News; onPress: () => void; index: number }) {
+function NewsItem({ item, onPress }: { item: News; onPress: () => void }) {
   const { appColors } = useAppTheme();
 
   return (
-    <MotiView
-      from={{ opacity: 0, translateX: 20 }}
-      animate={{ opacity: 1, translateX: 0 }}
-      transition={{ delay: index * 80 }}
-    >
+    <View>
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={onPress}
@@ -85,7 +80,7 @@ function NewsItem({ item, onPress, index }: { item: News; onPress: () => void; i
           </View>
         </View>
       </TouchableOpacity>
-    </MotiView>
+    </View>
   );
 }
 
@@ -113,7 +108,7 @@ export function FeaturedNews({ onPress, limit = 5 }: FeaturedNewsProps) {
   return (
     <View>
       {news.map((item, i) => (
-        <NewsItem key={item.id} item={item} onPress={() => onPress(item)} index={i} />
+        <NewsItem key={item.id} item={item} onPress={() => onPress(item)} />
       ))}
     </View>
   );

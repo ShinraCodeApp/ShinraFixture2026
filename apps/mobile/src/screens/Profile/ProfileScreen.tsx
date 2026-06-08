@@ -26,21 +26,39 @@ export function ProfileScreen() {
   const { favoriteTeam, profilePhotoUri } = useSelector((state: RootState) => state.settings);
   const [notificationsOn, setNotificationsOn] = useState(user?.predictionPoints !== undefined);
 
-  const handlePickPhoto = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galería para cambiar la foto.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      dispatch(setProfilePhoto(result.assets[0].uri));
-    }
+  const handlePickPhoto = () => {
+    Alert.alert('Cambiar foto', 'Selecciona el origen', [
+      {
+        text: 'Cámara',
+        onPress: async () => {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Permiso requerido', 'Necesitamos acceso a la cámara.');
+            return;
+          }
+          const result = await ImagePicker.launchCameraAsync({
+            allowsEditing: true, aspect: [1, 1], quality: 0.8,
+          });
+          if (!result.canceled && result.assets[0]) dispatch(setProfilePhoto(result.assets[0].uri));
+        },
+      },
+      {
+        text: 'Galería',
+        onPress: async () => {
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galería.');
+            return;
+          }
+          const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true, aspect: [1, 1], quality: 0.8,
+          });
+          if (!result.canceled && result.assets[0]) dispatch(setProfilePhoto(result.assets[0].uri));
+        },
+      },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
   };
 
   const avatarUri = profilePhotoUri ?? user?.avatar ?? favoriteTeam?.flagUrl ?? null;
@@ -67,6 +85,7 @@ export function ProfileScreen() {
 
   const menuItems = [
     { icon: 'heart', label: 'Equipos favoritos', onPress: () => {} },
+    { icon: 'account-group', label: 'Mis amigos', onPress: () => navigation.navigate('Friends') },
     { icon: 'trophy', label: 'Mis logros', onPress: () => {} },
     { icon: 'history', label: 'Historial de predicciones', onPress: () => navigation.navigate('PredictionsTab') },
     { icon: 'account-group', label: 'Mis quinielas', onPress: () => navigation.navigate('Quiniela') },
@@ -74,7 +93,7 @@ export function ProfileScreen() {
     { icon: 'bell', label: 'Notificaciones', toggle: true, value: notificationsOn, onToggle: setNotificationsOn },
     { icon: 'white-balance-sunny', label: isDark ? 'Modo claro' : 'Modo oscuro', toggle: true, value: isDark, onToggle: toggleTheme },
     { icon: 'cog', label: 'Configuración', onPress: () => navigation.navigate('Settings') },
-    { icon: 'help-circle', label: 'Ayuda y soporte', onPress: () => {} },
+    { icon: 'help-circle', label: 'Ayuda y soporte', onPress: () => navigation.navigate('AppGuide') },
   ];
 
   return (
@@ -198,6 +217,42 @@ export function ProfileScreen() {
           ))}
         </View>
 
+        {/* ── Información ──────────────────────────── */}
+        <Text style={[styles.sectionLabel, { color: appColors.textSecondary }]}>INFORMACIÓN</Text>
+        <View style={[styles.menuSection, { backgroundColor: appColors.surface }]}>
+          {[
+            {
+              icon: 'book-open-variant',
+              label: 'Cómo usar la app',
+              sub: 'Guía completa de funciones',
+              onPress: () => navigation.navigate('AppGuide'),
+            },
+            {
+              icon: 'star-outline',
+              label: 'Calificar en la tienda',
+              sub: 'Ayudanos a crecer',
+              onPress: () => {},
+            },
+          ].map((item, idx, arr) => (
+            <TouchableOpacity
+              key={item.label}
+              style={[
+                styles.menuItem,
+                idx < arr.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: appColors.border },
+              ]}
+              onPress={item.onPress}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name={item.icon as any} size={20} color={appColors.textSecondary} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.menuLabel, { color: appColors.text }]}>{item.label}</Text>
+                <Text style={{ fontSize: 11, color: appColors.textSecondary }}>{item.sub}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={appColors.textSecondary} />
+            </TouchableOpacity>
+          ))}
+        </View>
+
         {/* ── Logout ───────────────────────────────── */}
         <TouchableOpacity
           style={[styles.logoutButton, { backgroundColor: appColors.surface }]}
@@ -260,6 +315,10 @@ const styles = StyleSheet.create({
   premiumTitle: { color: 'white', fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.sm },
   premiumSub: { color: 'rgba(255,255,255,0.6)', fontSize: typography.fontSize.xs },
   premiumPrice: { color: colors.accent, fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.sm },
+  sectionLabel: {
+    fontSize: 11, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.8,
+    marginHorizontal: spacing.base, marginBottom: 6, marginTop: 4,
+  },
   menuSection: { marginHorizontal: spacing.base, borderRadius: borderRadius.lg, marginBottom: spacing.base, ...shadows.md },
   menuItem: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.base,

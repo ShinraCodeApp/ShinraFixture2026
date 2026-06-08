@@ -6,6 +6,9 @@ interface CreateDto {
   description?: string;
   maxMembers?: number;
   prizeDescription?: string;
+  matchPrizeEnabled?: boolean;
+  matchPrizeDefault?: string;
+  matchPrizeCustom?: Record<string, string>;
   isPrivate?: boolean;
   tournamentId?: string;
 }
@@ -55,6 +58,9 @@ export class QuinielaService {
         ownerId: userId,
         maxMembers: dto.maxMembers ?? 20,
         prizeDescription: dto.prizeDescription,
+        matchPrizeEnabled: dto.matchPrizeEnabled ?? false,
+        matchPrizeDefault: dto.matchPrizeDefault,
+        matchPrizeCustom: dto.matchPrizeCustom ?? {},
         isPrivate: dto.isPrivate ?? true,
         tournamentId: dto.tournamentId,
         members: {
@@ -182,10 +188,13 @@ export class QuinielaService {
     return prisma.quinielaGroup.update({
       where: { id: groupId },
       data: {
-        name: dto.name,
-        description: dto.description,
-        maxMembers: dto.maxMembers,
-        prizeDescription: dto.prizeDescription,
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.maxMembers !== undefined && { maxMembers: dto.maxMembers }),
+        ...(dto.prizeDescription !== undefined && { prizeDescription: dto.prizeDescription }),
+        ...(dto.matchPrizeEnabled !== undefined && { matchPrizeEnabled: dto.matchPrizeEnabled }),
+        ...(dto.matchPrizeDefault !== undefined && { matchPrizeDefault: dto.matchPrizeDefault }),
+        ...(dto.matchPrizeCustom !== undefined && { matchPrizeCustom: dto.matchPrizeCustom }),
       },
       include: groupInclude,
     });

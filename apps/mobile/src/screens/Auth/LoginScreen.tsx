@@ -7,7 +7,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { MotiView } from 'moti';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { AppDispatch, RootState } from '../../store';
@@ -32,17 +31,17 @@ export function LoginScreen() {
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-            <MotiView from={{ opacity: 0, translateY: -20 }} animate={{ opacity: 1, translateY: 0 }} style={styles.header}>
+            <View style={styles.header}>
               <View style={styles.logoContainer}>
                 <View style={styles.logo}>
                   <Text style={styles.logoText}>S</Text>
                 </View>
               </View>
               <Text style={styles.title}>ShinraFixture</Text>
-              <Text style={styles.subtitle}>FIFA World Cup 2026™</Text>
-            </MotiView>
+              <Text style={styles.subtitle}>Copa Mundial 2026</Text>
+            </View>
 
-            <MotiView from={{ opacity: 0, translateY: 20 }} animate={{ opacity: 1, translateY: 0 }} transition={{ delay: 150 }} style={styles.form}>
+            <View style={styles.form}>
               <Text style={styles.formTitle}>Iniciar sesión</Text>
 
               {error && (
@@ -113,7 +112,7 @@ export function LoginScreen() {
               <TouchableOpacity style={styles.guestLink} onPress={() => dispatch(setHasSeenOnboarding())}>
                 <Text style={styles.guestText}>Continuar sin cuenta</Text>
               </TouchableOpacity>
-            </MotiView>
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>

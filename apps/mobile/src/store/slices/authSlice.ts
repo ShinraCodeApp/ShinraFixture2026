@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { REHYDRATE } from 'redux-persist';
 import { apiService } from '../../services/api';
 
 export interface AuthUser {
@@ -122,6 +123,11 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Always reset isLoading on rehydrate — prevents stuck loading if app was killed mid-request
+      .addCase(REHYDRATE, (state) => {
+        state.isLoading = false;
+        state.error = null;
+      })
       // Login
       .addCase(login.pending, (state) => { state.isLoading = true; state.error = null; })
       .addCase(login.fulfilled, (state, action) => {

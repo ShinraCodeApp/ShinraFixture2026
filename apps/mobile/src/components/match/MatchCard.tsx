@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { MotiView } from 'moti';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 
@@ -28,8 +27,10 @@ interface UserPrediction {
 
 interface Match {
   id: string;
-  homeTeam: Team;
-  awayTeam: Team;
+  homeTeam?: Team | null;
+  awayTeam?: Team | null;
+  homeLabel?: string | null;
+  awayLabel?: string | null;
   homeScore?: number | null;
   awayScore?: number | null;
   matchDate: string;
@@ -70,9 +71,7 @@ export function MatchCard({ match, onPress, showPrediction = false, compact = fa
 
   return (
     <TouchableOpacity activeOpacity={0.85} onPress={onPress}>
-      <MotiView
-        from={{ opacity: 0, translateY: 4 }}
-        animate={{ opacity: 1, translateY: 0 }}
+      <View
         style={[
           styles.card,
           {
@@ -95,10 +94,23 @@ export function MatchCard({ match, onPress, showPrediction = false, compact = fa
         <View style={styles.body}>
           {/* Home Team */}
           <View style={styles.team}>
-            <TeamLogo uri={match.homeTeam.flagUrl} size={compact ? 32 : 40} />
-            <Text style={[styles.teamName, { color: appColors.text }]} numberOfLines={1}>
-              {match.homeTeam.code}
-            </Text>
+            {match.homeTeam ? (
+              <>
+                <TeamLogo uri={match.homeTeam.flagUrl} size={compact ? 32 : 40} code={match.homeTeam.code} />
+                <Text style={[styles.teamName, { color: appColors.text }]} numberOfLines={1}>
+                  {match.homeTeam.code}
+                </Text>
+              </>
+            ) : (
+              <>
+                <View style={[styles.tbdBadge, { width: compact ? 32 : 40, height: compact ? 32 : 40 }]}>
+                  <Text style={styles.tbdText}>{match.homeLabel ?? '?'}</Text>
+                </View>
+                <Text style={[styles.teamName, { color: appColors.textSecondary }]} numberOfLines={1}>
+                  {match.homeLabel ?? 'TBD'}
+                </Text>
+              </>
+            )}
           </View>
 
           {/* Center: score or time */}
@@ -142,10 +154,23 @@ export function MatchCard({ match, onPress, showPrediction = false, compact = fa
 
           {/* Away Team */}
           <View style={[styles.team, styles.teamRight]}>
-            <TeamLogo uri={match.awayTeam.flagUrl} size={compact ? 32 : 40} />
-            <Text style={[styles.teamName, { color: appColors.text }]} numberOfLines={1}>
-              {match.awayTeam.code}
-            </Text>
+            {match.awayTeam ? (
+              <>
+                <TeamLogo uri={match.awayTeam.flagUrl} size={compact ? 32 : 40} code={match.awayTeam.code} />
+                <Text style={[styles.teamName, { color: appColors.text }]} numberOfLines={1}>
+                  {match.awayTeam.code}
+                </Text>
+              </>
+            ) : (
+              <>
+                <View style={[styles.tbdBadge, { width: compact ? 32 : 40, height: compact ? 32 : 40 }]}>
+                  <Text style={styles.tbdText}>{match.awayLabel ?? '?'}</Text>
+                </View>
+                <Text style={[styles.teamName, { color: appColors.textSecondary }]} numberOfLines={1}>
+                  {match.awayLabel ?? 'TBD'}
+                </Text>
+              </>
+            )}
           </View>
         </View>
 
@@ -165,7 +190,7 @@ export function MatchCard({ match, onPress, showPrediction = false, compact = fa
             )}
           </View>
         )}
-      </MotiView>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -189,6 +214,15 @@ const styles = StyleSheet.create({
   team: { flex: 1, alignItems: 'center', gap: spacing.xs },
   teamRight: {},
   teamName: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.bold, textAlign: 'center' },
+  tbdBadge: {
+    borderRadius: 100,
+    backgroundColor: 'rgba(156,163,175,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(156,163,175,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tbdText: { fontSize: 9, fontFamily: typography.fontFamily.bold, color: '#9CA3AF', textAlign: 'center' },
   center: { flex: 1, alignItems: 'center', gap: 4 },
   timeContainer: { alignItems: 'center' },
   time: { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold },

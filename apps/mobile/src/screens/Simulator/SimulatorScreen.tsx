@@ -6,7 +6,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { MotiView } from 'moti';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { apiService } from '../../services/api';
@@ -62,7 +61,7 @@ export function SimulatorScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <LinearGradient colors={isDark ? ['#0F172A', '#1E293B'] : ['#001489', '#1565C0']} style={styles.hero}>
           <Text style={styles.heroTitle}>Simulador del Mundial</Text>
-          <Text style={styles.heroSub}>FIFA World Cup 2026™</Text>
+          <Text style={styles.heroSub}>Copa Mundial 2026</Text>
 
           {/* Mode Selector */}
           <View style={styles.modeContainer}>
@@ -104,12 +103,7 @@ export function SimulatorScreen() {
 
         {/* ── Champion Card ─────────────────────────── */}
         {champion && (
-          <MotiView
-            from={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'spring' }}
-            style={[styles.championCard, { backgroundColor: appColors.surface }]}
-          >
+          <View style={[styles.championCard, { backgroundColor: appColors.surface }]}>
             <LinearGradient
               colors={['#C9A84C', '#FFD700', '#C9A84C']}
               style={styles.championGradient}
@@ -123,22 +117,17 @@ export function SimulatorScreen() {
               <Ionicons name="share-social" size={18} color={colors.primary} />
               <Text style={[styles.shareText, { color: colors.primary }]}>Compartir simulación</Text>
             </TouchableOpacity>
-          </MotiView>
+          </View>
         )}
 
         {/* ── Knockout Results ─────────────────────── */}
         {knockoutMatches.length > 0 && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: appColors.text }]}>Fase Eliminatoria</Text>
-            {knockoutMatches.map((match, i) => (
-              <MotiView
-                key={match.id}
-                from={{ opacity: 0, translateX: -20 }}
-                animate={{ opacity: 1, translateX: 0 }}
-                transition={{ delay: i * 50 }}
-              >
+            {knockoutMatches.map((match) => (
+              <View key={match.id}>
                 <SimMatchRow match={match} appColors={appColors} />
-              </MotiView>
+              </View>
             ))}
           </View>
         )}

@@ -21,12 +21,24 @@ import { SimulatorScreen } from '../screens/Simulator/SimulatorScreen';
 import { StatsScreen } from '../screens/Stats/StatsScreen';
 import { NewsScreen } from '../screens/News/NewsScreen';
 import { QuinielaScreen } from '../screens/Quiniela/QuinielaScreen';
+import { QuinielaDetailScreen } from '../screens/Quiniela/QuinielaDetailScreen';
+import { MatchesScreen } from '../screens/Matches/MatchesScreen';
+import { GroupDetailScreen } from '../screens/Fixture/GroupDetailScreen';
+import { AppGuideScreen } from '../screens/Profile/AppGuideScreen';
+import { FriendsScreen } from '../screens/Profile/FriendsScreen';
+import { PrivacyPolicyScreen } from '../screens/Settings/PrivacyPolicyScreen';
+import { NotificationsScreen } from '../screens/Notifications/NotificationsScreen';
+import { LiveRadarScreen } from '../screens/Match/LiveRadarScreen';
+import { LocalLeaguesScreen } from '../screens/LocalLeague/LocalLeaguesScreen';
+import { LocalLeagueDetailScreen } from '../screens/LocalLeague/LocalLeagueDetailScreen';
+import { EditLocalTeamScreen } from '../screens/LocalLeague/EditLocalTeamScreen';
 
 export type MainTabParamList = {
   HomeTab: undefined;
   FixtureTab: undefined;
+  MatchesTab: undefined;
   PredictionsTab: undefined;
-  CommunityTab: undefined;
+  LigaTab: undefined;
   ProfileTab: undefined;
 };
 
@@ -40,6 +52,7 @@ function HomeStack() {
       <Stack.Screen name="News" component={NewsScreen} />
       <Stack.Screen name="Stats" component={StatsScreen} />
       <Stack.Screen name="Simulator" component={SimulatorScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
     </Stack.Navigator>
   );
 }
@@ -48,9 +61,22 @@ function FixtureStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Fixture" component={FixtureScreen} />
+      <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
       <Stack.Screen name="MatchDetail" component={MatchDetailScreen} />
+      <Stack.Screen name="LiveRadar" component={LiveRadarScreen} />
       <Stack.Screen name="Teams" component={TeamsScreen} />
       <Stack.Screen name="TeamDetail" component={TeamDetailScreen} />
+    </Stack.Navigator>
+  );
+}
+
+function MatchesStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Matches" component={MatchesScreen} />
+      <Stack.Screen name="MatchDetail" component={MatchDetailScreen} />
+      <Stack.Screen name="LiveRadar" component={LiveRadarScreen} />
+      <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
     </Stack.Navigator>
   );
 }
@@ -60,6 +86,7 @@ function PredictionsStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Predictions" component={PredictionsScreen} />
       <Stack.Screen name="Quiniela" component={QuinielaScreen} />
+      <Stack.Screen name="QuinielaDetail" component={QuinielaDetailScreen} />
     </Stack.Navigator>
   );
 }
@@ -69,6 +96,9 @@ function ProfileStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="AppGuide" component={AppGuideScreen} />
+      <Stack.Screen name="Friends" component={FriendsScreen} />
+      <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
     </Stack.Navigator>
   );
 }
@@ -88,11 +118,24 @@ function FixtureIcon({ focused, color, size }: TabIconProps) {
 function PredictionsIcon({ focused, color, size }: TabIconProps) {
   return <MaterialCommunityIcons name={focused ? 'lightning-bolt' : 'lightning-bolt-outline'} size={size} color={color} />;
 }
-function CommunityIcon({ focused, color, size }: TabIconProps) {
-  return <Ionicons name={focused ? 'people' : 'people-outline'} size={size} color={color} />;
+function MatchesIcon({ focused, color, size }: TabIconProps) {
+  return <MaterialCommunityIcons name={focused ? 'calendar' : 'calendar-outline'} size={size} color={color} />;
+}
+function LigaIcon({ focused, color, size }: TabIconProps) {
+  return <MaterialCommunityIcons name={focused ? 'trophy' : 'trophy-outline'} size={size} color={color} />;
 }
 function ProfileIcon({ focused, color, size }: TabIconProps) {
   return <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />;
+}
+
+function LigaStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="LocalLeagues" component={LocalLeaguesScreen} />
+      <Stack.Screen name="LocalLeagueDetail" component={LocalLeagueDetailScreen} />
+      <Stack.Screen name="EditLocalTeam" component={EditLocalTeamScreen} />
+    </Stack.Navigator>
+  );
 }
 
 export function MainNavigator() {
@@ -131,14 +174,19 @@ export function MainNavigator() {
         options={{ tabBarLabel: 'Fixture', tabBarIcon: FixtureIcon }}
       />
       <Tab.Screen
+        name="MatchesTab"
+        component={MatchesStack}
+        options={{ tabBarLabel: 'Partidos', tabBarIcon: MatchesIcon }}
+      />
+      <Tab.Screen
         name="PredictionsTab"
         component={PredictionsStack}
         options={{ tabBarLabel: 'Predicciones', tabBarIcon: PredictionsIcon }}
       />
       <Tab.Screen
-        name="CommunityTab"
-        component={CommunityScreen}
-        options={{ tabBarLabel: 'Comunidad', tabBarIcon: CommunityIcon }}
+        name="LigaTab"
+        component={LigaStack}
+        options={{ tabBarLabel: 'Mi Liga', tabBarIcon: LigaIcon }}
       />
       <Tab.Screen
         name="ProfileTab"

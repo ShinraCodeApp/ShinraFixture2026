@@ -42,6 +42,7 @@ enum MatchStatus {
 
 enum MatchStage {
   GROUP
+  FRIENDLY
   ROUND_OF_32
   ROUND_OF_16
   QUARTER_FINAL
@@ -93,8 +94,16 @@ enum TournamentType {
   EURO
   CHAMPIONS_LEAGUE
   LIBERTADORES
+  SUDAMERICANA
   NATIONS_LEAGUE
   FRIENDLY
+  LEAGUE
+  PREMIER_LEAGUE
+  LA_LIGA
+  BUNDESLIGA
+  SERIE_A
+  LIGUE_1
+  LIGA_ARG
 }
 
 enum Region {
@@ -117,6 +126,12 @@ enum AchievementType {
   STREAK_20
   SOCIAL_BUTTERFLY
   QUINIELA_WINNER
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
 }
 
 // ══════════════════════════════════════════════════════
@@ -175,6 +190,8 @@ model User {
   subscriptions     Subscription[]
   forumPosts        ForumPost[]
   forumReplies      ForumReply[]
+  sentFriendships   Friendship[]      @relation("SentFriendships")
+  receivedFriendships Friendship[]    @relation("ReceivedFriendships")
 
   @@index([email])
   @@index([username])
@@ -218,6 +235,23 @@ model UserFavoriteTeam {
   createdAt DateTime @default(now())
 
   @@unique([userId, teamId])
+}
+
+model Friendship {
+  id         String           @id @default(uuid())
+  fromUserId String
+  toUserId   String
+  status     FriendshipStatus @default(PENDING)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  fromUser   User @relation("SentFriendships",     fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser     User @relation("ReceivedFriendships", fields: [toUserId],   references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId])
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([status])
 }
 
 // ══════════════════════════════════════════════════════
@@ -359,10 +393,12 @@ model Match {
   id              String      @id @default(uuid())
   tournamentId    String
   tournament      Tournament  @relation(fields: [tournamentId], references: [id])
-  homeTeamId      String
-  homeTeam        Team        @relation("HomeTeam", fields: [homeTeamId], references: [id])
-  awayTeamId      String
-  awayTeam        Team        @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  homeTeamId      String?
+  homeTeam        Team?       @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeamId      String?
+  awayTeam        Team?       @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  homeLabel       String?
+  awayLabel       String?
 
   // Score
   homeScore       Int?
@@ -607,16 +643,19 @@ model Prediction {
 }
 
 model QuinielaGroup {
-  id            String    @id @default(uuid())
-  name          String
-  description   String?
-  ownerId       String
-  isPrivate     Boolean   @default(true)
-  inviteCode    String    @unique @default(uuid())
-  maxMembers    Int       @default(20)
-  prizeDescription String?
-  isActive      Boolean   @default(true)
-  tournamentId  String?
+  id                  String    @id @default(uuid())
+  name                String
+  description         String?
+  ownerId             String
+  isPrivate           Boolean   @default(true)
+  inviteCode          String    @unique @default(uuid())
+  maxMembers          Int       @default(20)
+  prizeDescription    String?   // Premio final del torneo
+  matchPrizeEnabled   Boolean   @default(false)
+  matchPrizeDefault   String?   // Premio por defecto por partido
+  matchPrizeCustom    Json?     // { matchId: customPrize } overrides by match
+  isActive            Boolean   @default(true)
+  tournamentId        String?
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -878,6 +917,88 @@ model Subscription {
 
   @@index([userId])
   @@index([status])
+}
+
+// ══════════════════════════════════════════════════════
+// LIGA DE MI CIUDAD (local custom leagues)
+// ══════════════════════════════════════════════════════
+
+enum LocalLeagueType {
+  LIGA
+  TORNEO
+  COPA
+}
+
+model LocalLeague {
+  id          String          @id @default(uuid())
+  name        String
+  type        LocalLeagueType @default(LIGA)
+  creatorId   String
+  description String?
+  isFinished  Boolean         @default(false)
+  winnerId    String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  teams       LocalTeam[]
+  matches     LocalMatch[]
+
+  @@index([creatorId])
+}
+
+model LocalTeam {
+  id         String      @id @default(uuid())
+  leagueId   String
+  league     LocalLeague @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  name       String
+  badge      String?
+  color      String      @default("#0D47A1")
+
+  players     LocalPlayer[]
+  homeMatches LocalMatch[]  @relation("LocalHomeTeam")
+  awayMatches LocalMatch[]  @relation("LocalAwayTeam")
+
+  played       Int @default(0)
+  won          Int @default(0)
+  drawn        Int @default(0)
+  lost         Int @default(0)
+  goalsFor     Int @default(0)
+  goalsAgainst Int @default(0)
+  goalDifference Int @default(0)
+  points       Int @default(0)
+
+  @@index([leagueId])
+}
+
+model LocalPlayer {
+  id       String          @id @default(uuid())
+  teamId   String
+  team     LocalTeam       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  name     String
+  number   Int?
+  position PlayerPosition?
+
+  @@index([teamId])
+}
+
+model LocalMatch {
+  id         String      @id @default(uuid())
+  leagueId   String
+  league     LocalLeague @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  homeTeamId String
+  homeTeam   LocalTeam   @relation("LocalHomeTeam", fields: [homeTeamId], references: [id])
+  awayTeamId String
+  awayTeam   LocalTeam   @relation("LocalAwayTeam", fields: [awayTeamId], references: [id])
+  round      Int         @default(1)
+  homeScore  Int?
+  awayScore  Int?
+  isFinished Boolean     @default(false)
+  matchDate  DateTime?
+  venue      String?
+  notes      String?
+
+  @@index([leagueId])
+  @@index([round])
 }
 
 // ══════════════════════════════════════════════════════

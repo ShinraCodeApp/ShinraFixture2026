@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { MotiView } from 'moti';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 
@@ -15,7 +14,7 @@ export function AIAnalysisCard({ analysis, matchId }: AIAnalysisCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <MotiView from={{ opacity: 0, translateY: 8 }} animate={{ opacity: 1, translateY: 0 }} style={[styles.card, { backgroundColor: appColors.surface, borderColor: `${colors.primary}40` }]}>
+    <View style={[styles.card, { backgroundColor: appColors.surface, borderColor: `${colors.primary}40` }]}>
       <TouchableOpacity onPress={() => setExpanded(!expanded)} style={styles.header}>
         <View style={styles.titleRow}>
           <View style={styles.iconContainer}>
@@ -31,7 +30,7 @@ export function AIAnalysisCard({ analysis, matchId }: AIAnalysisCardProps) {
       </TouchableOpacity>
 
       {expanded && (
-        <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 50 }}>
+        <View>
           <View style={[styles.divider, { backgroundColor: appColors.border }]} />
           <Text style={[styles.text, { color: appColors.textSecondary }]}>{analysis}</Text>
           <View style={styles.footer}>
@@ -40,9 +39,9 @@ export function AIAnalysisCard({ analysis, matchId }: AIAnalysisCardProps) {
               Generado por GPT-4 • Solo informativo
             </Text>
           </View>
-        </MotiView>
+        </View>
       )}
-    </MotiView>
+    </View>
   );
 }
 

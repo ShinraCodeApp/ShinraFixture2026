@@ -1,6 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { MotiView } from 'moti';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 
 interface ProbabilityBarsProps {
@@ -16,6 +15,18 @@ export function ProbabilityBars({ homeProb, drawProb, awayProb, homeName, awayNa
   const drawP = Math.round(drawProb * 100);
   const awayP = Math.round(awayProb * 100);
 
+  const homeAnim = useRef(new Animated.Value(0)).current;
+  const drawAnim = useRef(new Animated.Value(0)).current;
+  const awayAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(homeAnim, { toValue: homeP, duration: 800, useNativeDriver: false }),
+      Animated.timing(drawAnim, { toValue: drawP, duration: 800, delay: 100, useNativeDriver: false }),
+      Animated.timing(awayAnim, { toValue: awayP, duration: 800, delay: 200, useNativeDriver: false }),
+    ]).start();
+  }, [homeP, drawP, awayP]);
+
   return (
     <View style={styles.container}>
       <View style={styles.labels}>
@@ -25,24 +36,9 @@ export function ProbabilityBars({ homeProb, drawProb, awayProb, homeName, awayNa
       </View>
 
       <View style={styles.barContainer}>
-        <MotiView
-          from={{ width: '0%' }}
-          animate={{ width: `${homeP}%` as any }}
-          transition={{ type: 'timing', duration: 800 }}
-          style={[styles.bar, styles.homeBar]}
-        />
-        <MotiView
-          from={{ width: '0%' }}
-          animate={{ width: `${drawP}%` as any }}
-          transition={{ type: 'timing', duration: 800, delay: 100 }}
-          style={[styles.bar, styles.drawBar]}
-        />
-        <MotiView
-          from={{ width: '0%' }}
-          animate={{ width: `${awayP}%` as any }}
-          transition={{ type: 'timing', duration: 800, delay: 200 }}
-          style={[styles.bar, styles.awayBar]}
-        />
+        <Animated.View style={[styles.bar, styles.homeBar, { width: homeAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }) }]} />
+        <Animated.View style={[styles.bar, styles.drawBar, { width: drawAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }) }]} />
+        <Animated.View style={[styles.bar, styles.awayBar, { width: awayAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }) }]} />
       </View>
 
       <View style={styles.percentages}>

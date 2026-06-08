@@ -1,8 +1,215 @@
 import { Router } from 'express';
+import axios from 'axios';
+import dayjs from 'dayjs';
 import { MatchController } from '../controllers/matches.controller';
 import { authenticate, optionalAuth } from '../middleware/auth';
+import { prisma } from '../config/database';
 
 export const matchRoutes = Router();
+
+function mapESPNStatus(state: string): 'SCHEDULED' | 'LIVE' | 'FINISHED' {
+  if (state === 'in') return 'LIVE';
+  if (state === 'post') return 'FINISHED';
+  return 'SCHEDULED';
+}
+
+function mapESPNEventType(text: string): string | null {
+  const t = (text ?? '').toLowerCase().trim();
+  if (t === 'goal') return 'GOAL';
+  if (t.includes('own goal') || t === 'own-goal') return 'OWN_GOAL';
+  if (t === 'penalty - goal' || t === 'penalty scored') return 'PENALTY_SCORED';
+  if (t.includes('penalty') && (t.includes('miss') || t.includes('saved') || t.includes('off target'))) return 'PENALTY_MISSED';
+  if (t.includes('yellow card') || t === 'yellow') return 'YELLOW_CARD';
+  if (t.includes('red card') || t === 'red') return 'RED_CARD';
+  if (t.includes('substitution') || t === 'sub') return 'SUBSTITUTION_IN';
+  if (t.includes('var')) return 'VAR_REVIEW';
+  return null;
+}
+
+// Sync today's international matches from ESPN scoreboard
+matchRoutes.post('/espn-sync', async (req, res) => {
+  try {
+    const today = dayjs().format('YYYYMMDD');
+    // Try multiple ESPN endpoints; FIFA.WORLD (undated) returns live/upcoming WC matches
+    const urls = [
+      `https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.WORLD/scoreboard`,
+      `https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.WORLD/scoreboard?dates=${today}&limit=50`,
+      `https://site.api.espn.com/apis/site/v2/sports/soccer/scoreboard?dates=${today}&limit=100`,
+    ];
+
+    const events: any[] = [];
+    for (const url of urls) {
+      try {
+        const r = await axios.get(url, { timeout: 8000 });
+        const evs: any[] = r.data.events ?? [];
+        for (const ev of evs) {
+          if (!events.find((e: any) => e.id === ev.id)) events.push(ev);
+        }
+      } catch { /* skip unreachable endpoint */ }
+    }
+
+    const synced: any[] = [];
+    const io = (global as any).io;
+
+    for (const event of events) {
+      const comp = event.competitions?.[0];
+      if (!comp) continue;
+
+      const homeComp = comp.competitors?.find((c: any) => c.homeAway === 'home');
+      const awayComp = comp.competitors?.find((c: any) => c.homeAway === 'away');
+      if (!homeComp || !awayComp) continue;
+
+      const homeCode = homeComp.team?.abbreviation?.toUpperCase();
+      const awayCode = awayComp.team?.abbreviation?.toUpperCase();
+
+      const [homeTeam, awayTeam] = await Promise.all([
+        homeCode ? prisma.team.findFirst({ where: { code: homeCode } }) : null,
+        awayCode ? prisma.team.findFirst({ where: { code: awayCode } }) : null,
+      ]);
+      if (!homeTeam || !awayTeam) continue;
+
+      // Determine tournament type from ESPN league slug
+      const leagueSlug = (event.leagues?.[0]?.slug ?? '').toUpperCase();
+      const isWC = leagueSlug.includes('FIFA.WORLD') || leagueSlug.includes('FIFA.WC');
+      const tournamentType = isWC ? 'WORLD_CUP' : 'FRIENDLY';
+      const stage = isWC ? 'GROUP' : 'FRIENDLY';
+
+      // For WC matches, find existing WC tournament; for friendlies, upsert FRIENDLY
+      let tournament;
+      if (isWC) {
+        tournament = await prisma.tournament.findFirst({ where: { type: 'WORLD_CUP', year: 2026 } });
+        if (!tournament) continue; // Skip if WC tournament doesn't exist
+      } else {
+        tournament = await prisma.tournament.upsert({
+          where: { type_year: { type: 'FRIENDLY', year: 2026 } },
+          create: {
+            name: 'Amistosos Internacionales 2026',
+            shortName: 'Amistosos',
+            type: 'FRIENDLY',
+            year: 2026,
+            startDate: new Date('2026-01-01'),
+            endDate: new Date('2026-12-31'),
+            isFeatured: true,
+            isActive: true,
+          },
+          update: {},
+        });
+      }
+
+      const stateStr = comp.status?.type?.state ?? event.status?.type?.state ?? 'pre';
+      const status = mapESPNStatus(stateStr);
+      const minute = status === 'LIVE' ? Math.round(comp.status?.clock ?? event.status?.clock ?? 0) : null;
+      const homeScore = status !== 'SCHEDULED' ? (parseInt(homeComp.score ?? '0') || 0) : null;
+      const awayScore = status !== 'SCHEDULED' ? (parseInt(awayComp.score ?? '0') || 0) : null;
+
+      // For WC matches, also try to find by team pair on that date (in case externalId not set)
+      let match = await prisma.match.findFirst({ where: { externalId: event.id } });
+      if (!match && isWC) {
+        match = await prisma.match.findFirst({
+          where: {
+            homeTeamId: homeTeam.id,
+            awayTeamId: awayTeam.id,
+            tournamentId: tournament.id,
+          },
+        });
+      }
+
+      if (!match) {
+        match = await prisma.match.create({
+          data: {
+            externalId: event.id,
+            tournamentId: tournament.id,
+            homeTeamId: homeTeam.id,
+            awayTeamId: awayTeam.id,
+            matchDate: new Date(event.date),
+            status: status as any,
+            homeScore,
+            awayScore,
+            minute,
+            stage: stage as any,
+            venue: comp.venue?.fullName ?? null,
+            city: comp.venue?.address?.city ?? null,
+            country: comp.venue?.address?.country ?? null,
+          },
+        });
+      } else {
+        match = await prisma.match.update({
+          where: { id: match.id },
+          data: {
+            status: status as any,
+            homeScore,
+            awayScore,
+            minute,
+            ...(match.externalId == null && { externalId: event.id }),
+          },
+        });
+      }
+
+      if (status === 'LIVE') {
+        io?.to(`match:${match.id}`).emit('match:score', { homeScore, awayScore, minute });
+        io?.to('global:live').emit('global:score-update', { matchId: match.id, homeScore, awayScore });
+      }
+
+      // Sync events from ESPN details
+      const details: any[] = comp.details ?? [];
+      for (const detail of details) {
+        const eventType = mapESPNEventType(detail.type?.text ?? '');
+        if (!eventType) continue;
+
+        const detailMinute = Math.round(detail.clock?.value ?? 0);
+        const detailTeamEspnId = detail.team?.id ? String(detail.team.id) : null;
+        const detailTeamId = detailTeamEspnId
+          ? (detailTeamEspnId === String(homeComp.team?.id) ? homeTeam.id : awayTeam.id)
+          : undefined;
+        const playerName = detail.athletesInvolved?.[0]?.displayName ?? '';
+
+        const existing = await prisma.matchEvent.findFirst({
+          where: { matchId: match.id, type: eventType as any, minute: detailMinute, teamId: detailTeamId ?? null },
+        });
+
+        if (!existing) {
+          const ev = await prisma.matchEvent.create({
+            data: { matchId: match.id, type: eventType as any, minute: detailMinute, teamId: detailTeamId, description: playerName },
+          });
+          io?.to(`match:${match.id}`).emit('match:event', { ...ev, playerName });
+        }
+      }
+
+      // Sync stats
+      const stats: any[] = comp.statistics ?? comp.stats ?? [];
+      if (stats.length > 0) {
+        const statObj: any = {};
+        for (const s of stats) {
+          const key = (s.name ?? s.abbreviation ?? '').toLowerCase().replace(/[^a-z]/g, '');
+          const hv = parseFloat(s.homeValue ?? s.home ?? '0') || 0;
+          const av = parseFloat(s.awayValue ?? s.away ?? '0') || 0;
+          if (['possession', 'possessionpct'].includes(key)) { statObj.homePossession = hv; statObj.awayPossession = av; }
+          else if (['totalshots', 'shots'].includes(key)) { statObj.homeShots = Math.round(hv); statObj.awayShots = Math.round(av); }
+          else if (['shotsontarget', 'shotstarget'].includes(key)) { statObj.homeShotsOnTarget = Math.round(hv); statObj.awayShotsOnTarget = Math.round(av); }
+          else if (key === 'fouls') { statObj.homeFouls = Math.round(hv); statObj.awayFouls = Math.round(av); }
+          else if (['cornerkicks', 'corners'].includes(key)) { statObj.homeCorners = Math.round(hv); statObj.awayCorners = Math.round(av); }
+          else if (key === 'yellowcards') { statObj.homeYellowCards = Math.round(hv); statObj.awayYellowCards = Math.round(av); }
+          else if (key === 'redcards') { statObj.homeRedCards = Math.round(hv); statObj.awayRedCards = Math.round(av); }
+        }
+        if (Object.keys(statObj).length > 0) {
+          await prisma.matchStats.upsert({
+            where: { matchId: match.id },
+            create: { matchId: match.id, ...statObj },
+            update: statObj,
+          });
+          io?.to(`match:${match.id}`).emit('match:stats', statObj);
+        }
+      }
+
+      synced.push({ matchId: match.id, externalId: event.id, status, home: homeTeam.code, away: awayTeam.code });
+    }
+
+    res.json({ success: true, data: { synced: synced.length, matches: synced } });
+  } catch (err: any) {
+    console.error('ESPN sync error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 matchRoutes.get('/', optionalAuth, MatchController.list);
 matchRoutes.get('/live', MatchController.getLive);
@@ -17,3 +224,87 @@ matchRoutes.get('/:id/lineups', MatchController.getLineups);
 matchRoutes.get('/:id/h2h', MatchController.getHeadToHead);
 matchRoutes.get('/:id/comments', optionalAuth, MatchController.getComments);
 matchRoutes.post('/:id/comments', authenticate, MatchController.addComment);
+
+// Manual result entry + socket emit
+matchRoutes.patch('/:id/score', async (req, res) => {
+  const { id } = req.params;
+  const { homeScore, awayScore, status, minute, events } = req.body;
+  try {
+    const match = await prisma.match.update({
+      where: { id },
+      data: {
+        ...(homeScore !== undefined && { homeScore: Number(homeScore) }),
+        ...(awayScore !== undefined && { awayScore: Number(awayScore) }),
+        ...(status && { status }),
+        ...(minute !== undefined && { minute: Number(minute) }),
+      },
+      include: {
+        homeTeam: { select: { id: true, name: true, shortName: true, code: true, flagUrl: true } },
+        awayTeam: { select: { id: true, name: true, shortName: true, code: true, flagUrl: true } },
+      },
+    });
+
+    const io = (global as any).io;
+
+    if (homeScore !== undefined || awayScore !== undefined) {
+      io?.to(`match:${id}`).emit('match:score', {
+        homeScore: match.homeScore, awayScore: match.awayScore, minute: match.minute,
+      });
+      io?.to('global:live').emit('global:score-update', {
+        matchId: id, homeScore: match.homeScore, awayScore: match.awayScore,
+      });
+    }
+    if (status) {
+      io?.to(`match:${id}`).emit('match:status', { status });
+    }
+
+    if (events && Array.isArray(events) && events.length > 0) {
+      for (const ev of events) {
+        const created = await prisma.matchEvent.upsert({
+          where: { id: ev.id ?? '' },
+          update: { type: ev.type, minute: ev.minute, teamId: ev.teamId, description: ev.description },
+          create: { matchId: id, type: ev.type, minute: ev.minute ?? 0, teamId: ev.teamId, description: ev.description ?? '' },
+        });
+        io?.to(`match:${id}`).emit('match:event', created);
+      }
+    }
+
+    res.json({ success: true, data: match });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Live event — single event with socket emit (for real-time radar)
+matchRoutes.post('/:id/live-event', async (req, res) => {
+  const { id } = req.params;
+  const { type, minute, teamId, description, playerName } = req.body;
+  if (!type || minute === undefined) return res.status(400).json({ success: false, message: 'type y minute requeridos' });
+
+  const event = await prisma.matchEvent.create({
+    data: { matchId: id, type, minute: Number(minute), teamId, description: description ?? playerName ?? '' },
+  });
+
+  const io = (global as any).io;
+  io?.to(`match:${id}`).emit('match:event', { ...event, playerName });
+  io?.to('global:live').emit('global:match-event', { matchId: id, type, minute: Number(minute), teamId });
+
+  res.json({ success: true, data: event });
+});
+
+// Live stats update with socket emit
+matchRoutes.put('/:id/live-stats', async (req, res) => {
+  const { id } = req.params;
+  const stats = req.body;
+
+  const updated = await prisma.matchStats.upsert({
+    where: { matchId: id },
+    create: { matchId: id, ...stats },
+    update: stats,
+  });
+
+  const io = (global as any).io;
+  io?.to(`match:${id}`).emit('match:stats', updated);
+
+  res.json({ success: true, data: updated });
+});

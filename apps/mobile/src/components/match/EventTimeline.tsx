@@ -24,14 +24,14 @@ interface EventTimelineProps {
 }
 
 const EVENT_CONFIG: Record<string, { icon: string; color: string; label: (e: MatchEvent) => string }> = {
-  GOAL: { icon: 'soccer', color: colors.primary, label: (e) => e.scorer?.name ?? 'Gol' },
-  OWN_GOAL: { icon: 'soccer', color: colors.error, label: (e) => `${e.scorer?.name ?? ''} (en propia)` },
-  PENALTY_SCORED: { icon: 'soccer', color: colors.primary, label: (e) => `${e.scorer?.name ?? ''} (pen)` },
-  PENALTY_MISSED: { icon: 'close-circle', color: colors.error, label: (e) => `${e.scorer?.name ?? ''} (fallo pen)` },
-  YELLOW_CARD: { icon: 'card', color: '#FBBF24', label: (e) => e.cardReceiver?.name ?? '' },
-  RED_CARD: { icon: 'card', color: colors.error, label: (e) => e.cardReceiver?.name ?? '' },
-  SECOND_YELLOW: { icon: 'card', color: colors.error, label: (e) => `${e.cardReceiver?.name ?? ''} (2ª AM)` },
-  SUBSTITUTION_IN: { icon: 'swap-vertical', color: '#10B981', label: (e) => `↑ ${e.playerIn?.name ?? ''} ↓ ${e.playerOut?.name ?? ''}` },
+  GOAL: { icon: 'soccer', color: colors.primary, label: (e) => e.scorer?.name ?? e.description ?? 'Gol' },
+  OWN_GOAL: { icon: 'soccer', color: colors.error, label: (e) => `${e.scorer?.name ?? e.description ?? ''} (en propia)` },
+  PENALTY_SCORED: { icon: 'soccer', color: colors.primary, label: (e) => `${e.scorer?.name ?? e.description ?? ''} (pen)` },
+  PENALTY_MISSED: { icon: 'close-circle', color: colors.error, label: (e) => `${e.scorer?.name ?? e.description ?? ''} (fallo pen)` },
+  YELLOW_CARD: { icon: 'card', color: '#FBBF24', label: (e) => e.cardReceiver?.name ?? e.description ?? '' },
+  RED_CARD: { icon: 'card', color: colors.error, label: (e) => e.cardReceiver?.name ?? e.description ?? '' },
+  SECOND_YELLOW: { icon: 'card', color: colors.error, label: (e) => `${e.cardReceiver?.name ?? e.description ?? ''} (2ª AM)` },
+  SUBSTITUTION_IN: { icon: 'swap-vertical', color: '#10B981', label: (e) => `↑ ${e.playerIn?.name ?? ''} ↓ ${e.playerOut?.name ?? e.description ?? ''}` },
   HALF_TIME: { icon: 'pause-circle', color: '#6B7280', label: () => 'Medio tiempo' },
   FULL_TIME: { icon: 'flag-checkered', color: '#6B7280', label: () => 'Fin del partido' },
   VAR_REVIEW: { icon: 'monitor', color: '#8B5CF6', label: (e) => e.description ?? 'Revisión VAR' },

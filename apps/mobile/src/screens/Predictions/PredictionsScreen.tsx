@@ -7,11 +7,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MotiView } from 'moti';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
+import { selectTournament } from '../../store/slices/tournamentSlice';
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '../../services/api';
 import { colors, spacing, typography, borderRadius } from '../../theme';
@@ -29,7 +29,9 @@ export function PredictionsScreen() {
   const { user } = useSelector((state: RootState) => state.auth);
   const [activeTab, setActiveTab] = useState<Tab>('predict');
 
-  const tournamentId: string | undefined = route.params?.tournamentId;
+  const dispatch = useDispatch();
+  const globalTournamentId = useSelector((state: RootState) => state.tournament.selectedId);
+  const tournamentId: string | undefined = route.params?.tournamentId ?? globalTournamentId ?? undefined;
   const tournamentName: string | undefined = route.params?.tournamentName;
 
   const { data: upcomingData, isLoading: loadingUpcoming, refetch } = useQuery({
@@ -85,7 +87,7 @@ export function PredictionsScreen() {
           ) : <View style={{ width: 24 }} />}
           <View style={{ flex: 1, marginLeft: tournamentId ? spacing.sm : 0 }}>
             <Text style={styles.headerTitle}>Predicciones</Text>
-            <Text style={styles.headerSubtitle}>{tournamentName ?? 'FIFA World Cup 2026™'}</Text>
+            <Text style={styles.headerSubtitle}>{tournamentName ?? 'Copa Mundial 2026'}</Text>
           </View>
         </View>
 
@@ -179,7 +181,7 @@ export function PredictionsScreen() {
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
             myRanking ? (
-              <MotiView from={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={[styles.myRankCard, { backgroundColor: appColors.surface }]}>
+              <View style={[styles.myRankCard, { backgroundColor: appColors.surface }]}>
                 <Text style={[styles.myRankTitle, { color: appColors.text }]}>Tu posición</Text>
                 <View style={styles.myRankRow}>
                   <Text style={[styles.myRankNum, { color: colors.primary }]}>#{myRanking.rank}</Text>
@@ -188,7 +190,7 @@ export function PredictionsScreen() {
                     <Text style={[styles.myRankSub, { color: appColors.textSecondary }]}>en el ranking global</Text>
                   </View>
                 </View>
-              </MotiView>
+              </View>
             ) : null
           }
           ListEmptyComponent={

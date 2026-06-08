@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
+﻿import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import { store } from '../store';
 import { clearAuth, setTokens } from '../store/slices/authSlice';
 import { logger } from '../utils/logger';
@@ -13,10 +13,11 @@ export const apiService: AxiosInstance = axios.create({
     'Accept': 'application/json',
     'X-App-Version': '1.0.0',
     'X-Platform': 'mobile',
+    'Bypass-Tunnel-Reminder': 'true',
   },
 });
 
-// Request interceptor — attach access token
+// Request interceptor â€” attach access token
 apiService.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = store.getState().auth.accessToken;
@@ -39,7 +40,7 @@ function processQueue(error: Error | null, token: string | null = null) {
   failedQueue = [];
 }
 
-// Response interceptor — handle 401 with token refresh
+// Response interceptor â€” handle 401 with token refresh
 apiService.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error) => {
@@ -98,3 +99,4 @@ export const createWebSocketConnection = (matchId: string) => {
 
   return socket;
 };
+

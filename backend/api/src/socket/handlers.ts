@@ -82,6 +82,25 @@ export function setupSocketHandlers(io: SocketServer): void {
       socket.join(`team:${teamId}`);
     });
 
+    // ── Watch Party: join with viewer count ──────────────
+    socket.on('join-match', async (matchId: string) => {
+      // Already handled above, but emit count after join
+      const room = `match:${matchId}`;
+      const count = io.sockets.adapter.rooms.get(room)?.size ?? 0;
+      io.to(room).emit('match:viewers', { count });
+    });
+
+    // ── Watch Party: emoji reactions ──────────────────────
+    socket.on('watch:reaction', (data: { matchId: string; emoji: string }) => {
+      if (!data.matchId || !data.emoji) return;
+      const allowed = ['⚽', '👏', '😱', '❤️', '🔥', '😤', '🎉', '💪'];
+      if (!allowed.includes(data.emoji)) return;
+      socket.to(`match:${data.matchId}`).emit('match:reaction', {
+        emoji: data.emoji,
+        userId: userId ?? null,
+      });
+    });
+
     // ── Typing in comments ────────────────────────────────
     socket.on('comment:typing', (data: { matchId: string }) => {
       if (!userId) return;
@@ -91,9 +110,16 @@ export function setupSocketHandlers(io: SocketServer): void {
     // ── Ping/Pong for keep-alive ──────────────────────────
     socket.on('ping', () => socket.emit('pong'));
 
-    // ── Disconnect ────────────────────────────────────────
+    // ── Disconnect: update viewer counts ─────────────────
     socket.on('disconnect', (reason) => {
       logger.debug(`Socket disconnected: ${clientId} — ${reason}`);
+      // Emit updated viewer count to all match rooms this socket was in
+      socket.rooms.forEach((room) => {
+        if (room.startsWith('match:')) {
+          const count = Math.max(0, (io.sockets.adapter.rooms.get(room)?.size ?? 1) - 1);
+          io.to(room).emit('match:viewers', { count });
+        }
+      });
     });
   });
 

@@ -7,3 +7,9 @@
 ../../ARCHITECTURE.md
 ../../README.md
 node_modules
+android/.gradle
+android/build
+android/app/build
+android/.idea
+dist-android
+eas-build.log
