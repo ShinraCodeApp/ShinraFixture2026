@@ -74,7 +74,12 @@ export const config = {
   openai: {
     apiKey: process.env.OPENAI_API_KEY || '',
     model: process.env.OPENAI_MODEL || 'gpt-4-turbo-preview',
-    enabled: process.env.AI_ENABLED === 'true',
+    enabled: false,
+  },
+
+  gemini: {
+    apiKey: process.env.GEMINI_API_KEY || '',
+    enabled: process.env.AI_ENABLED === 'true' && !!process.env.GEMINI_API_KEY,
   },
 
   sportsApi: {

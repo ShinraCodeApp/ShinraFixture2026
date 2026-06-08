@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { MatchStatus } from '@prisma/client';
 import { prisma } from '../config/database';
 import { CacheService } from '../config/redis';
@@ -37,13 +37,16 @@ interface SimulationResult {
 }
 
 export class AIService {
-  private static client: OpenAI | null = null;
+  private static genAI: GoogleGenerativeAI | null = null;
 
-  private static getClient(): OpenAI {
-    if (!this.client) {
-      this.client = new OpenAI({ apiKey: config.openai.apiKey });
+  private static getClient() {
+    if (!this.genAI) {
+      this.genAI = new GoogleGenerativeAI(config.gemini.apiKey);
     }
-    return this.client;
+    return this.genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash',
+      generationConfig: { temperature: 0.3, maxOutputTokens: 1000 },
+    });
   }
 
   // ── Core Prediction ─────────────────────────────────
@@ -98,8 +101,8 @@ export class AIService {
     // Statistical prediction (always available)
     const statsPrediction = this.calculateStatisticalProbabilities(match);
 
-    if (!config.openai.enabled || !config.openai.apiKey) {
-      const result = { ...statsPrediction, aiAnalysis: 'AI analysis unavailable', confidence: 'MEDIUM' as const };
+    if (!config.gemini.enabled || !config.gemini.apiKey) {
+      const result = { ...statsPrediction, aiAnalysis: 'Análisis IA no disponible', confidence: 'MEDIUM' as const };
       await cache.set(cacheKey, result, 3600);
       return result;
     }
@@ -118,7 +121,7 @@ export class AIService {
       });
       return aiPrediction;
     } catch (err) {
-      logger.warn('OpenAI prediction failed, using statistical model', err);
+      logger.warn('Gemini prediction failed, using statistical model', err);
       return statsPrediction;
     }
   }
@@ -219,47 +222,29 @@ export class AIService {
   }
 
   private static async getAIPrediction(match: any, statsPrediction: MatchPrediction): Promise<MatchPrediction> {
-    const client = this.getClient();
+    const model = this.getClient();
 
-    const prompt = `You are a professional football analyst. Analyze this FIFA World Cup 2026 match and provide predictions.
+    const prompt = `Eres un analista profesional de fútbol. Analiza este partido del Mundial FIFA 2026 y responde SOLO con JSON válido.
 
-Match: ${match.homeTeam.name} vs ${match.awayTeam.name}
-Stage: ${match.stage}
-Date: ${match.matchDate}
-Venue: ${match.venue}, ${match.city}
+Partido: ${match.homeTeam.name} vs ${match.awayTeam.name}
+Fase: ${match.stage}
+Sede: ${match.venue ?? ''}, ${match.city ?? ''}
 
-Home Team (${match.homeTeam.name}):
-- FIFA Ranking: ${match.homeTeam.fifaRanking ?? 'N/A'}
-- Recent matches: ${match.homeTeam.homeMatches.slice(0, 3).map((m: any) => `vs ${m.awayTeam.name} ${m.homeScore}-${m.awayScore}`).join(', ')}
+${match.homeTeam.name}: Ranking FIFA #${match.homeTeam.fifaRanking ?? 'N/A'}
+${match.awayTeam.name}: Ranking FIFA #${match.awayTeam.fifaRanking ?? 'N/A'}
 
-Away Team (${match.awayTeam.name}):
-- FIFA Ranking: ${match.awayTeam.fifaRanking ?? 'N/A'}
-- Recent matches: ${match.awayTeam.homeMatches.slice(0, 3).map((m: any) => `vs ${m.awayTeam.name} ${m.homeScore}-${m.awayScore}`).join(', ')}
+Probabilidades estadísticas: Local ${Math.round(statsPrediction.homeWinProb * 100)}%, Empate ${Math.round(statsPrediction.drawProb * 100)}%, Visitante ${Math.round(statsPrediction.awayWinProb * 100)}%
 
-Statistical probabilities: Home ${Math.round(statsPrediction.homeWinProb * 100)}%, Draw ${Math.round(statsPrediction.drawProb * 100)}%, Away ${Math.round(statsPrediction.awayWinProb * 100)}%
+Responde ÚNICAMENTE con este JSON (sin texto extra):
+{"homeWinProb":0.0,"drawProb":0.0,"awayWinProb":0.0,"predictedScore":"1-0","keyFactors":["factor1","factor2"],"analysis":"análisis en español de 2-3 párrafos","confidence":"MEDIUM"}
 
-Provide a JSON response with:
-{
-  "homeWinProb": <0-1>,
-  "drawProb": <0-1>,
-  "awayWinProb": <0-1>,
-  "predictedScore": "<home>-<away>",
-  "keyFactors": ["factor1", "factor2", "factor3"],
-  "analysis": "<2-3 paragraph analysis in Spanish>",
-  "confidence": "<LOW|MEDIUM|HIGH>"
-}
+homeWinProb + drawProb + awayWinProb debe sumar exactamente 1.0. confidence debe ser LOW, MEDIUM o HIGH.`;
 
-Ensure homeWinProb + drawProb + awayWinProb = 1.0`;
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().trim();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const data = JSON.parse(jsonMatch ? jsonMatch[0] : text);
 
-    const response = await client.chat.completions.create({
-      model: config.openai.model,
-      messages: [{ role: 'user', content: prompt }],
-      response_format: { type: 'json_object' },
-      temperature: 0.3,
-      max_tokens: 1000,
-    });
-
-    const data = JSON.parse(response.choices[0].message.content ?? '{}');
     return {
       homeWinProb: parseFloat(data.homeWinProb) || statsPrediction.homeWinProb,
       drawProb: parseFloat(data.drawProb) || statsPrediction.drawProb,
@@ -289,28 +274,21 @@ Ensure homeWinProb + drawProb + awayWinProb = 1.0`;
     });
 
     if (!match || match.status !== MatchStatus.FINISHED) return '';
-    if (!config.openai.enabled) return 'AI analysis not available';
+    if (!config.gemini.enabled || !config.gemini.apiKey) return '';
 
     try {
-      const client = this.getClient();
-      const events = match.events.map(e => `${e.minute}' - ${e.type}`).join('\n');
+      const model = this.getClient();
+      const events = match.events.map((e: any) => `${e.minute}' - ${e.type}`).join('\n');
 
-      const response = await client.chat.completions.create({
-        model: config.openai.model,
-        messages: [{
-          role: 'user',
-          content: `Analiza este partido del Mundial 2026 en español (2-3 párrafos):
+      const result = await model.generateContent(
+        `Analiza este partido del Mundial 2026 en español (2-3 párrafos, estilo periodismo deportivo):
 ${match.homeTeam.name} ${match.homeScore} - ${match.awayScore} ${match.awayTeam.name}
 Posesión: ${match.stats?.homePossession ?? 50}% - ${match.stats?.awayPossession ?? 50}%
-Eventos: ${events}
-Proporciona un análisis narrativo profesional de periodismo deportivo.`,
-        }],
-        temperature: 0.7,
-        max_tokens: 500,
-      });
+Eventos: ${events || 'No hay eventos registrados'}`
+      );
 
-      const analysis = response.choices[0].message.content ?? '';
-      await cache.set(cacheKey, analysis, 86400); // Cache for 24h
+      const analysis = result.response.text();
+      await cache.set(cacheKey, analysis, 86400);
       await prisma.match.update({ where: { id: matchId }, data: { aiAnalysis: analysis } });
       return analysis;
     } catch (err) {
