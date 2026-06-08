@@ -1,38 +1,17 @@
-# ── Base Stage ────────────────────────────────────────
-FROM node:20-alpine AS base
+﻿FROM node:20-slim
+
+RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
-RUN apk add --no-cache libc6-compat openssl
 
-# ── Dependencies Stage ────────────────────────────────
-FROM base AS deps
-COPY package.json yarn.lock ./
-COPY prisma ./prisma/
-RUN yarn install --frozen-lockfile
-RUN npx prisma generate
+COPY package*.json ./
+RUN npm ci
 
-# ── Build Stage ───────────────────────────────────────
-FROM base AS builder
-COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN yarn build
 
-# ── Production Stage ──────────────────────────────────
-FROM base AS production
-ENV NODE_ENV=production
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 shinra
-
-COPY --from=builder --chown=shinra:nodejs /app/dist ./dist
-COPY --from=builder --chown=shinra:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=shinra:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=shinra:nodejs /app/package.json ./package.json
-
-USER shinra
+RUN npx prisma generate
+RUN npm run build
 
 EXPOSE 4000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:4000/health || exit 1
-
-CMD ["node", "dist/index.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
