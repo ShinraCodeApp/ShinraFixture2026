@@ -203,9 +203,11 @@ export function MatchesScreen() {
             activeOpacity={0.85}
           >
             <View style={styles.matchMeta}>
-              <Text style={[styles.matchGroup, { color: appColors.textSecondary }]}>
-                {match.stage === 'GROUP' ? `Grupo ${match.group}` : match.stage?.replace(/_/g, ' ')}
-              </Text>
+              {match.stage && match.stage !== 'FRIENDLY' && (
+                <Text style={[styles.matchGroup, { color: appColors.textSecondary }]}>
+                  {match.stage === 'GROUP' ? `Grupo ${match.group}` : match.stage.replace(/_/g, ' ')}
+                </Text>
+              )}
               {match.status !== 'SCHEDULED' && (
                 <Text style={[styles.matchStatusLabel, { color: STATUS_COLOR[match.status] || appColors.textSecondary }]}>
                   {STATUS_LABEL[match.status] ?? match.status}
