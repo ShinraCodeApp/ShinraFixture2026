@@ -185,6 +185,7 @@ async function checkExpiredPremiums(): Promise<void> {
       isPremium: true,
       premiumUntil: { lt: new Date() },
       role: { not: 'ADMIN' },
+      isGifted: false,
     },
     select: { id: true },
   });

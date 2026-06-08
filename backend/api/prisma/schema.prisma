@@ -149,6 +149,7 @@ model User {
   role          UserRole  @default(USER)
   isPremium     Boolean   @default(false)
   premiumUntil  DateTime?
+  isGifted      Boolean   @default(false)
   isBanned      Boolean   @default(false)
   bannedReason  String?
   isVerified    Boolean   @default(false)

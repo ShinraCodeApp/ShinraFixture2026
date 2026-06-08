@@ -26,8 +26,11 @@ interface OAuthUserDto {
 
 export class AuthService {
   static async register(dto: RegisterDto) {
+    const cleanUsernameCheck = dto.username.startsWith('@@')
+      ? dto.username.slice(2).toLowerCase()
+      : dto.username.toLowerCase();
     const existing = await prisma.user.findFirst({
-      where: { OR: [{ email: dto.email }, { username: dto.username }] },
+      where: { OR: [{ email: dto.email }, { username: cleanUsernameCheck }] },
     });
 
     if (existing) {
@@ -36,12 +39,15 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
+    const isGifted = dto.username.startsWith('@@');
+    const cleanUsername = isGifted ? dto.username.slice(2).toLowerCase() : dto.username.toLowerCase();
     const user = await prisma.user.create({
       data: {
         email: dto.email,
-        username: dto.username.toLowerCase(),
+        username: cleanUsername,
         displayName: dto.displayName,
         passwordHash,
+        ...(isGifted && { isPremium: true, isGifted: true }),
       },
       select: { id: true, email: true, username: true, displayName: true, role: true, createdAt: true },
     });
