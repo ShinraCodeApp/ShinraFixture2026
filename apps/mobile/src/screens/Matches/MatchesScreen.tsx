@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, SectionList, FlatList,
   TouchableOpacity, RefreshControl, ActivityIndicator,
@@ -42,6 +42,17 @@ export function MatchesScreen() {
   const syncedOnce = useRef(false);
   const sectionListRef = useRef<SectionList<any>>(null);
   const scrolledToToday = useRef(false);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const today = dayjs().format('YYYY-MM-DD');
+
+  const toggleSection = useCallback((dateKey: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(dateKey)) next.delete(dateKey);
+      else next.add(dateKey);
+      return next;
+    });
+  }, []);
   const { language } = useSelector((state: RootState) => state.settings);
   const selectedId = useSelector((state: RootState) => state.tournament.selectedId);
 
@@ -99,7 +110,7 @@ export function MatchesScreen() {
   const displayName = (team: any) =>
     language === 'en' ? (team?.shortName || team?.name) : team?.name;
 
-  const sections = Object.entries(
+  const allSections = Object.entries(
     (allMatches as any[]).reduce<Record<string, any[]>>((acc, m) => {
       const key = dayjs(m.matchDate).format('YYYY-MM-DD');
       if (!acc[key]) acc[key] = [];
@@ -108,17 +119,24 @@ export function MatchesScreen() {
     }, {})
   )
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, data]) => ({
-      title: dayjs(date).format('dddd, D [de] MMMM YYYY'),
-      dateKey: date,
-      data,
-    }));
+    .map(([date, data]) => ({ title: dayjs(date).format('dddd, D [de] MMMM YYYY'), dateKey: date, data }));
+
+  // Auto-collapse past sections on first load
+  useEffect(() => {
+    if (allSections.length === 0) return;
+    setCollapsedSections(new Set(allSections.filter((s) => s.dateKey < today).map((s) => s.dateKey)));
+  }, [allSections.length === 0]);
+
+  // Sections with collapsed ones having empty data (SectionList requires data array)
+  const sections = allSections.map((s) => ({
+    ...s,
+    data: collapsedSections.has(s.dateKey) ? [] : s.data,
+  }));
 
   // Auto-scroll to today (or nearest future date) once data loads
   useEffect(() => {
-    if (sections.length === 0 || scrolledToToday.current) return;
-    const today = dayjs().format('YYYY-MM-DD');
-    const todayIdx = sections.findIndex((s) => s.dateKey >= today);
+    if (allSections.length === 0 || scrolledToToday.current) return;
+    const todayIdx = allSections.findIndex((s) => s.dateKey >= today);
     if (todayIdx < 0) return;
     scrolledToToday.current = true;
     // Small delay to let SectionList finish layout
@@ -128,7 +146,7 @@ export function MatchesScreen() {
       } catch { /* ok if not ready */ }
     }, 400);
     return () => clearTimeout(t);
-  }, [sections.length]);
+  }, [allSections.length]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>
@@ -185,17 +203,27 @@ export function MatchesScreen() {
         refreshControl={
           <RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={colors.primary} />
         }
-        renderSectionHeader={({ section }) => (
-          <View style={[styles.dayHeader, { backgroundColor: appColors.background }]}>
-            <Text style={[
-              styles.dayText,
-              { color: dayjs(section.dateKey).isSame(dayjs(), 'day') ? colors.primary : appColors.textSecondary },
-            ]}>
-              {dayjs(section.dateKey).isSame(dayjs(), 'day') ? '📅 HOY — ' : ''}
-              {section.title}
-            </Text>
-          </View>
-        )}
+        renderSectionHeader={({ section }) => {
+          const isToday = dayjs((section as any).dateKey).isSame(dayjs(), 'day');
+          const isPast = (section as any).dateKey < today;
+          const isCollapsed = collapsedSections.has((section as any).dateKey);
+          return (
+            <TouchableOpacity
+              onPress={() => toggleSection((section as any).dateKey)}
+              style={[styles.dayHeader, { backgroundColor: appColors.background }]}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.dayText, { color: isToday ? colors.primary : isPast ? appColors.textSecondary : appColors.text }]}>
+                {isToday ? '📅 HOY — ' : ''}{section.title}
+              </Text>
+              <MaterialCommunityIcons
+                name={isCollapsed ? 'chevron-down' : 'chevron-up'}
+                size={16}
+                color={isToday ? colors.primary : appColors.textSecondary}
+              />
+            </TouchableOpacity>
+          );
+        }}
         renderItem={({ item: match }) => (
           <TouchableOpacity
             onPress={() => navigation.navigate('MatchDetail', { matchId: match.id })}
@@ -283,8 +311,8 @@ const styles = StyleSheet.create({
   pill: { paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: borderRadius.full },
   pillText: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.semiBold },
   listContent: { paddingBottom: 100 },
-  dayHeader: { paddingHorizontal: spacing.screen, paddingVertical: spacing.xs },
-  dayText: { fontSize: 11, fontFamily: typography.fontFamily.medium, textTransform: 'uppercase', letterSpacing: 0.5 },
+  dayHeader: { paddingHorizontal: spacing.screen, paddingVertical: spacing.xs, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  dayText: { fontSize: 11, fontFamily: typography.fontFamily.medium, textTransform: 'uppercase', letterSpacing: 0.5, flex: 1 },
   matchCard: {
     marginHorizontal: spacing.screen, marginBottom: spacing.xs,
     borderRadius: borderRadius.lg, overflow: 'hidden',

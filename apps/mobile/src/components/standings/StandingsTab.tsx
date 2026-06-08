@@ -9,6 +9,9 @@ import { colors, spacing, typography, borderRadius } from '../../theme';
 import { TeamLogo } from '../common/TeamLogo';
 import { RootState } from '../../store';
 
+// Tipos sin tabla de posiciones (amistosos)
+const NO_STANDINGS_TYPES = new Set(['FRIENDLY']);
+
 // Tipos de torneo que tienen tabla única (sin selector de grupos)
 const SINGLE_TABLE_TYPES = new Set([
   'PREMIER_LEAGUE', 'LA_LIGA', 'BUNDESLIGA', 'SERIE_A', 'LIGUE_1', 'LEAGUE',
@@ -54,6 +57,21 @@ export function StandingsTab({ tournamentId, tournamentType, onGroupPress }: Sta
 
   // Determinar el tipo real (viene del prop o del objeto)
   const tType = tournamentType ?? tournament?.type ?? '';
+
+  // Amistosos: no hay tabla de posiciones
+  if (NO_STANDINGS_TYPES.has(tType)) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+        <Text style={{ fontSize: 40, marginBottom: 12 }}>🤝</Text>
+        <Text style={{ color: appColors.text, fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold, textAlign: 'center' }}>
+          Partidos Amistosos
+        </Text>
+        <Text style={{ color: appColors.textSecondary, fontSize: typography.fontSize.sm, textAlign: 'center', marginTop: 8 }}>
+          Los amistosos internacionales no tienen tabla de posiciones.{'\n'}Andá a "Partidos" para ver el fixture.
+        </Text>
+      </View>
+    );
+  }
 
   const isSingleTable = SINGLE_TABLE_TYPES.has(tType);
 
