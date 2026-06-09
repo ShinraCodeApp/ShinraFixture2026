@@ -508,17 +508,13 @@ async function seedFriendlyMatches() {
     { homeCode:'ECU', homeName:'Ecuador',         awayCode:'GUA', awayName:'Guatemala',
       date:'2026-06-07T23:00:00Z', venue:"ScottsMiracle-Gro Field",        city:'Columbus',        country:'United States',  status:'SCHEDULED' },
     // 8 junio
-    { homeCode:'ENG', homeName:'Inglaterra',      awayCode:'NZL', awayName:'Nueva Zelanda',
-      date:'2026-06-08T19:00:00Z', venue:'Wembley Stadium',                city:'Londres',         country:'England',        status:'FINISHED', homeScore:2, awayScore:0 },
     { homeCode:'NED', homeName:'Países Bajos',    awayCode:'UZB', awayName:'Uzbekistán',
-      date:'2026-06-08T18:00:00Z', venue:'Icahn Stadium',                  city:'New York City',   country:'United States',  status:'FINISHED' },
+      date:'2026-06-08T21:00:00Z', venue:'Icahn Stadium',                  city:'New York City',   country:'United States',  status:'FINISHED', homeScore:2, awayScore:1 },
     { homeCode:'FRA', homeName:'Francia',         awayCode:'NIR', awayName:'Irlanda del Norte',
       date:'2026-06-08T19:00:00Z', venue:'Decathlon Arena - Stade Pierre-Mauroy', city:'Lille',   country:'France',         status:'FINISHED', homeScore:3, awayScore:1 },
-    { homeCode:'NED', homeName:'Países Bajos',   awayCode:'UZB', awayName:'Uzbekistán',
-      date:'2026-06-08T21:00:00Z', venue:'Icahn Stadium',                         city:'New York',country:'United States',   status:'FINISHED', homeScore:2, awayScore:1 },
     { homeCode:'PER', homeName:'Perú',            awayCode:'ESP', awayName:'España',
       date:'2026-06-09T02:00:00Z', venue:'Estadio Cuauhtémoc',             city:'Puebla',          country:'Mexico',         status:'SCHEDULED' },
-    // 9 junio — segunda fecha ventana FIFA + amistosos
+    // 9 junio
     { homeCode:'KHM', homeName:'Cambodia',        awayCode:'HKG', awayName:'Hong Kong',
       date:'2026-06-09T10:00:00Z', venue:'National Olympic Stadium',       city:'Phnom Penh',      country:'Cambodia',       status:'SCHEDULED' },
     { homeCode:'PHI', homeName:'Filipinas',       awayCode:'MYA', awayName:'Myanmar',
@@ -538,7 +534,7 @@ async function seedFriendlyMatches() {
     { homeCode:'KGZ', homeName:'Kirguistán',      awayCode:'PLE', awayName:'Palestina',
       date:'2026-06-09T14:30:00Z', venue:'Dolen Omurzakov Stadium',        city:'Bishkek',         country:'Kyrgyzstan',     status:'SCHEDULED' },
     { homeCode:'ARM', homeName:'Armenia',         awayCode:'MDA', awayName:'Moldavia',
-      date:'2026-06-09T15:00:00Z', venue:'Vazgen Sargsyan Stadium',        city:'Ereván',          country:'Armenia',        status:'SCHEDULED' },
+      date:'2026-06-09T15:00:00Z', venue:'Vazgen Sargsyan Republican Stadium', city:'Ereván',      country:'Armenia',        status:'SCHEDULED' },
     { homeCode:'COD', homeName:'RD del Congo',    awayCode:'CHI', awayName:'Chile',
       date:'2026-06-09T16:00:00Z', venue:'Stade de la Source',             city:'Orleans',         country:'France',         status:'SCHEDULED' },
     { homeCode:'EQG', homeName:'Guinea Ecuatorial',awayCode:'COM', awayName:'Comoros',
@@ -559,24 +555,6 @@ async function seedFriendlyMatches() {
       date:'2026-06-10T01:00:00Z', venue:'--',                             city:'--',              country:'--',             status:'SCHEDULED' },
     { homeCode:'IRQ', homeName:'Irak',            awayCode:'VEN', awayName:'Venezuela',
       date:'2026-06-10T01:00:00Z', venue:'SeatGeek Stadium',               city:'Bridgeview',      country:'United States',  status:'SCHEDULED' },
-    { homeCode:'ARG', homeName:'Argentina',       awayCode:'URU', awayName:'Uruguay',
-      date:'2026-06-09T21:00:00Z', venue:'Estadio Monumental',             city:'Buenos Aires',    country:'Argentina',      status:'SCHEDULED' },
-    { homeCode:'BRA', homeName:'Brasil',          awayCode:'COL', awayName:'Colombia',
-      date:'2026-06-09T21:30:00Z', venue:'Maracanã',                       city:'Río de Janeiro',  country:'Brazil',         status:'SCHEDULED' },
-    { homeCode:'FRA', homeName:'Francia',         awayCode:'POR', awayName:'Portugal',
-      date:'2026-06-09T20:45:00Z', venue:'Stade de France',                city:'Saint-Denis',     country:'France',         status:'SCHEDULED' },
-    { homeCode:'ESP', homeName:'España',          awayCode:'MEX', awayName:'México',
-      date:'2026-06-09T21:00:00Z', venue:'Estadio Santiago Bernabéu',      city:'Madrid',          country:'Spain',          status:'SCHEDULED' },
-    { homeCode:'GER', homeName:'Alemania',        awayCode:'NED', awayName:'Países Bajos',
-      date:'2026-06-09T19:00:00Z', venue:'Allianz Arena',                  city:'Múnich',          country:'Germany',        status:'SCHEDULED' },
-    { homeCode:'USA', homeName:'Estados Unidos',  awayCode:'EGY', awayName:'Egipto',
-      date:'2026-06-10T01:00:00Z', venue:'Audi Field',                     city:'Washington DC',   country:'United States',  status:'SCHEDULED' },
-    { homeCode:'ENG', homeName:'Inglaterra',      awayCode:'CRO', awayName:'Croacia',
-      date:'2026-06-09T19:00:00Z', venue:'Wembley Stadium',                city:'Londres',         country:'England',        status:'SCHEDULED' },
-    { homeCode:'BEL', homeName:'Bélgica',         awayCode:'SUI', awayName:'Suiza',
-      date:'2026-06-09T20:45:00Z', venue:'Stade Roi Baudouin',             city:'Bruselas',        country:'Belgium',        status:'SCHEDULED' },
-    { homeCode:'JPN', homeName:'Japón',           awayCode:'KOR', awayName:'Corea del Sur',
-      date:'2026-06-09T11:00:00Z', venue:'Japan National Stadium',         city:'Tokio',           country:'Japan',          status:'SCHEDULED' },
     // 10 junio
     { homeCode:'POR', homeName:'Portugal',        awayCode:'NGA', awayName:'Nigeria',
       date:'2026-06-10T19:45:00Z', venue:'Estádio Dr. Magalhaes Pessoa',   city:'Leiria',          country:'Portugal',       status:'SCHEDULED' },
@@ -587,13 +565,6 @@ async function seedFriendlyMatches() {
     // 11 junio
     { homeCode:'AUT', homeName:'Austria',         awayCode:'GUA', awayName:'Guatemala',
       date:'2026-06-11T04:00:00Z', venue:'Rose Bowl',                      city:'Pasadena',        country:'United States',  status:'SCHEDULED' },
-    // Post-Mundial (septiembre–noviembre 2026)
-    { homeCode:'ARG', homeName:'Argentina',       awayCode:'BRA', awayName:'Brasil',
-      date:'2026-09-06T21:00:00Z', venue:'Estadio Monumental',             city:'Buenos Aires',    country:'Argentina',      status:'SCHEDULED' },
-    { homeCode:'ESP', homeName:'España',          awayCode:'GER', awayName:'Alemania',
-      date:'2026-09-06T20:45:00Z', venue:'Estadio Santiago Bernabéu',      city:'Madrid',          country:'Spain',          status:'SCHEDULED' },
-    { homeCode:'FRA', homeName:'Francia',         awayCode:'ENG', awayName:'Inglaterra',
-      date:'2026-09-07T20:45:00Z', venue:'Stade de France',                city:'Saint-Denis',     country:'France',         status:'SCHEDULED' },
   ];
 
   // Crear equipos que puedan no estar en la DB
