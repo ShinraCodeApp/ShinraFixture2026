@@ -24,9 +24,20 @@ export function CommentSection({ matchId }: { matchId: string }) {
     refetchInterval: 30_000,
   });
 
+  const submittingRef = React.useRef(false);
+
   const mutation = useMutation({
-    mutationFn: async () => (await apiService.post(`/matches/${matchId}/comments`, { content: text })).data,
+    mutationFn: async () => {
+      if (submittingRef.current) throw new Error('duplicate');
+      submittingRef.current = true;
+      try {
+        return (await apiService.post(`/matches/${matchId}/comments`, { content: text })).data;
+      } finally {
+        submittingRef.current = false;
+      }
+    },
     onSuccess: () => { setText(''); queryClient.invalidateQueries({ queryKey: ['comments', matchId] }); },
+    onError: (e: any) => { if (e.message !== 'duplicate') submittingRef.current = false; },
   });
 
   return (

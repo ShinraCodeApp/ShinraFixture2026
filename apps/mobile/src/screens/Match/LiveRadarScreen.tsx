@@ -205,6 +205,9 @@ export function LiveRadarScreen() {
   const [connected, setConnected] = useState(false);
   const socketRef = useRef<any>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const ballX = useRef(new Animated.Value(PITCH_W / 2 - 8)).current;
+  const ballY = useRef(new Animated.Value(PITCH_H / 2 - 8)).current;
+  const ballMoveRef = useRef<any>(null);
 
   const { data: match, isLoading } = useQuery({
     queryKey: ['match', matchId],
@@ -317,6 +320,49 @@ export function LiveRadarScreen() {
     };
   }, [matchId, match, token]);
 
+  // Ball animation — moves when live, jumps to goal when scored
+  useEffect(() => {
+    if (!match) return;
+    const isMatchLive = match.status === 'LIVE' || match.status === 'HALF_TIME';
+    if (!isMatchLive) {
+      ballX.setValue(PITCH_W / 2 - 8);
+      ballY.setValue(PITCH_H / 2 - 8);
+      return;
+    }
+    const moveBall = () => {
+      const homePoss = (liveStats ?? stats)?.homePossession ?? 50;
+      const biasX = homePoss > 52
+        ? PITCH_W * 0.45 + Math.random() * PITCH_W * 0.45
+        : PITCH_W * 0.1 + Math.random() * PITCH_W * 0.45;
+      const targetX = Math.max(12, Math.min(PITCH_W - 12, biasX));
+      const targetY = Math.max(12, Math.min(PITCH_H - 12, PITCH_H * 0.08 + Math.random() * PITCH_H * 0.84));
+      ballMoveRef.current = Animated.parallel([
+        Animated.timing(ballX, { toValue: targetX - 8, duration: 2000 + Math.random() * 3000, useNativeDriver: false }),
+        Animated.timing(ballY, { toValue: targetY - 8, duration: 2000 + Math.random() * 3000, useNativeDriver: false }),
+      ]);
+      ballMoveRef.current.start(({ finished }: any) => { if (finished) moveBall(); });
+    };
+    moveBall();
+    return () => { ballMoveRef.current?.stop(); };
+  }, [match?.status, (liveStats ?? stats)?.homePossession]);
+
+  // Jump ball to goal when a goal is scored
+  const goalCount = allEvents?.filter((e: any) => ['GOAL','PENALTY_SCORED','OWN_GOAL'].includes(e.type)).length ?? 0;
+  useEffect(() => {
+    if (goalCount === 0) return;
+    const goals = (allEvents ?? []).filter((e: any) => ['GOAL','PENALTY_SCORED','OWN_GOAL'].includes(e.type));
+    const lastGoal = goals[goals.length - 1];
+    if (!lastGoal || !match) return;
+    const isHome = lastGoal.teamId === match.homeTeamId;
+    ballMoveRef.current?.stop();
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(ballX, { toValue: isHome ? PITCH_W * 0.92 - 8 : PITCH_W * 0.03, duration: 500, useNativeDriver: false }),
+        Animated.timing(ballY, { toValue: PITCH_H / 2 - 8, duration: 500, useNativeDriver: false }),
+      ]),
+    ]).start();
+  }, [goalCount]);
+
   // Sync ESPN on mount + every 30s while live to get latest score/events
   useEffect(() => {
     if (!match) return;
@@ -417,12 +463,18 @@ export function LiveRadarScreen() {
           {/* Pitch */}
           <View style={styles.pitchContainer}>
             <Text style={styles.pitchTeamLabel}>{home?.shortName ?? home?.code}</Text>
-            <FootballPitch
-              events={allEvents}
-              homeTeamId={home?.id}
-              homePlayers={homePlayers}
-              awayPlayers={awayPlayers}
-            />
+            <View style={{ position: 'relative' }}>
+              <FootballPitch
+                events={allEvents}
+                homeTeamId={home?.id}
+                homePlayers={homePlayers}
+                awayPlayers={awayPlayers}
+              />
+              <Animated.View
+                style={[styles.ball, { left: ballX, top: ballY }]}
+                pointerEvents="none"
+              />
+            </View>
             <Text style={[styles.pitchTeamLabel, styles.pitchTeamLabelRight]}>{away?.shortName ?? away?.code}</Text>
           </View>
 
@@ -549,4 +601,10 @@ const styles = StyleSheet.create({
 
   noEvents: { alignItems: 'center', paddingVertical: 40, gap: spacing.sm, marginHorizontal: spacing.base },
   noEventsText: { color: 'rgba(255,255,255,0.3)', fontSize: typography.fontSize.sm, textAlign: 'center' },
+  ball: {
+    position: 'absolute', width: 14, height: 14, borderRadius: 7,
+    backgroundColor: 'white', borderWidth: 1.5, borderColor: 'rgba(0,0,0,0.25)',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.6, shadowRadius: 3, elevation: 8, zIndex: 20,
+  },
 });

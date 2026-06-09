@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Animated, Dimensions, ActivityIndicator,
+  Animated, Dimensions, ActivityIndicator, Modal, TextInput, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -36,6 +36,34 @@ export function MatchDetailScreen() {
   const [activeTab, setActiveTab] = useState('info');
   const [localAiAnalysis, setLocalAiAnalysis] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [showScoreEdit, setShowScoreEdit] = useState(false);
+  const [editHome, setEditHome] = useState(0);
+  const [editAway, setEditAway] = useState(0);
+  const [editStatus, setEditStatus] = useState<'SCHEDULED' | 'LIVE' | 'FINISHED'>('LIVE');
+  const [savingScore, setSavingScore] = useState(false);
+
+  const openScoreEdit = () => {
+    setEditHome(match?.homeScore ?? 0);
+    setEditAway(match?.awayScore ?? 0);
+    setEditStatus((match?.status as any) ?? 'LIVE');
+    setShowScoreEdit(true);
+  };
+
+  const saveScore = async () => {
+    setSavingScore(true);
+    try {
+      const { apiService } = await import('../../services/api');
+      await apiService.patch(`/matches/${matchId}/score`, {
+        homeScore: editHome, awayScore: editAway, status: editStatus,
+      });
+      await refetch();
+      setShowScoreEdit(false);
+    } catch {
+      Alert.alert('Error', 'No se pudo actualizar el marcador');
+    } finally {
+      setSavingScore(false);
+    }
+  };
 
   const handleGetAI = async () => {
     setAiLoading(true);
@@ -79,6 +107,9 @@ export function MatchDetailScreen() {
         >
           <MaterialCommunityIcons name="radar" size={18} color="white" />
           <Text style={styles.radarButtonText}>Radar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.editScoreBtn} onPress={openScoreEdit}>
+          <MaterialCommunityIcons name="pencil" size={16} color="rgba(255,255,255,0.7)" />
         </TouchableOpacity>
 
         <View style={styles.stageInfo}>
@@ -245,6 +276,62 @@ export function MatchDetailScreen() {
 
       {/* Watch Party bar — always visible at the bottom */}
       <WatchPartyBar matchId={matchId} />
+
+      {/* Manual score editor */}
+      <Modal visible={showScoreEdit} transparent animationType="slide" onRequestClose={() => setShowScoreEdit(false)}>
+        <TouchableOpacity style={scoreEditStyles.backdrop} activeOpacity={1} onPress={() => setShowScoreEdit(false)} />
+        <View style={scoreEditStyles.sheet}>
+          <Text style={scoreEditStyles.title}>Actualizar marcador</Text>
+
+          <View style={scoreEditStyles.row}>
+            <Text style={scoreEditStyles.teamLabel}>{match.homeTeam.shortName}</Text>
+            <View style={scoreEditStyles.stepper}>
+              <TouchableOpacity style={scoreEditStyles.stepBtn} onPress={() => setEditHome(Math.max(0, editHome - 1))}>
+                <Text style={scoreEditStyles.stepTxt}>−</Text>
+              </TouchableOpacity>
+              <Text style={scoreEditStyles.stepVal}>{editHome}</Text>
+              <TouchableOpacity style={scoreEditStyles.stepBtn} onPress={() => setEditHome(editHome + 1)}>
+                <Text style={scoreEditStyles.stepTxt}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={scoreEditStyles.row}>
+            <Text style={scoreEditStyles.teamLabel}>{match.awayTeam.shortName}</Text>
+            <View style={scoreEditStyles.stepper}>
+              <TouchableOpacity style={scoreEditStyles.stepBtn} onPress={() => setEditAway(Math.max(0, editAway - 1))}>
+                <Text style={scoreEditStyles.stepTxt}>−</Text>
+              </TouchableOpacity>
+              <Text style={scoreEditStyles.stepVal}>{editAway}</Text>
+              <TouchableOpacity style={scoreEditStyles.stepBtn} onPress={() => setEditAway(editAway + 1)}>
+                <Text style={scoreEditStyles.stepTxt}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={scoreEditStyles.statusRow}>
+            {(['SCHEDULED', 'LIVE', 'FINISHED'] as const).map(s => (
+              <TouchableOpacity
+                key={s}
+                style={[scoreEditStyles.statusBtn, editStatus === s && scoreEditStyles.statusBtnActive]}
+                onPress={() => setEditStatus(s)}
+              >
+                <Text style={[scoreEditStyles.statusTxt, editStatus === s && { color: 'white' }]}>
+                  {s === 'SCHEDULED' ? 'Por jugar' : s === 'LIVE' ? 'En vivo' : 'Finalizado'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TouchableOpacity
+            style={[scoreEditStyles.saveBtn, savingScore && { opacity: 0.6 }]}
+            onPress={saveScore}
+            disabled={savingScore}
+          >
+            <Text style={scoreEditStyles.saveTxt}>{savingScore ? 'Guardando...' : 'Guardar'}</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -288,4 +375,38 @@ const styles = StyleSheet.create({
   },
   aiButtonLoading: { opacity: 0.7 },
   aiButtonText: { color: 'white', fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.bold },
+  editScoreBtn: {
+    position: 'absolute', top: spacing.sm, left: spacing.screen,
+    padding: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: borderRadius.full,
+  },
+});
+
+const scoreEditStyles = StyleSheet.create({
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
+  sheet: {
+    backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    padding: spacing.xl, gap: spacing.base,
+  },
+  title: { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.bold, textAlign: 'center', marginBottom: 4 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  teamLabel: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.semiBold, flex: 1 },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: spacing.base },
+  stepBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
+  },
+  stepTxt: { color: 'white', fontSize: 20, fontFamily: typography.fontFamily.bold, lineHeight: 24 },
+  stepVal: { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, minWidth: 32, textAlign: 'center' },
+  statusRow: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'center', marginTop: 4 },
+  statusBtn: {
+    paddingHorizontal: spacing.base, paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full, borderWidth: 1, borderColor: colors.primary,
+  },
+  statusBtnActive: { backgroundColor: colors.primary },
+  statusTxt: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.semiBold, color: colors.primary },
+  saveBtn: {
+    backgroundColor: colors.primary, borderRadius: borderRadius.lg,
+    paddingVertical: spacing.md, alignItems: 'center', marginTop: 4,
+  },
+  saveTxt: { color: 'white', fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold },
 });
