@@ -435,7 +435,8 @@ matchRoutes.post('/:id/ai-predict', async (req, res) => {
 });
 
 // Manual result entry + socket emit
-matchRoutes.patch('/:id/score', async (req, res) => {
+// Accepts both PATCH and POST (POST alias for Android Axios PATCH compatibility)
+async function handleScoreUpdate(req: any, res: any) {
   const { id } = req.params;
   const { homeScore, awayScore, status, minute, events } = req.body;
   try {
@@ -482,7 +483,9 @@ matchRoutes.patch('/:id/score', async (req, res) => {
   } catch (err: any) {
     res.status(400).json({ success: false, error: err.message });
   }
-});
+}
+matchRoutes.post('/:id/score', handleScoreUpdate);
+matchRoutes.patch('/:id/score', handleScoreUpdate);
 
 // Live event — single event with socket emit (for real-time radar)
 matchRoutes.post('/:id/live-event', async (req, res) => {

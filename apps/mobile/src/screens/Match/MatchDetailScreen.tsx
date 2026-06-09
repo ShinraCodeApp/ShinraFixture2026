@@ -53,7 +53,7 @@ export function MatchDetailScreen() {
   const saveScore = async () => {
     setSavingScore(true);
     try {
-      await apiService.patch(`/matches/${matchId}/score`, {
+      await apiService.post(`/matches/${matchId}/score`, {
         homeScore: editHome, awayScore: editAway, status: editStatus,
       });
       await refetch();
