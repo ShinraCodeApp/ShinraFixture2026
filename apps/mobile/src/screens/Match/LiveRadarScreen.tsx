@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Dimensions, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Dimensions, ActivityIndicator, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -383,9 +383,9 @@ export function LiveRadarScreen() {
           {/* Scoreboard */}
           <View style={styles.scoreboard}>
             <View style={styles.teamSide}>
-              {home?.flagUrl ? (
-                <MaterialCommunityIcons name="flag" size={32} color="white" />
-              ) : null}
+              {home?.flagUrl
+                ? <Image source={{ uri: home.flagUrl }} style={styles.flagImg} />
+                : <MaterialCommunityIcons name="flag" size={28} color="rgba(255,255,255,0.5)" />}
               <Text style={styles.teamCode}>{home?.shortName ?? home?.code ?? '?'}</Text>
             </View>
             <View style={styles.scoreCenter}>
@@ -397,6 +397,9 @@ export function LiveRadarScreen() {
               )}
             </View>
             <View style={[styles.teamSide, styles.teamRight]}>
+              {away?.flagUrl
+                ? <Image source={{ uri: away.flagUrl }} style={styles.flagImg} />
+                : <MaterialCommunityIcons name="flag" size={28} color="rgba(255,255,255,0.5)" />}
               <Text style={styles.teamCode}>{away?.shortName ?? away?.code ?? '?'}</Text>
             </View>
           </View>
@@ -504,8 +507,9 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.base, marginTop: spacing.sm,
     backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: borderRadius.xl, padding: spacing.base,
   },
-  teamSide: { flex: 1, alignItems: 'flex-start' },
+  teamSide: { flex: 1, alignItems: 'flex-start', gap: 4 },
   teamRight: { alignItems: 'flex-end' },
+  flagImg: { width: 36, height: 24, borderRadius: 2 },
   teamCode: { color: 'white', fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold },
   scoreCenter: { flex: 1, alignItems: 'center' },
   score: { color: 'white', fontSize: 32, fontFamily: typography.fontFamily.bold, letterSpacing: 2 },

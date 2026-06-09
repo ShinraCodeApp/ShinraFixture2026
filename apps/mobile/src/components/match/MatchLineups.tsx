@@ -84,9 +84,13 @@ export function MatchLineups({ matchId }: Props) {
     return <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>;
   }
 
+  const GENERIC_LINEUP = Array.from({ length: 11 }, (_, i) => ({
+    id: `g${i}`, number: i + 1, name: '', positionAbbr: i === 0 ? 'GK' : i < 5 ? 'DF' : i < 8 ? 'MF' : 'FW',
+  }));
+
   // Build ordered lineup from squad (GK first, then DF, MF, FW — max 11)
   const buildLineup = (squad: any) => {
-    if (!squad?.squad) return [];
+    if (!squad?.squad?.length) return GENERIC_LINEUP;
     const sorted = [...squad.squad].sort((a: any, b: any) =>
       (POS_ORDER[a.positionAbbr as keyof typeof POS_ORDER] ?? 4) -
       (POS_ORDER[b.positionAbbr as keyof typeof POS_ORDER] ?? 4)
@@ -96,17 +100,6 @@ export function MatchLineups({ matchId }: Props) {
 
   const homePlayers = buildLineup(homeSquad);
   const awayPlayers = buildLineup(awaySquad);
-  const hasPlayers = homePlayers.length > 0 || awayPlayers.length > 0;
-
-  if (!hasPlayers) {
-    return (
-      <View style={styles.center}>
-        <Text style={{ color: appColors.textSecondary, fontSize: typography.fontSize.sm }}>
-          Alineaciones no disponibles
-        </Text>
-      </View>
-    );
-  }
 
   // Assign formation positions
   const homeFormation = '4-3-3';
