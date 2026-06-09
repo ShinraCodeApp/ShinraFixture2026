@@ -3,7 +3,7 @@ import { store } from '../store';
 import { clearAuth, setTokens } from '../store/slices/authSlice';
 import { logger } from '../utils/logger';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
 export const apiService: AxiosInstance = axios.create({
   baseURL: API_URL,

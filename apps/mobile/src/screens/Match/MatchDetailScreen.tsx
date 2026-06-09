@@ -11,7 +11,7 @@ import { createMaterialTopTabNavigator } from '@react-navigation/material-top-ta
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useMatchDetail } from '../../hooks/useMatchDetail';
-import { apiService } from '../../services/api';
+import { apiService, API_URL } from '../../services/api';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 import { TeamLogo } from '../../components/common/TeamLogo';
 import { MatchStatusBadge } from '../../components/match/MatchStatusBadge';
@@ -53,14 +53,17 @@ export function MatchDetailScreen() {
   const saveScore = async () => {
     setSavingScore(true);
     try {
-      await apiService.post(`/matches/${matchId}/score`, {
-        homeScore: editHome, awayScore: editAway, status: editStatus,
+      const res = await fetch(`${API_URL}/matches/${matchId}/score`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ homeScore: editHome, awayScore: editAway, status: editStatus }),
       });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error ?? `HTTP ${res.status}`);
       await refetch();
       setShowScoreEdit(false);
     } catch (e: any) {
-      const msg = e?.response?.data?.error ?? e?.message ?? 'Error desconocido';
-      Alert.alert('Error', `No se pudo actualizar el marcador:\n${msg}`);
+      Alert.alert('Error', e?.message ?? 'Error desconocido');
     } finally {
       setSavingScore(false);
     }

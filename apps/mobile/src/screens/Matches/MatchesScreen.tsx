@@ -22,9 +22,11 @@ dayjs.locale('es');
 
 const STATUS_LABEL: Record<string, string> = {
   SCHEDULED: '', LIVE: '🔴 En vivo', HALF_TIME: '⏸ ET', FINISHED: 'Final',
+  POSTPONED: 'Postergado', CANCELLED: 'Cancelado', ABANDONED: 'Abandonado',
 };
 const STATUS_COLOR: Record<string, string> = {
   LIVE: colors.live, HALF_TIME: colors.live, FINISHED: colors.success, SCHEDULED: '',
+  POSTPONED: '#EF4444', CANCELLED: '#EF4444', ABANDONED: '#EF4444',
 };
 
 const TOURNAMENT_ICONS: Record<string, string> = {
@@ -219,8 +221,9 @@ export function MatchesScreen() {
         }}
         renderItem={({ item: match }) => {
           const isLive = match.status === 'LIVE' || match.status === 'HALF_TIME';
+          const isCancelled = match.status === 'CANCELLED' || match.status === 'POSTPONED' || match.status === 'ABANDONED';
           const isPast = dayjs(match.matchDate).isBefore(dayjs());
-          const showScore = match.status !== 'SCHEDULED' || isPast;
+          const showScore = !isCancelled && (match.status !== 'SCHEDULED' || isPast);
           const hasScore = match.homeScore !== null && match.homeScore !== undefined;
           return (
           <TouchableOpacity
@@ -248,7 +251,11 @@ export function MatchesScreen() {
                 </Text>
               </View>
               <View style={styles.centerBlock}>
-                {showScore ? (
+                {isCancelled ? (
+                  <Text style={[styles.matchScore, { color: '#EF4444', fontSize: 13 }]}>
+                    {STATUS_LABEL[match.status]}
+                  </Text>
+                ) : showScore ? (
                   <Text style={[styles.matchScore, {
                     color: isLive ? colors.live : appColors.text,
                   }]}>
