@@ -13,6 +13,108 @@ function mapESPNStatus(state: string): 'SCHEDULED' | 'LIVE' | 'FINISHED' {
   return 'SCHEDULED';
 }
 
+function mapApiFootballEvent(type: string, detail: string): string | null {
+  if (type === 'Goal') {
+    if (detail === 'Own Goal') return 'OWN_GOAL';
+    if (detail === 'Penalty') return 'PENALTY_SCORED';
+    return 'GOAL';
+  }
+  if (type === 'Card') {
+    if (detail === 'Yellow Card') return 'YELLOW_CARD';
+    if (detail === 'Red Card') return 'RED_CARD';
+    if (detail === 'Second Yellow card') return 'SECOND_YELLOW';
+  }
+  if (type === 'subst') return 'SUBSTITUTION_IN';
+  if (type === 'Var') return 'VAR_REVIEW';
+  return null;
+}
+
+async function syncWithApiFootball(apiKey: string, io: any): Promise<number> {
+  const todayStr = dayjs().format('YYYY-MM-DD');
+  const yesterdayStr = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
+  let count = 0;
+
+  for (const dateStr of [yesterdayStr, todayStr]) {
+    let fixtures: any[] = [];
+    try {
+      const r = await axios.get(`https://v3.football.api-sports.io/fixtures?date=${dateStr}`, {
+        headers: { 'x-apisports-key': apiKey },
+        timeout: 10000,
+      });
+      fixtures = r.data.response ?? [];
+    } catch { continue; }
+
+    for (const fixture of fixtures) {
+      const homeGoals = fixture.goals?.home;
+      const awayGoals = fixture.goals?.away;
+      if (homeGoals === null && awayGoals === null) continue; // not played yet
+
+      const statusShort = fixture.fixture?.status?.short ?? 'NS';
+      const matchStatus = ['1H','2H','HT','ET','BT','P','SUSP','INT'].includes(statusShort) ? 'LIVE'
+        : ['FT','AET','PEN'].includes(statusShort) ? 'FINISHED' : 'SCHEDULED';
+      const minute = fixture.fixture?.status?.elapsed ?? null;
+
+      const homeName: string = fixture.teams?.home?.name ?? '';
+      const awayName: string = fixture.teams?.away?.name ?? '';
+      if (!homeName || !awayName) continue;
+
+      // Find teams in our DB by name match (first significant word)
+      const homeWord = homeName.split(' ')[0];
+      const awayWord = awayName.split(' ')[0];
+      const [homeTeam, awayTeam] = await Promise.all([
+        prisma.team.findFirst({ where: { name: { contains: homeWord, mode: 'insensitive' } } }),
+        prisma.team.findFirst({ where: { name: { contains: awayWord, mode: 'insensitive' } } }),
+      ]);
+      if (!homeTeam || !awayTeam) continue;
+
+      // Only update existing matches (don't create duplicates)
+      const match = await prisma.match.findFirst({
+        where: {
+          homeTeamId: homeTeam.id, awayTeamId: awayTeam.id,
+          matchDate: { gte: new Date(`${dateStr}T00:00:00Z`), lt: new Date(`${dateStr}T23:59:59Z`) },
+        },
+      });
+      if (!match) continue;
+
+      await prisma.match.update({
+        where: { id: match.id },
+        data: {
+          status: matchStatus as any,
+          ...(homeGoals != null && { homeScore: homeGoals }),
+          ...(awayGoals != null && { awayScore: awayGoals }),
+          ...(minute != null && { minute }),
+        },
+      });
+
+      if (matchStatus === 'LIVE') {
+        io?.to(`match:${match.id}`).emit('match:score', { homeScore: homeGoals, awayScore: awayGoals, minute });
+        io?.to('global:live').emit('global:score-update', { matchId: match.id, homeScore: homeGoals, awayScore: awayGoals });
+      }
+
+      // Sync events from api-football
+      for (const ev of (fixture.events ?? [])) {
+        const evType = mapApiFootballEvent(ev.type ?? '', ev.detail ?? '');
+        if (!evType) continue;
+        const evMinute = ev.time?.elapsed ?? 0;
+        const evTeamName: string = ev.team?.name ?? '';
+        const evTeamId = evTeamName.toLowerCase().includes(homeWord.toLowerCase()) ? homeTeam.id : awayTeam.id;
+        const evPlayer: string = ev.player?.name ?? '';
+        const existing = await prisma.matchEvent.findFirst({
+          where: { matchId: match.id, type: evType as any, minute: evMinute, teamId: evTeamId },
+        });
+        if (!existing) {
+          const created = await prisma.matchEvent.create({
+            data: { matchId: match.id, type: evType as any, minute: evMinute, teamId: evTeamId, description: evPlayer },
+          });
+          io?.to(`match:${match.id}`).emit('match:event', { ...created, playerName: evPlayer });
+        }
+      }
+      count++;
+    }
+  }
+  return count;
+}
+
 function mapESPNEventType(text: string): string | null {
   const t = (text ?? '').toLowerCase().trim();
   if (t === 'goal') return 'GOAL';
@@ -246,7 +348,14 @@ matchRoutes.post('/espn-sync', async (req, res) => {
       synced.push({ matchId: match.id, externalId: event.id, status, home: homeTeam.code, away: awayTeam.code });
     }
 
-    res.json({ success: true, data: { synced: synced.length, matches: synced } });
+    // api-football secondary sync (if API key is configured)
+    let apifbCount = 0;
+    const apifbKey = process.env.APIFOOTBALL_KEY;
+    if (apifbKey) {
+      try { apifbCount = await syncWithApiFootball(apifbKey, io); } catch { /* skip */ }
+    }
+
+    res.json({ success: true, data: { synced: synced.length, apifootball: apifbCount, matches: synced } });
   } catch (err: any) {
     console.error('ESPN sync error:', err.message);
     res.status(500).json({ success: false, error: err.message });
