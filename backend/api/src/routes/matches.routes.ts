@@ -37,11 +37,19 @@ matchRoutes.post('/espn-sync', async (req, res) => {
       dates.push(dayjs().add(i, 'day').format('YYYYMMDD'));
     }
 
+    const yesterday = dayjs().subtract(1, 'day').format('YYYYMMDD');
+    const allDates = [yesterday, ...dates];
+
     const urls = [
       `https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.WORLD/scoreboard`,
       `https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.WORLD/scoreboard?dates=${today}&limit=50`,
-      // General soccer scoreboard for today + next 6 days
-      ...dates.map(d => `https://site.api.espn.com/apis/site/v2/sports/soccer/scoreboard?dates=${d}&limit=100`),
+      // General soccer scoreboard for yesterday + today + next 6 days
+      ...allDates.map(d => `https://site.api.espn.com/apis/site/v2/sports/soccer/scoreboard?dates=${d}&limit=100`),
+      // International friendly specific endpoints
+      ...allDates.slice(0, 3).map(d => `https://site.api.espn.com/apis/site/v2/sports/soccer/international.friendly/scoreboard?dates=${d}&limit=100`),
+      // CONMEBOL and UEFA competitions
+      ...allDates.slice(0, 2).map(d => `https://site.api.espn.com/apis/site/v2/sports/soccer/concacaf.friendly/scoreboard?dates=${d}&limit=50`),
+      ...allDates.slice(0, 2).map(d => `https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.friendly/scoreboard?dates=${d}&limit=50`),
     ];
 
     const events: any[] = [];
@@ -72,6 +80,15 @@ matchRoutes.post('/espn-sync', async (req, res) => {
       const findOrCreateTeam = async (code: string, comp: any) => {
         if (!code) return null;
         let team = await prisma.team.findFirst({ where: { code } });
+        if (!team) {
+          // Try by displayName from ESPN (handles cases like ESPN="Spain" vs DB="España")
+          const displayName = comp.team?.displayName ?? '';
+          if (displayName) {
+            team = await prisma.team.findFirst({
+              where: { name: { contains: displayName.split(' ')[0], mode: 'insensitive' } },
+            });
+          }
+        }
         if (!team) {
           const isoCode = code.toLowerCase().slice(0, 2);
           team = await prisma.team.create({
