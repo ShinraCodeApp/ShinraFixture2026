@@ -238,15 +238,18 @@ export function LiveRadarScreen() {
     staleTime: 30 * 60_000,
   });
 
+  // Generic players for when ESPN squad is unavailable
+  const GENERIC_PLAYERS = Array.from({ length: 11 }, (_, i) => ({ number: i + 1, name: '' }));
+
   const homePlayers = useMemo(() => {
-    if (!homeSquad?.squad) return [];
+    if (!homeSquad?.squad?.length) return GENERIC_PLAYERS;
     return [...homeSquad.squad]
       .sort((a: any, b: any) => (POS_ORDER[a.positionAbbr] ?? 4) - (POS_ORDER[b.positionAbbr] ?? 4))
       .slice(0, 11);
   }, [homeSquad]);
 
   const awayPlayers = useMemo(() => {
-    if (!awaySquad?.squad) return [];
+    if (!awaySquad?.squad?.length) return GENERIC_PLAYERS;
     return [...awaySquad.squad]
       .sort((a: any, b: any) => (POS_ORDER[a.positionAbbr] ?? 4) - (POS_ORDER[b.positionAbbr] ?? 4))
       .slice(0, 11);
@@ -312,14 +315,14 @@ export function LiveRadarScreen() {
     };
   }, [matchId, match, token]);
 
-  // Poll ESPN sync for live matches with externalId
+  // Poll ESPN sync every 30s when match is live to get updated score/events
   useEffect(() => {
-    if (!match?.externalId || match.status !== 'LIVE') return;
+    if (match?.status !== 'LIVE' && match?.status !== 'HALF_TIME') return;
     const interval = setInterval(() => {
       apiService.post('/matches/espn-sync', {}).catch(() => {});
     }, 30_000);
     return () => clearInterval(interval);
-  }, [match?.externalId, match?.status]);
+  }, [match?.status]);
 
   if (isLoading || !match) return (
     <View style={{ flex: 1, backgroundColor: '#0a0a1a', alignItems: 'center', justifyContent: 'center' }}>

@@ -224,10 +224,12 @@ export function MatchesScreen() {
             </TouchableOpacity>
           );
         }}
-        renderItem={({ item: match }) => (
+        renderItem={({ item: match }) => {
+          const isLive = match.status === 'LIVE' || match.status === 'HALF_TIME';
+          return (
           <TouchableOpacity
             onPress={() => navigation.navigate('MatchDetail', { matchId: match.id })}
-            style={[styles.matchCard, { backgroundColor: appColors.surface }]}
+            style={[styles.matchCard, { backgroundColor: appColors.surface }, isLive && styles.matchCardLive]}
             activeOpacity={0.85}
           >
             <View style={styles.matchMeta}>
@@ -273,7 +275,8 @@ export function MatchesScreen() {
               </View>
             </View>
           </TouchableOpacity>
-        )}
+          );
+        }}
         ListEmptyComponent={
           !isLoading ? (
             <View style={styles.empty}>
@@ -316,6 +319,10 @@ const styles = StyleSheet.create({
   matchCard: {
     marginHorizontal: spacing.screen, marginBottom: spacing.xs,
     borderRadius: borderRadius.lg, overflow: 'hidden',
+  },
+  matchCardLive: {
+    borderWidth: 1.5,
+    borderColor: colors.live,
   },
   matchMeta: {
     flexDirection: 'row', justifyContent: 'space-between',

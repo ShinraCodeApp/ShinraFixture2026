@@ -127,9 +127,9 @@ matchRoutes.post('/espn-sync', async (req, res) => {
       const homeScore = status !== 'SCHEDULED' ? (parseInt(homeComp.score ?? '0') || 0) : null;
       const awayScore = status !== 'SCHEDULED' ? (parseInt(awayComp.score ?? '0') || 0) : null;
 
-      // For WC matches, also try to find by team pair on that date (in case externalId not set)
+      // Try by externalId first, then by team pair (works for both WC and FRIENDLY)
       let match = await prisma.match.findFirst({ where: { externalId: event.id } });
-      if (!match && isWC) {
+      if (!match) {
         match = await prisma.match.findFirst({
           where: {
             homeTeamId: homeTeam.id,
