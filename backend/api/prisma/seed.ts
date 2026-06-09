@@ -513,7 +513,9 @@ async function seedFriendlyMatches() {
     { homeCode:'NED', homeName:'Países Bajos',    awayCode:'UZB', awayName:'Uzbekistán',
       date:'2026-06-08T18:00:00Z', venue:'Icahn Stadium',                  city:'New York City',   country:'United States',  status:'FINISHED' },
     { homeCode:'FRA', homeName:'Francia',         awayCode:'NIR', awayName:'Irlanda del Norte',
-      date:'2026-06-08T19:00:00Z', venue:'Decathlon Arena - Stade Pierre-Mauroy', city:'Lille',   country:'France',         status:'FINISHED' },
+      date:'2026-06-08T19:00:00Z', venue:'Decathlon Arena - Stade Pierre-Mauroy', city:'Lille',   country:'France',         status:'FINISHED', homeScore:3, awayScore:1 },
+    { homeCode:'NED', homeName:'Países Bajos',   awayCode:'UZB', awayName:'Uzbekistán',
+      date:'2026-06-08T21:00:00Z', venue:'Icahn Stadium',                         city:'New York',country:'United States',   status:'FINISHED', homeScore:2, awayScore:1 },
     { homeCode:'PER', homeName:'Perú',            awayCode:'ESP', awayName:'España',
       date:'2026-06-09T02:00:00Z', venue:'Estadio Cuauhtémoc',             city:'Puebla',          country:'Mexico',         status:'SCHEDULED' },
     // 9 junio — segunda fecha ventana FIFA + amistosos
