@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, Switch, Alert, Animated,
+  Image, Switch, Alert, Animated, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -29,32 +29,69 @@ export function ProfileScreen() {
   const handlePickPhoto = () => {
     Alert.alert('Cambiar foto', 'Selecciona el origen', [
       {
-        text: 'Cámara',
+        text: 'Galería',
         onPress: async () => {
-          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          const { status, canAskAgain } = await ImagePicker.requestMediaLibraryPermissionsAsync();
           if (status !== 'granted') {
-            Alert.alert('Permiso requerido', 'Necesitamos acceso a la cámara.');
+            if (!canAskAgain) {
+              Alert.alert(
+                'Permiso bloqueado',
+                'Habilitá el acceso a la galería en Configuración del dispositivo.',
+                [
+                  { text: 'Cancelar', style: 'cancel' },
+                  { text: 'Abrir Configuración', onPress: () => Linking.openSettings() },
+                ]
+              );
+            } else {
+              Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galería para elegir una foto.');
+            }
             return;
           }
-          const result = await ImagePicker.launchCameraAsync({
-            allowsEditing: true, aspect: [1, 1], quality: 0.8,
-          });
-          if (!result.canceled && result.assets[0]) dispatch(setProfilePhoto(result.assets[0].uri));
+          try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: false,
+              quality: 0.8,
+            });
+            if (!result.canceled && result.assets?.[0]?.uri) {
+              dispatch(setProfilePhoto(result.assets[0].uri));
+            }
+          } catch (e) {
+            Alert.alert('Error', 'No se pudo abrir la galería. Intentá de nuevo.');
+          }
         },
       },
       {
-        text: 'Galería',
+        text: 'Cámara',
         onPress: async () => {
-          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          const { status, canAskAgain } = await ImagePicker.requestCameraPermissionsAsync();
           if (status !== 'granted') {
-            Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galería.');
+            if (!canAskAgain) {
+              Alert.alert(
+                'Permiso bloqueado',
+                'Habilitá el acceso a la cámara en Configuración del dispositivo.',
+                [
+                  { text: 'Cancelar', style: 'cancel' },
+                  { text: 'Abrir Configuración', onPress: () => Linking.openSettings() },
+                ]
+              );
+            } else {
+              Alert.alert('Permiso requerido', 'Necesitamos acceso a la cámara.');
+            }
             return;
           }
-          const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true, aspect: [1, 1], quality: 0.8,
-          });
-          if (!result.canceled && result.assets[0]) dispatch(setProfilePhoto(result.assets[0].uri));
+          try {
+            const result = await ImagePicker.launchCameraAsync({
+              allowsEditing: true,
+              aspect: [1, 1],
+              quality: 0.8,
+            });
+            if (!result.canceled && result.assets?.[0]?.uri) {
+              dispatch(setProfilePhoto(result.assets[0].uri));
+            }
+          } catch (e) {
+            Alert.alert('Error', 'No se pudo abrir la cámara. Intentá de nuevo.');
+          }
         },
       },
       { text: 'Cancelar', style: 'cancel' },

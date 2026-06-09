@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { apiService } from '../../services/api';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 import { TeamLogo } from '../common/TeamLogo';
-import { RootState } from '../../store';
+import { RootState, AppDispatch } from '../../store';
+import { selectTournament } from '../../store/slices/tournamentSlice';
 
 // Tipos sin tabla de posiciones (amistosos)
 const NO_STANDINGS_TYPES = new Set(['FRIENDLY']);
@@ -41,6 +42,7 @@ interface StandingsTabProps {
 export function StandingsTab({ tournamentId, tournamentType, onGroupPress }: StandingsTabProps) {
   const { appColors } = useAppTheme();
   const navigation = useNavigation<any>();
+  const dispatch = useDispatch<AppDispatch>();
   const [selectedGroup, setSelectedGroup] = useState('A');
   const { language } = useSelector((state: RootState) => state.settings);
 
@@ -58,17 +60,30 @@ export function StandingsTab({ tournamentId, tournamentType, onGroupPress }: Sta
   // Determinar el tipo real (viene del prop o del objeto)
   const tType = tournamentType ?? tournament?.type ?? '';
 
-  // Amistosos: no hay tabla de posiciones
+  // Amistosos: no hay tabla de posiciones — botón directo al tab Partidos
   if (NO_STANDINGS_TYPES.has(tType)) {
+    const goToMatches = () => {
+      if (tournamentId) dispatch(selectTournament(tournamentId));
+      navigation.navigate('MatchesTab');
+    };
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-        <Text style={{ fontSize: 40, marginBottom: 12 }}>🤝</Text>
-        <Text style={{ color: appColors.text, fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold, textAlign: 'center' }}>
+        <Text style={{ fontSize: 48, marginBottom: 16 }}>🤝</Text>
+        <Text style={{ color: appColors.text, fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.bold, textAlign: 'center', marginBottom: 8 }}>
           Partidos Amistosos
         </Text>
-        <Text style={{ color: appColors.textSecondary, fontSize: typography.fontSize.sm, textAlign: 'center', marginTop: 8 }}>
-          Los amistosos internacionales no tienen tabla de posiciones.{'\n'}Andá a "Partidos" para ver el fixture.
+        <Text style={{ color: appColors.textSecondary, fontSize: typography.fontSize.sm, textAlign: 'center', marginBottom: 24 }}>
+          Los amistosos no tienen tabla de posiciones.
         </Text>
+        <TouchableOpacity
+          onPress={goToMatches}
+          style={{ backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: borderRadius.full, flexDirection: 'row', alignItems: 'center', gap: 8 }}
+          activeOpacity={0.85}
+        >
+          <Text style={{ color: 'white', fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold }}>
+            Ver fixture de amistosos →
+          </Text>
+        </TouchableOpacity>
       </View>
     );
   }
