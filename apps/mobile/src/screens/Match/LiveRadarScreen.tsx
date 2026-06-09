@@ -34,7 +34,7 @@ const { width: W } = Dimensions.get('window');
 const PITCH_W = W - spacing.base * 2;
 const PITCH_H = PITCH_W * 0.65;
 
-const API_URL = (apiService as any).defaults?.baseURL?.replace('/api/v1', '') ?? 'http://192.168.1.100:4000';
+const API_URL = process.env.EXPO_PUBLIC_WS_URL ?? 'https://shinraapi-production.up.railway.app';
 
 const EVENT_ICONS: Record<string, { icon: string; color: string; label: string }> = {
   GOAL:             { icon: 'soccer', color: '#10B981', label: 'GOL' },
