@@ -29,12 +29,55 @@ function mapApiFootballEvent(type: string, detail: string): string | null {
   return null;
 }
 
+// api-football uses English names; our DB uses Spanish — map by FIFA code
+const APIFB_NAME_TO_CODE: Record<string, string> = {
+  'spain': 'ESP', 'germany': 'GER', 'france': 'FRA', 'netherlands': 'NED',
+  'england': 'ENG', 'portugal': 'POR', 'argentina': 'ARG', 'brazil': 'BRA',
+  'italy': 'ITA', 'belgium': 'BEL', 'croatia': 'CRO', 'denmark': 'DEN',
+  'switzerland': 'SUI', 'norway': 'NOR', 'sweden': 'SWE', 'ukraine': 'UKR',
+  'turkey': 'TUR', 'austria': 'AUT', 'poland': 'POL', 'hungary': 'HUN',
+  'czech republic': 'CZE', 'serbia': 'SRB', 'greece': 'GRE', 'slovakia': 'SVK',
+  'romania': 'ROU', 'scotland': 'SCO', 'wales': 'WAL', 'ireland': 'IRL',
+  'northern ireland': 'NIR', 'iceland': 'ISL', 'russia': 'RUS', 'belarus': 'BLR',
+  'armenia': 'ARM', 'moldova': 'MDA', 'azerbaijan': 'AZE', 'kazakhstan': 'KAZ',
+  'san marino': 'SMR',
+  'morocco': 'MAR', 'senegal': 'SEN', 'nigeria': 'NGA', 'egypt': 'EGY',
+  'cameroon': 'CMR', "ivory coast": 'CIV', "côte d'ivoire": 'CIV', 'algeria': 'ALG',
+  'tunisia': 'TUN', 'ghana': 'GHA', 'mali': 'MLI', 'angola': 'ANG',
+  'central african republic': 'CAR', 'ethiopia': 'ETH', 'malawi': 'MWI',
+  'mozambique': 'MOZ', 'tanzania': 'TAN', 'rwanda': 'RWA', 'burkina faso': 'BFA',
+  'equatorial guinea': 'EQG', 'comoros': 'COM', 'dr congo': 'COD',
+  'united states': 'USA', 'usa': 'USA', 'mexico': 'MEX', 'canada': 'CAN',
+  'costa rica': 'CRC', 'panama': 'PAN', 'honduras': 'HON', 'el salvador': 'SLV',
+  'jamaica': 'JAM', 'haiti': 'HTI', 'dominican republic': 'DOM',
+  'trinidad and tobago': 'TRI', 'guatemala': 'GUA', 'nicaragua': 'NIC',
+  'colombia': 'COL', 'ecuador': 'ECU', 'chile': 'CHI', 'peru': 'PER',
+  'uruguay': 'URU', 'paraguay': 'PAR', 'venezuela': 'VEN', 'bolivia': 'BOL',
+  'japan': 'JPN', 'south korea': 'KOR', 'australia': 'AUS', 'iran': 'IRN',
+  'saudi arabia': 'KSA', 'qatar': 'QAT', 'china': 'CHN', 'indonesia': 'IDN',
+  'philippines': 'PHI', 'thailand': 'THA', 'uzbekistan': 'UZB', 'oman': 'OMA',
+  'kuwait': 'KUW', 'bahrain': 'BHR', 'syria': 'SYR', 'iraq': 'IRQ',
+  'jordan': 'JOR', 'kyrgyzstan': 'KGZ', 'palestine': 'PLE', 'cambodia': 'KHM',
+  'hong kong': 'HKG', 'myanmar': 'MYA', 'new zealand': 'NZL',
+  'south africa': 'RSA', 'kenya': 'KEN', 'zimbabwe': 'ZIM',
+};
+
+async function findTeamByApiFbName(name: string) {
+  const key = name.toLowerCase().trim();
+  const code = APIFB_NAME_TO_CODE[key];
+  if (code) return prisma.team.findFirst({ where: { code } });
+  // fallback: first word contains (works for many Spanish names that share root)
+  const word = name.split(' ')[0];
+  return prisma.team.findFirst({ where: { name: { contains: word, mode: 'insensitive' } } });
+}
+
 async function syncWithApiFootball(apiKey: string, io: any): Promise<number> {
   const todayStr = dayjs().format('YYYY-MM-DD');
   const yesterdayStr = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
+  const tomorrowStr = dayjs().add(1, 'day').format('YYYY-MM-DD');
   let count = 0;
 
-  for (const dateStr of [yesterdayStr, todayStr]) {
+  for (const dateStr of [yesterdayStr, todayStr, tomorrowStr]) {
     let fixtures: any[] = [];
     try {
       const r = await axios.get(`https://v3.football.api-sports.io/fixtures?date=${dateStr}`, {
@@ -47,9 +90,10 @@ async function syncWithApiFootball(apiKey: string, io: any): Promise<number> {
     for (const fixture of fixtures) {
       const homeGoals = fixture.goals?.home;
       const awayGoals = fixture.goals?.away;
-      if (homeGoals === null && awayGoals === null) continue; // not played yet
 
       const statusShort = fixture.fixture?.status?.short ?? 'NS';
+      if (statusShort === 'NS' || statusShort === 'TBD') continue; // not started
+
       const matchStatus = ['1H','2H','HT','ET','BT','P','SUSP','INT'].includes(statusShort) ? 'LIVE'
         : ['FT','AET','PEN'].includes(statusShort) ? 'FINISHED' : 'SCHEDULED';
       const minute = fixture.fixture?.status?.elapsed ?? null;
@@ -58,21 +102,24 @@ async function syncWithApiFootball(apiKey: string, io: any): Promise<number> {
       const awayName: string = fixture.teams?.away?.name ?? '';
       if (!homeName || !awayName) continue;
 
-      // Find teams in our DB by name match (first significant word)
-      const homeWord = homeName.split(' ')[0];
-      const awayWord = awayName.split(' ')[0];
       const [homeTeam, awayTeam] = await Promise.all([
-        prisma.team.findFirst({ where: { name: { contains: homeWord, mode: 'insensitive' } } }),
-        prisma.team.findFirst({ where: { name: { contains: awayWord, mode: 'insensitive' } } }),
+        findTeamByApiFbName(homeName),
+        findTeamByApiFbName(awayName),
       ]);
       if (!homeTeam || !awayTeam) continue;
 
-      // Only update existing matches (don't create duplicates)
+      // Match by teams within a ±2 day window (handles UTC offset mismatches)
+      const windowStart = new Date(`${dateStr}T00:00:00Z`);
+      windowStart.setDate(windowStart.getDate() - 1);
+      const windowEnd = new Date(`${dateStr}T23:59:59Z`);
+      windowEnd.setDate(windowEnd.getDate() + 1);
+
       const match = await prisma.match.findFirst({
         where: {
           homeTeamId: homeTeam.id, awayTeamId: awayTeam.id,
-          matchDate: { gte: new Date(`${dateStr}T00:00:00Z`), lt: new Date(`${dateStr}T23:59:59Z`) },
+          matchDate: { gte: windowStart, lte: windowEnd },
         },
+        orderBy: { matchDate: 'asc' },
       });
       if (!match) continue;
 
