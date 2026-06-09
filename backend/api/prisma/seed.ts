@@ -432,8 +432,6 @@ async function seedFriendlyMatches() {
     },
   });
 
-  await prisma.match.deleteMany({ where: { tournamentId: tournament.id } });
-
   // Helper: upserta equipo nacional (actualiza nombre/flag si ya existía con otro dato)
   const flagOf = (code: string, flag?: string) =>
     flag ?? `https://flagcdn.com/w40/${code.toLowerCase()}.png`;
@@ -644,6 +642,7 @@ async function seedFriendlyMatches() {
   for (const [region, code, name, flag] of EXTRA_TEAMS) await ut(code, name, region, flag);
 
   let created = 0;
+  let updated = 0;
   for (const m of MATCHES) {
     const homeTeam = await prisma.team.findUnique({ where: { code: m.homeCode } });
     const awayTeam = await prisma.team.findUnique({ where: { code: m.awayCode } });
@@ -651,25 +650,45 @@ async function seedFriendlyMatches() {
       console.warn(`⚠ Friendly skip: ${m.homeCode} vs ${m.awayCode} — team not found`);
       continue;
     }
-    await prisma.match.create({
-      data: {
-        tournamentId: tournament.id,
-        homeTeamId: homeTeam.id,
-        awayTeamId: awayTeam.id,
-        stage: 'FRIENDLY',
-        round: 1,
-        matchDate: new Date(m.date),
-        venue: m.venue,
-        city: m.city,
-        status: m.status as any,
-        ...(m.homeScore !== undefined && { homeScore: m.homeScore }),
-        ...(m.awayScore !== undefined && { awayScore: m.awayScore }),
-      },
+
+    const existing = await prisma.match.findFirst({
+      where: { tournamentId: tournament.id, homeTeamId: homeTeam.id, awayTeamId: awayTeam.id },
     });
-    created++;
+
+    if (existing) {
+      await prisma.match.update({
+        where: { id: existing.id },
+        data: {
+          matchDate: new Date(m.date),
+          venue: m.venue,
+          city: m.city,
+          status: m.status as any,
+          ...(m.homeScore !== undefined ? { homeScore: m.homeScore } : {}),
+          ...(m.awayScore !== undefined ? { awayScore: m.awayScore } : {}),
+        },
+      });
+      updated++;
+    } else {
+      await prisma.match.create({
+        data: {
+          tournamentId: tournament.id,
+          homeTeamId: homeTeam.id,
+          awayTeamId: awayTeam.id,
+          stage: 'FRIENDLY',
+          round: 1,
+          matchDate: new Date(m.date),
+          venue: m.venue,
+          city: m.city,
+          status: m.status as any,
+          ...(m.homeScore !== undefined && { homeScore: m.homeScore }),
+          ...(m.awayScore !== undefined && { awayScore: m.awayScore }),
+        },
+      });
+      created++;
+    }
   }
 
-  console.log(`✅ Created ${created} friendly matches con datos reales ESPN Argentina`);
+  console.log(`✅ Friendly matches: ${created} creados, ${updated} actualizados`);
   return tournament;
 }
 

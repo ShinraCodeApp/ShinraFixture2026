@@ -69,11 +69,8 @@ export class PredictionService {
     });
 
     if (!match) throw ApiError.notFound('Match');
-    if (match.status !== MatchStatus.SCHEDULED) {
-      throw ApiError.badRequest('Predictions can only be made for scheduled matches');
-    }
-    if (dayjs(match.matchDate).diff(dayjs(), 'minute') < 15) {
-      throw ApiError.badRequest('Predictions close 15 minutes before kickoff');
+    if (match.status === MatchStatus.FINISHED) {
+      throw ApiError.badRequest('El partido ya finalizó, no se pueden hacer pronósticos');
     }
 
     const prediction = await prisma.prediction.upsert({
