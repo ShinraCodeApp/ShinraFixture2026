@@ -363,22 +363,15 @@ export function LiveRadarScreen() {
     ]).start();
   }, [goalCount]);
 
-  // Sync ESPN on mount + every 30s while live to get latest score/events
+  // Refetch events/stats from DB every 60s — server cron handles ESPN sync
   useEffect(() => {
     if (!match) return;
-    // Sync immediately on enter
-    apiService.post('/matches/espn-sync', {})
-      .then(() => { refetchEvents(); refetchStats(); })
-      .catch(() => {});
-
-    if (match.status !== 'LIVE' && match.status !== 'HALF_TIME') return;
     const interval = setInterval(() => {
-      apiService.post('/matches/espn-sync', {})
-        .then(() => { refetchEvents(); refetchStats(); })
-        .catch(() => {});
-    }, 30_000);
+      refetchEvents();
+      refetchStats();
+    }, 60_000);
     return () => clearInterval(interval);
-  }, [match?.id, match?.status]);
+  }, [match?.id]);
 
   if (isLoading || !match) return (
     <View style={{ flex: 1, backgroundColor: '#0a0a1a', alignItems: 'center', justifyContent: 'center' }}>

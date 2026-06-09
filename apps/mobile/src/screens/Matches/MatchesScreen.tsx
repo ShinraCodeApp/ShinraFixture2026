@@ -92,20 +92,13 @@ export function MatchesScreen() {
     },
   });
 
-  // Auto-sync on first mount and periodically when live matches exist
+  // One sync on mount (to warm data); server cron handles live updates automatically
   useEffect(() => {
     if (!syncedOnce.current) {
       syncedOnce.current = true;
       syncMutation.mutate();
     }
   }, []);
-
-  useEffect(() => {
-    const hasLive = (allMatches as any[]).some((m: any) => m.status === 'LIVE' || m.status === 'HALF_TIME');
-    if (!hasLive) return;
-    const interval = setInterval(() => syncMutation.mutate(), 60_000);
-    return () => clearInterval(interval);
-  }, [allMatches]);
 
   const displayName = (team: any) =>
     language === 'en' ? (team?.shortName || team?.name) : team?.name;

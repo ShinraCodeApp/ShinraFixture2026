@@ -1,4 +1,5 @@
 import cron from 'node-cron';
+import axios from 'axios';
 import { MatchStatus } from '@prisma/client';
 import { prisma } from '../config/database';
 import { CacheService } from '../config/redis';
@@ -10,10 +11,43 @@ import { AIService } from '../services/ai.service';
 
 const cache = new CacheService();
 
+// Internal sync: calls our own espn-sync endpoint (reuses all mapping logic)
+async function triggerLiveSyncIfNeeded(): Promise<void> {
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  const windowEnd   = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+
+  const activeMatchCount = await prisma.match.count({
+    where: {
+      OR: [
+        { status: { in: [MatchStatus.LIVE, MatchStatus.HALF_TIME] } },
+        { status: MatchStatus.SCHEDULED, matchDate: { gte: windowStart, lte: windowEnd } },
+      ],
+    },
+  });
+
+  if (activeMatchCount === 0) return;
+
+  try {
+    const port = parseInt(process.env.PORT ?? '4000', 10);
+    await axios.post(`http://localhost:${port}/api/v1/matches/espn-sync`, {}, { timeout: 45_000 });
+    logger.debug(`Auto-sync completed (${activeMatchCount} active matches)`);
+  } catch (err: any) {
+    logger.warn('Auto-sync error:', err.message);
+  }
+}
+
 export function startCronJobs(): void {
   logger.info('Starting cron jobs...');
 
-  // ── Live match updates every 30 seconds ───────────────
+  // ── Centralized ESPN + api-football sync every 60s ───────────────────────
+  // Runs server-side — clients don't need to trigger sync individually.
+  // Handles any number of concurrent users without extra API calls.
+  cron.schedule('*/60 * * * * *', async () => {
+    await triggerLiveSyncIfNeeded();
+  });
+
+  // ── Legacy live match updates (kept as fallback with externalId) ──────────
   cron.schedule('*/30 * * * * *', async () => {
     await updateLiveMatches();
   });
