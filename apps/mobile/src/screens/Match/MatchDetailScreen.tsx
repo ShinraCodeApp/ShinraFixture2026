@@ -11,6 +11,7 @@ import { createMaterialTopTabNavigator } from '@react-navigation/material-top-ta
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useMatchDetail } from '../../hooks/useMatchDetail';
+import { apiService } from '../../services/api';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 import { TeamLogo } from '../../components/common/TeamLogo';
 import { MatchStatusBadge } from '../../components/match/MatchStatusBadge';
@@ -52,14 +53,14 @@ export function MatchDetailScreen() {
   const saveScore = async () => {
     setSavingScore(true);
     try {
-      const { apiService } = await import('../../services/api');
       await apiService.patch(`/matches/${matchId}/score`, {
         homeScore: editHome, awayScore: editAway, status: editStatus,
       });
       await refetch();
       setShowScoreEdit(false);
-    } catch {
-      Alert.alert('Error', 'No se pudo actualizar el marcador');
+    } catch (e: any) {
+      const msg = e?.response?.data?.error ?? e?.message ?? 'Error desconocido';
+      Alert.alert('Error', `No se pudo actualizar el marcador:\n${msg}`);
     } finally {
       setSavingScore(false);
     }
@@ -68,7 +69,6 @@ export function MatchDetailScreen() {
   const handleGetAI = async () => {
     setAiLoading(true);
     try {
-      const { apiService } = await import('../../services/api');
       const r = await apiService.post(`/matches/${matchId}/ai-predict`, {});
       setLocalAiAnalysis(r.data.data?.aiAnalysis ?? null);
     } catch {
