@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, RefreshControl,
-  TouchableOpacity, Dimensions,
+  TouchableOpacity, Dimensions, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -102,6 +102,7 @@ export function HomeScreen() {
   const navigation = useNavigation<any>();
   const { appColors, isDark } = useAppTheme();
   const { user } = useSelector((state: RootState) => state.auth);
+  const { profilePhotoUri } = useSelector((state: RootState) => state.settings);
   const dispatch = useDispatch();
   const { liveMatches, todayMatches, upcomingMatches, isLoading, refetch } = useMatches();
   const scrollRef = useRef<ScrollView>(null);
@@ -151,9 +152,16 @@ export function HomeScreen() {
                   <View style={styles.notifBadge} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => navigation.navigate('ProfileTab')}>
-                  <View style={styles.avatarPlaceholder}>
-                    <Text style={styles.avatarText}>{user?.displayName?.[0] ?? 'U'}</Text>
-                  </View>
+                  {profilePhotoUri || user?.avatar ? (
+                    <Image
+                      source={{ uri: profilePhotoUri ?? user?.avatar }}
+                      style={styles.avatarPlaceholder}
+                    />
+                  ) : (
+                    <View style={styles.avatarPlaceholder}>
+                      <Text style={styles.avatarText}>{user?.displayName?.[0] ?? 'U'}</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
