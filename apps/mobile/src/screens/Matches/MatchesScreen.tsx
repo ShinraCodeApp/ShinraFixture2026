@@ -219,6 +219,9 @@ export function MatchesScreen() {
         }}
         renderItem={({ item: match }) => {
           const isLive = match.status === 'LIVE' || match.status === 'HALF_TIME';
+          const isPast = dayjs(match.matchDate).isBefore(dayjs());
+          const showScore = match.status !== 'SCHEDULED' || isPast;
+          const hasScore = match.homeScore !== null && match.homeScore !== undefined;
           return (
           <TouchableOpacity
             onPress={() => navigation.navigate('MatchDetail', { matchId: match.id })}
@@ -231,9 +234,9 @@ export function MatchesScreen() {
                   {match.stage === 'GROUP' ? `Grupo ${match.group}` : match.stage.replace(/_/g, ' ')}
                 </Text>
               )}
-              {match.status !== 'SCHEDULED' && (
+              {(match.status !== 'SCHEDULED' || isPast) && (
                 <Text style={[styles.matchStatusLabel, { color: STATUS_COLOR[match.status] || appColors.textSecondary }]}>
-                  {STATUS_LABEL[match.status] ?? match.status}
+                  {STATUS_LABEL[match.status] ?? (isPast ? 'Final' : match.status)}
                 </Text>
               )}
             </View>
@@ -245,19 +248,19 @@ export function MatchesScreen() {
                 </Text>
               </View>
               <View style={styles.centerBlock}>
-                {match.status === 'SCHEDULED' ? (
+                {showScore ? (
+                  <Text style={[styles.matchScore, {
+                    color: isLive ? colors.live : appColors.text,
+                  }]}>
+                    {hasScore ? `${match.homeScore} – ${match.awayScore}` : '- -'}
+                  </Text>
+                ) : (
                   <>
                     <Text style={[styles.matchTime, { color: appColors.text }]}>
                       {dayjs(match.matchDate).format('HH:mm')}
                     </Text>
                     <MaterialCommunityIcons name="soccer" size={14} color={appColors.textSecondary} style={{ marginTop: 2 }} />
                   </>
-                ) : (
-                  <Text style={[styles.matchScore, {
-                    color: (match.status === 'LIVE' || match.status === 'HALF_TIME') ? colors.live : appColors.text,
-                  }]}>
-                    {match.homeScore ?? 0} – {match.awayScore ?? 0}
-                  </Text>
                 )}
               </View>
               <View style={[styles.teamBlock, { alignItems: 'flex-end' }]}>
