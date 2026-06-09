@@ -212,16 +212,18 @@ export function LiveRadarScreen() {
     staleTime: 30_000,
   });
 
-  const { data: events } = useQuery({
+  const { data: events, refetch: refetchEvents } = useQuery({
     queryKey: ['match-events', matchId],
     queryFn: async () => (await apiService.get(`/matches/${matchId}/events`)).data.data ?? [],
-    staleTime: 10_000,
+    staleTime: 0,
+    refetchInterval: 30_000,
   });
 
-  const { data: stats } = useQuery({
+  const { data: stats, refetch: refetchStats } = useQuery({
     queryKey: ['match-stats', matchId],
     queryFn: async () => (await apiService.get(`/matches/${matchId}/stats`)).data.data,
-    staleTime: 10_000,
+    staleTime: 0,
+    refetchInterval: 30_000,
   });
 
   const { data: homeSquad } = useQuery({
@@ -315,14 +317,22 @@ export function LiveRadarScreen() {
     };
   }, [matchId, match, token]);
 
-  // Poll ESPN sync every 30s when match is live to get updated score/events
+  // Sync ESPN on mount + every 30s while live to get latest score/events
   useEffect(() => {
-    if (match?.status !== 'LIVE' && match?.status !== 'HALF_TIME') return;
+    if (!match) return;
+    // Sync immediately on enter
+    apiService.post('/matches/espn-sync', {})
+      .then(() => { refetchEvents(); refetchStats(); })
+      .catch(() => {});
+
+    if (match.status !== 'LIVE' && match.status !== 'HALF_TIME') return;
     const interval = setInterval(() => {
-      apiService.post('/matches/espn-sync', {}).catch(() => {});
+      apiService.post('/matches/espn-sync', {})
+        .then(() => { refetchEvents(); refetchStats(); })
+        .catch(() => {});
     }, 30_000);
     return () => clearInterval(interval);
-  }, [match?.status]);
+  }, [match?.id, match?.status]);
 
   if (isLoading || !match) return (
     <View style={{ flex: 1, backgroundColor: '#0a0a1a', alignItems: 'center', justifyContent: 'center' }}>
