@@ -486,6 +486,12 @@ async function handleScoreUpdate(req: any, res: any) {
 }
 matchRoutes.post('/:id/score', handleScoreUpdate);
 matchRoutes.patch('/:id/score', handleScoreUpdate);
+// GET alias: score via query params (?homeScore=2&awayScore=0&status=FINISHED)
+// Needed for Android devices where POST is blocked by carrier/proxy
+matchRoutes.get('/:id/score-update', async (req: any, res: any) => {
+  req.body = req.query; // reuse the same handler logic
+  return handleScoreUpdate(req, res);
+});
 
 // Live event — single event with socket emit (for real-time radar)
 matchRoutes.post('/:id/live-event', async (req, res) => {

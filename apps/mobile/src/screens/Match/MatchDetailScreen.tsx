@@ -53,11 +53,12 @@ export function MatchDetailScreen() {
   const saveScore = async () => {
     setSavingScore(true);
     try {
-      const res = await fetch(`${API_URL}/matches/${matchId}/score`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ homeScore: editHome, awayScore: editAway, status: editStatus }),
+      const params = new URLSearchParams({
+        homeScore: String(editHome),
+        awayScore: String(editAway),
+        status: editStatus,
       });
+      const res = await fetch(`${API_URL}/matches/${matchId}/score-update?${params.toString()}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error ?? `HTTP ${res.status}`);
       await refetch();

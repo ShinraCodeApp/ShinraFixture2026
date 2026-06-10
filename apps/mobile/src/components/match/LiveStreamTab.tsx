@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import {
-  ActivityIndicator, StyleSheet, Text, TouchableOpacity, View,
+  ActivityIndicator, Linking, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,8 +10,9 @@ import { colors, spacing, typography, borderRadius } from '../../theme';
 const SOURCES = [
   { label: 'Telefe', url: 'https://www.mitelefe.com/telefe-en-vivo' },
   { label: 'TyC Sports', url: 'https://www.tycsports.com/en-vivo.html' },
-  { label: 'ESPN', url: 'https://espndeportes.espn.com' },
-  { label: 'Canal 13', url: 'https://www.eltrecetv.com.ar/en-vivo' },
+  { label: 'ESPN+', url: 'https://www.espn.com.ar/deportes/' },
+  { label: 'Canal 13', url: 'https://www.eltrecetv.com.ar/en-vivo', browserOnly: true },
+  { label: 'TV Pública', url: 'https://www.tvpublica.com.ar/tvpublica/player' },
 ];
 
 // Chrome Android user-agent to bypass mobile-blocking sites
@@ -25,7 +26,7 @@ export function LiveStreamTab() {
   const [blocked, setBlocked] = useState(false);
   const webviewRef = useRef<any>(null);
 
-  const source = SOURCES[sourceIdx];
+  const source = SOURCES[sourceIdx] as typeof SOURCES[0] & { browserOnly?: boolean };
 
   const handleSourceChange = (i: number) => {
     setSourceIdx(i);
@@ -77,23 +78,31 @@ export function LiveStreamTab() {
           </View>
         )}
 
-        {blocked ? (
+        {(blocked || source.browserOnly) ? (
           <View style={[styles.blockedContainer, { backgroundColor: appColors.surface }]}>
             <Text style={styles.blockedIcon}>📺</Text>
             <Text style={[styles.blockedTitle, { color: appColors.text }]}>
-              {source.label} bloqueó la carga
+              {source.browserOnly ? `${source.label} requiere el navegador` : `${source.label} bloqueó la carga`}
             </Text>
             <Text style={[styles.blockedSub, { color: appColors.textSecondary }]}>
-              Este canal no permite ser visto desde otras apps. Probá con otra fuente.
+              {source.browserOnly
+                ? 'Este canal solo funciona en el navegador de tu teléfono.'
+                : 'Este canal no permite ser visto desde otras apps.'}
             </Text>
+            <TouchableOpacity
+              style={[styles.altSourceBtn, { backgroundColor: colors.primary, marginBottom: spacing.sm }]}
+              onPress={() => Linking.openURL(source.url)}
+            >
+              <Text style={styles.altSourceTxt}>Abrir en navegador</Text>
+            </TouchableOpacity>
             <View style={styles.otherSources}>
-              {SOURCES.filter((_, i) => i !== sourceIdx).map((s, i) => (
+              {SOURCES.filter((_, i) => i !== sourceIdx).map((s) => (
                 <TouchableOpacity
                   key={s.label}
-                  style={[styles.altSourceBtn, { backgroundColor: colors.primary }]}
+                  style={[styles.altSourceBtn, { backgroundColor: appColors.surfaceSecondary }]}
                   onPress={() => handleSourceChange(SOURCES.indexOf(s))}
                 >
-                  <Text style={styles.altSourceTxt}>{s.label}</Text>
+                  <Text style={[styles.altSourceTxt, { color: appColors.text }]}>{s.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
