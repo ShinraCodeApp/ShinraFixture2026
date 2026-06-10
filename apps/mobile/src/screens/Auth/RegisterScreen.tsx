@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
-import { register } from '../../store/slices/authSlice';
+import { register, clearError } from '../../store/slices/authSlice';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 
 export function RegisterScreen() {
@@ -19,6 +19,11 @@ export function RegisterScreen() {
 
   const [form, setForm] = useState({ email: '', username: '', displayName: '', password: '', confirmPassword: '' });
   const [showPass, setShowPass] = useState(false);
+
+  // Clear stale login/auth errors when screen mounts
+  useEffect(() => {
+    dispatch(clearError());
+  }, []);
 
   const isValid = form.email && form.username && form.displayName && form.password.length >= 8 && form.password === form.confirmPassword;
 

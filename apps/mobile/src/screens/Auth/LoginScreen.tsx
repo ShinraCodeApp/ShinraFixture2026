@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { AppDispatch, RootState } from '../../store';
-import { login, setHasSeenOnboarding } from '../../store/slices/authSlice';
+import { login, setHasSeenOnboarding, clearError } from '../../store/slices/authSlice';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 
 export function LoginScreen() {
@@ -19,6 +19,10 @@ export function LoginScreen() {
   const { isLoading, error } = useSelector((s: RootState) => s.auth);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  useEffect(() => {
+    dispatch(clearError());
+  }, []);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
