@@ -95,7 +95,7 @@ export const createWebSocketConnection = (matchId: string) => {
 
   const socket = io(`${WS_URL}/matches`, {
     auth: { token },
-    transports: ['websocket'],
+    transports: ['websocket', 'polling'],
     query: { matchId },
   });
 

@@ -13,6 +13,11 @@ export function useMatchDetail(matchId: string) {
       return r.data.data;
     },
     staleTime: 30_000,
+    // Poll every 30s during live matches so events appear even without Socket.IO
+    refetchInterval: (query) => {
+      const status = (query.state.data as any)?.status;
+      return status === 'LIVE' || status === 'HALF_TIME' ? 30_000 : false;
+    },
   });
 
   // Connect to WebSocket for live matches
