@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { register, logout } from './authSlice';
 
 export type AppIconId = 'SCFixture1' | 'SCFixture2';
 
@@ -64,6 +65,12 @@ const settingsSlice = createSlice({
     setProfilePhoto(state, action: PayloadAction<string | null>) {
       state.profilePhotoUri = action.payload;
     },
+  },
+  extraReducers: (builder) => {
+    // Clear local profile photo when registering a new account or logging out
+    builder
+      .addCase(register.fulfilled, (state) => { state.profilePhotoUri = null; })
+      .addCase(logout.fulfilled, (state) => { state.profilePhotoUri = null; });
   },
 });
 
