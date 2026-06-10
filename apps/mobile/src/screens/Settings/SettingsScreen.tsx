@@ -15,8 +15,10 @@ import { setAppIcon, setNotificationsEnabled, setFavoriteTeam, setLanguage, AppI
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme';
 import { TeamPickerModal } from '../../components/common/TeamPickerModal';
 
-const APK_BUILD_URL =
+const APK_DRIVE_URL =
   'https://drive.google.com/uc?export=download&id=1EYvVyu4CbL7v6qU0RHwqPyFdywHtU52D';
+const APK_GITHUB_URL =
+  'https://github.com/ShinraCodeApp/ShinraFixture2026/releases/latest/download/app-release.apk';
 
 const ICONS: { id: AppIconId; label: string; description: string; image: ReturnType<typeof require> }[] = [
   {
@@ -40,15 +42,15 @@ export function SettingsScreen() {
   const { appIcon, notificationsEnabled, favoriteTeam, language } = useSelector((state: RootState) => state.settings);
   const [teamPickerVisible, setTeamPickerVisible] = useState(false);
 
-  const handleShareApk = async () => {
+  const handleShareApk = async (url: string, source: 'Drive' | 'GitHub') => {
     try {
       await Share.share({
-        message: `Instala ShinraFixture 2026 (beta):\n${APK_BUILD_URL}`,
-        url: APK_BUILD_URL,
+        message: `Instala ShinraFixture 2026 (beta) desde ${source}:\n${url}`,
+        url,
         title: 'ShinraFixture 2026 — APK',
       });
     } catch {
-      Linking.openURL(APK_BUILD_URL);
+      Linking.openURL(url);
     }
   };
 
@@ -219,7 +221,7 @@ export function SettingsScreen() {
 
         {/* ── Compartir APK ───────────────────── */}
         <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>DISTRIBUCIÓN</Text>
-        <TouchableOpacity onPress={handleShareApk} activeOpacity={0.85}>
+        <TouchableOpacity onPress={() => handleShareApk(APK_DRIVE_URL, 'Drive')} activeOpacity={0.85} style={{ marginBottom: spacing.sm }}>
           <LinearGradient
             colors={['#0D47A1', '#1565C0']}
             start={{ x: 0, y: 0 }}
@@ -227,11 +229,28 @@ export function SettingsScreen() {
             style={styles.shareButton}
           >
             <View style={styles.shareIconContainer}>
-              <MaterialCommunityIcons name="android" size={22} color="white" />
+              <MaterialCommunityIcons name="google-drive" size={22} color="white" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.shareLabel}>Compartir APK</Text>
-              <Text style={styles.shareSub}>Enviar enlace de descarga (build interno)</Text>
+              <Text style={styles.shareLabel}>Compartir APK — Drive</Text>
+              <Text style={styles.shareSub}>Enlace de Google Drive</Text>
+            </View>
+            <Ionicons name="share-social-outline" size={20} color="rgba(255,255,255,0.8)" />
+          </LinearGradient>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => handleShareApk(APK_GITHUB_URL, 'GitHub')} activeOpacity={0.85}>
+          <LinearGradient
+            colors={['#1B1F23', '#24292E']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.shareButton}
+          >
+            <View style={styles.shareIconContainer}>
+              <MaterialCommunityIcons name="github" size={22} color="white" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.shareLabel}>Compartir APK — GitHub</Text>
+              <Text style={styles.shareSub}>Siempre descarga la última versión</Text>
             </View>
             <Ionicons name="share-social-outline" size={20} color="rgba(255,255,255,0.8)" />
           </LinearGradient>
