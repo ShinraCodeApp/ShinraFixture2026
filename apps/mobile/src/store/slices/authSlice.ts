@@ -1,6 +1,17 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { REHYDRATE } from 'redux-persist';
-import { apiService } from '../../services/api';
+import { apiService, API_URL } from '../../services/api';
+
+async function authPost(path: string, body: object) {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.message ?? json?.error ?? `Error ${res.status}`);
+  return json.data;
+}
 
 export interface AuthUser {
   id: string;
@@ -42,10 +53,9 @@ export const login = createAsyncThunk(
   'auth/login',
   async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      const response = await apiService.post('/auth/login', { email, password });
-      return response.data.data;
+      return await authPost('/auth/login', { email, password });
     } catch (err: any) {
-      return rejectWithValue(err.response?.data?.message ?? 'Login failed');
+      return rejectWithValue(err.message ?? 'Login failed');
     }
   }
 );
@@ -54,10 +64,9 @@ export const register = createAsyncThunk(
   'auth/register',
   async (dto: { email: string; username: string; displayName: string; password: string }, { rejectWithValue }) => {
     try {
-      const response = await apiService.post('/auth/register', dto);
-      return response.data.data;
+      return await authPost('/auth/register', dto);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data?.message ?? 'Registration failed');
+      return rejectWithValue(err.message ?? 'Registration failed');
     }
   }
 );
