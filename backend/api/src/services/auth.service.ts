@@ -49,23 +49,25 @@ export class AuthService {
         passwordHash,
         ...(isGifted && { isPremium: true, isGifted: true }),
       },
-      select: { id: true, email: true, username: true, displayName: true, role: true, createdAt: true },
+      // Same fields as login so the mobile auth state is complete
+      select: {
+        id: true, email: true, username: true, displayName: true,
+        role: true, isPremium: true, level: true, xp: true,
+        predictionPoints: true, totalPredictions: true, correctPredictions: true,
+        country: true, avatar: true,
+      },
     });
 
     const tokens = this.createTokens(user.id, user.email, user.role);
-    await this.storeRefreshToken(user.id, tokens.refreshToken);
+    // Non-fatal: if refresh token storage fails the user can still log in with the access token
+    await this.storeRefreshToken(user.id, tokens.refreshToken).catch((e) =>
+      logger.warn('Failed to store refresh token on register', e)
+    );
 
     // Send welcome email (non-blocking)
     EmailService.sendWelcome(user.email, user.displayName).catch((e) =>
       logger.warn('Failed to send welcome email', e)
     );
-
-    // Grant first-prediction achievement setup
-    await prisma.appConfig.upsert({
-      where: { key: `user_${user.id}_registered` },
-      update: {},
-      create: { key: `user_${user.id}_registered`, value: { date: new Date() } },
-    }).catch(() => {});
 
     return { user, ...tokens };
   }
@@ -73,7 +75,12 @@ export class AuthService {
   static async login(email: string, password: string) {
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
-      select: { id: true, email: true, username: true, displayName: true, passwordHash: true, role: true, isPremium: true, isBanned: true, tokenVersion: true },
+      select: {
+        id: true, email: true, username: true, displayName: true, passwordHash: true,
+        role: true, isPremium: true, isBanned: true, tokenVersion: true,
+        level: true, xp: true, predictionPoints: true, totalPredictions: true,
+        correctPredictions: true, country: true, avatar: true,
+      },
     });
 
     if (!user || !user.passwordHash) {
@@ -91,7 +98,7 @@ export class AuthService {
     await this.storeRefreshToken(user.id, tokens.refreshToken);
 
     const { passwordHash, tokenVersion, isBanned, ...safeUser } = user;
-    return { user: safeUser, ...tokens };
+    return { user: safeUser as Omit<typeof user, 'passwordHash' | 'tokenVersion' | 'isBanned'>, ...tokens };
   }
 
   static async logout(userId: string, token: string): Promise<void> {
