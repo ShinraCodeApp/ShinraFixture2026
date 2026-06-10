@@ -18,7 +18,7 @@ import { colors, spacing, typography, borderRadius, shadows } from '../../theme'
 import { TeamPickerModal } from '../../components/common/TeamPickerModal';
 
 const APK_DRIVE_URL =
-  'https://drive.google.com/uc?export=download&id=1EYvVyu4CbL7v6qU0RHwqPyFdywHtU52D';
+  'https://drive.google.com/uc?export=download&id=143WFm9piFrkek1QRbumfI-G5YbFk2wVl';
 const APK_GITHUB_URL =
   'https://github.com/ShinraCodeApp/ShinraFixture2026/releases/latest/download/app-release.apk';
 
