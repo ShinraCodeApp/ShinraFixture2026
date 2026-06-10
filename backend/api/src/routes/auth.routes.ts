@@ -5,7 +5,6 @@ import { authenticate } from '../middleware/auth';
 import { authRateLimiter } from '../middleware/rateLimiter';
 import { validateBody } from '../middleware/validate';
 import { z } from 'zod';
-import { prisma } from '../config/database';
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -40,19 +39,6 @@ authRoutes.get('/g-refresh', queryToBody, validateBody(refreshSchema), AuthContr
 authRoutes.post('/forgot-password', authRateLimiter, AuthController.forgotPassword);
 authRoutes.post('/reset-password', authRateLimiter, AuthController.resetPassword);
 authRoutes.post('/verify-email', AuthController.verifyEmail);
-
-// Temporary maintenance: delete user by email (requires secret)
-authRoutes.get('/g-delete-user', async (req: any, res: any) => {
-  if (req.query.secret !== 'shinra-admin-2026') {
-    return res.status(403).json({ success: false, message: 'Forbidden' });
-  }
-  const email = String(req.query.email ?? '').toLowerCase();
-  if (!email) return res.status(400).json({ success: false, message: 'Email required' });
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-  await prisma.user.delete({ where: { email } });
-  res.json({ success: true, message: `Deleted user: ${email}` });
-});
 authRoutes.get('/me', authenticate, AuthController.me);
 
 // Google OAuth
