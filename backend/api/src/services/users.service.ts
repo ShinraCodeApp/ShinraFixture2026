@@ -163,4 +163,10 @@ export class UsersService {
         : 0,
     };
   }
+
+  static async deleteAccount(userId: string) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw ApiError.notFound('User');
+    await prisma.user.delete({ where: { id: userId } });
+  }
 }

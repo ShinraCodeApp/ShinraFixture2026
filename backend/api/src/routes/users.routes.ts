@@ -15,3 +15,4 @@ userRoutes.patch('/me/avatar', UserController.updateAvatar);
 userRoutes.post('/me/favorite-teams', UserController.addFavoriteTeam);
 userRoutes.delete('/me/favorite-teams/:teamId', UserController.removeFavoriteTeam);
 userRoutes.get('/me/stats', UserController.myStats);
+userRoutes.delete('/me', UserController.deleteAccount);

@@ -48,4 +48,9 @@ export class UserController {
     const data = await UsersService.myStats(req.user!.id);
     res.json({ success: true, data });
   }
+
+  static async deleteAccount(req: Request, res: Response): Promise<void> {
+    await UsersService.deleteAccount(req.user!.id);
+    res.json({ success: true, message: 'Account deleted' });
+  }
 }

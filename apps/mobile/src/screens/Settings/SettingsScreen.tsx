@@ -12,6 +12,8 @@ import { useAppTheme } from '../../hooks/useAppTheme';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
 import { setAppIcon, setNotificationsEnabled, setFavoriteTeam, setLanguage, AppIconId, FavoriteTeam } from '../../store/slices/settingsSlice';
+import { logout, clearAuth } from '../../store/slices/authSlice';
+import { apiService } from '../../services/api';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme';
 import { TeamPickerModal } from '../../components/common/TeamPickerModal';
 
@@ -52,6 +54,39 @@ export function SettingsScreen() {
     } catch {
       Linking.openURL(url);
     }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Eliminar cuenta',
+      '¿Estás seguro? Esta acción es irreversible. Se borrarán tu cuenta, predicciones y todos tus datos.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Confirmación final',
+              'Escribí ELIMINAR para confirmar.',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                  text: 'Sí, eliminar mi cuenta',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await apiService.delete('/users/me');
+                    } catch {}
+                    dispatch(clearAuth());
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
   };
 
   const handleSelectIcon = (id: AppIconId) => {
@@ -341,6 +376,21 @@ export function SettingsScreen() {
             <Ionicons name="open-outline" size={16} color={appColors.textSecondary} />
           </TouchableOpacity>
         </View>
+
+        {/* ── Zona de peligro ──────────────────── */}
+        <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>CUENTA</Text>
+        <TouchableOpacity onPress={handleDeleteAccount} activeOpacity={0.85}>
+          <View style={[styles.card, { backgroundColor: appColors.surface, flexDirection: 'row', alignItems: 'center', gap: spacing.base, padding: spacing.base }]}>
+            <View style={[styles.shareIconContainer, { backgroundColor: 'rgba(239,68,68,0.15)' }]}>
+              <MaterialCommunityIcons name="delete-forever-outline" size={22} color={colors.error} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.rowLabel, { color: colors.error }]}>Eliminar cuenta</Text>
+              <Text style={[styles.rowValue, { color: appColors.textSecondary, fontSize: typography.fontSize.xs }]}>Borra permanentemente tu cuenta y datos</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.error} />
+          </View>
+        </TouchableOpacity>
 
         {/* ── Branding ─────────────────────────── */}
         <View style={styles.branding}>
