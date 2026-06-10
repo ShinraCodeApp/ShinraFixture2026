@@ -31,6 +31,9 @@ async function bootstrap() {
 
   // ── Express App ────────────────────────────────────
   const app = express();
+  // Railway sits behind a reverse proxy — trust the X-Forwarded-For header
+  // so rate limiting uses the real client IP, not the proxy IP shared by all users
+  app.set('trust proxy', 1);
   const httpServer = http.createServer(app);
 
   // ── Socket.IO ──────────────────────────────────────

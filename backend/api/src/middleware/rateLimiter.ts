@@ -18,12 +18,12 @@ export const rateLimiter = rateLimit({
 
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: config.rateLimit.authMaxRequests,
+  max: Math.max(config.rateLimit.authMaxRequests, 100), // minimum 100 per IP
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
-    message: 'Too many authentication attempts, please try again in 15 minutes',
+    message: 'Demasiados intentos, esperá 15 minutos e intentá de nuevo',
   },
 });
 

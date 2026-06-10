@@ -4,8 +4,18 @@ import { apiService, API_URL } from '../../services/api';
 
 async function authGet(path: string, params: Record<string, string>) {
   const qs = new URLSearchParams(params).toString();
-  const res = await fetch(`${API_URL}${path}?${qs}`);
-  const json = await res.json();
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}?${qs}`);
+  } catch {
+    throw new Error('Sin conexión al servidor. Verificá tu internet.');
+  }
+  let json: any;
+  try {
+    json = await res.json();
+  } catch {
+    throw new Error(`Error del servidor (${res.status})`);
+  }
   if (!res.ok) throw new Error(json?.message ?? json?.error ?? `Error ${res.status}`);
   return json.data;
 }
@@ -52,7 +62,7 @@ export const login = createAsyncThunk(
     try {
       return await authGet('/auth/g-login', { email, password });
     } catch (err: any) {
-      return rejectWithValue(err.message ?? 'Login failed');
+      return rejectWithValue(err.message || 'No se pudo iniciar sesión. Verificá tus datos.');
     }
   }
 );
@@ -63,7 +73,7 @@ export const register = createAsyncThunk(
     try {
       return await authGet('/auth/g-register', { ...dto });
     } catch (err: any) {
-      return rejectWithValue(err.message ?? 'Registration failed');
+      return rejectWithValue(err.message || 'No se pudo crear la cuenta. Intentá de nuevo.');
     }
   }
 );
