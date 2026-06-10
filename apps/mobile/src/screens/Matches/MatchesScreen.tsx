@@ -223,8 +223,12 @@ export function MatchesScreen() {
           const isLive = match.status === 'LIVE' || match.status === 'HALF_TIME';
           const isCancelled = match.status === 'CANCELLED' || match.status === 'POSTPONED' || match.status === 'ABANDONED';
           const isPast = dayjs(match.matchDate).isBefore(dayjs());
-          const showScore = !isCancelled && (match.status !== 'SCHEDULED' || isPast);
           const hasScore = match.homeScore !== null && match.homeScore !== undefined;
+          // Only show score box when we actually have data — SCHEDULED matches without score show the time instead
+          const showScore = !isCancelled && (
+            match.status === 'FINISHED' || match.status === 'LIVE' || match.status === 'HALF_TIME' ||
+            (isPast && hasScore)
+          );
           return (
           <TouchableOpacity
             onPress={() => navigation.navigate('MatchDetail', { matchId: match.id })}
@@ -237,9 +241,9 @@ export function MatchesScreen() {
                   {match.stage === 'GROUP' ? `Grupo ${match.group}` : match.stage.replace(/_/g, ' ')}
                 </Text>
               )}
-              {(match.status !== 'SCHEDULED' || isPast) && (
+              {match.status !== 'SCHEDULED' && (
                 <Text style={[styles.matchStatusLabel, { color: STATUS_COLOR[match.status] || appColors.textSecondary }]}>
-                  {STATUS_LABEL[match.status] ?? (isPast ? 'Final' : match.status)}
+                  {STATUS_LABEL[match.status] ?? match.status}
                 </Text>
               )}
             </View>

@@ -9,10 +9,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Rect, Circle, Line, Path, Text as SvgText, G } from 'react-native-svg';
 import { useQuery } from '@tanstack/react-query';
 import { io as ioClient } from 'socket.io-client';
+import dayjs from 'dayjs';
+import 'dayjs/locale/es';
 import { apiService } from '../../services/api';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { colors, spacing, typography, borderRadius } from '../../theme';
+
+dayjs.locale('es');
 
 // Formation positions as [xFraction, yFraction] of pitch dimensions
 const HOME_FORMATION_433: [number, number][] = [
@@ -281,7 +285,7 @@ export function LiveRadarScreen() {
     if (!match) return;
 
     const socket = ioClient(API_URL, {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
       auth: token ? { token } : {},
     });
 
@@ -524,9 +528,32 @@ export function LiveRadarScreen() {
           )}
 
           {sortedEvents.length === 0 && !isLive && (
-            <View style={styles.noEvents}>
-              <MaterialCommunityIcons name="radar" size={48} color="rgba(255,255,255,0.2)" />
-              <Text style={styles.noEventsText}>El radar se activará cuando el partido comience</Text>
+            <View style={styles.preMatchCard}>
+              <Text style={styles.preMatchTitle}>
+                {match.status === 'FINISHED' ? 'Sin eventos registrados' : 'Información del partido'}
+              </Text>
+              <View style={styles.preMatchRow}>
+                <MaterialCommunityIcons name="calendar-clock" size={16} color="rgba(255,255,255,0.5)" />
+                <Text style={styles.preMatchText}>
+                  {dayjs(match.matchDate).format('dddd D [de] MMMM • HH:mm')}
+                </Text>
+              </View>
+              {match.venue ? (
+                <View style={styles.preMatchRow}>
+                  <MaterialCommunityIcons name="stadium-outline" size={16} color="rgba(255,255,255,0.5)" />
+                  <Text style={styles.preMatchText}>
+                    {match.venue}{match.city ? ` · ${match.city}` : ''}
+                  </Text>
+                </View>
+              ) : null}
+              {match.status !== 'FINISHED' && (
+                <View style={[styles.preMatchRow, { marginTop: 10, opacity: 0.4 }]}>
+                  <MaterialCommunityIcons name="radar" size={14} color="white" />
+                  <Text style={[styles.preMatchText, { fontSize: 11 }]}>
+                    Los eventos aparecerán cuando empiece el partido
+                  </Text>
+                </View>
+              )}
             </View>
           )}
 
@@ -592,8 +619,14 @@ const styles = StyleSheet.create({
   timelineType: { fontSize: 11, fontFamily: typography.fontFamily.bold },
   timelineDesc: { color: 'rgba(255,255,255,0.5)', fontSize: 10 },
 
-  noEvents: { alignItems: 'center', paddingVertical: 40, gap: spacing.sm, marginHorizontal: spacing.base },
-  noEventsText: { color: 'rgba(255,255,255,0.3)', fontSize: typography.fontSize.sm, textAlign: 'center' },
+  preMatchCard: {
+    marginHorizontal: spacing.base, marginTop: spacing.base,
+    backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: borderRadius.xl,
+    padding: spacing.base, gap: 10,
+  },
+  preMatchTitle: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontFamily: typography.fontFamily.bold, textTransform: 'uppercase', letterSpacing: 0.5 },
+  preMatchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  preMatchText: { color: 'rgba(255,255,255,0.75)', fontSize: typography.fontSize.sm, flex: 1 },
   ball: {
     position: 'absolute', width: 14, height: 14, borderRadius: 7,
     backgroundColor: 'white', borderWidth: 1.5, borderColor: 'rgba(0,0,0,0.25)',
