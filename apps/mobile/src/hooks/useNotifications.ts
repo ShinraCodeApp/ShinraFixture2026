@@ -6,6 +6,7 @@ import { useDispatch } from 'react-redux';
 import { AppDispatch } from '../store';
 import { apiService } from '../services/api';
 import { logger } from '../utils/logger';
+import { navigate } from '../navigation/navigationRef';
 
 export function useNotifications() {
   const dispatch = useDispatch<AppDispatch>();
@@ -90,7 +91,9 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
 
 function handleNotificationNavigation(data: any) {
   if (!data) return;
-  // Navigate based on notification type
-  // This would typically use a navigation ref
-  logger.debug('Navigate to:', data.matchId ?? data.type);
+  if (data.matchId) {
+    navigate('MatchDetail', { matchId: data.matchId });
+  } else if (data.type === 'QUINIELA' && data.groupId) {
+    navigate('QuinielaDetail', { groupId: data.groupId });
+  }
 }

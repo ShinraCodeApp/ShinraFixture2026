@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Animated, Dimensions, ActivityIndicator, Modal, TextInput, Alert,
+  Animated, Dimensions, ActivityIndicator, Modal, TextInput, Alert, Share, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -42,6 +42,25 @@ export function MatchDetailScreen() {
   const [editAway, setEditAway] = useState(0);
   const [editStatus, setEditStatus] = useState<'SCHEDULED' | 'LIVE' | 'FINISHED'>('LIVE');
   const [savingScore, setSavingScore] = useState(false);
+
+  const shareMatch = async () => {
+    if (!match) return;
+    const home = match.homeTeam?.shortName ?? match.homeTeam?.code ?? '';
+    const away = match.awayTeam?.shortName ?? match.awayTeam?.code ?? '';
+    const isFinishedOrLive = match.status === 'FINISHED' || match.status === 'LIVE' || match.status === 'HALF_TIME';
+    const scoreText = isFinishedOrLive
+      ? `${match.homeScore ?? 0} - ${match.awayScore ?? 0}`
+      : new Date(match.matchDate).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+    const statusEmoji = match.status === 'LIVE' ? '🔴 EN VIVO' : match.status === 'FINISHED' ? '⚽ Final' : '📅';
+    const text = `${statusEmoji}\n${home} ${scoreText} ${away}\n\nSeguilo en ShinraFixture 2026 🏆`;
+    const waUrl = `whatsapp://send?text=${encodeURIComponent(text)}`;
+    const canOpen = await Linking.canOpenURL(waUrl);
+    if (canOpen) {
+      await Linking.openURL(waUrl);
+    } else {
+      await Share.share({ message: text });
+    }
+  };
 
   const openScoreEdit = () => {
     setEditHome(match?.homeScore ?? 0);
@@ -105,16 +124,21 @@ export function MatchDetailScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color="white" />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.radarButton}
-          onPress={() => (navigation as any).navigate('LiveRadar', { matchId: match.id })}
-        >
-          <MaterialCommunityIcons name="radar" size={18} color="white" />
-          <Text style={styles.radarButtonText}>Radar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.editScoreBtn} onPress={openScoreEdit}>
-          <MaterialCommunityIcons name="pencil" size={16} color="rgba(255,255,255,0.7)" />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.editScoreBtn} onPress={openScoreEdit}>
+            <MaterialCommunityIcons name="pencil" size={16} color="rgba(255,255,255,0.7)" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.editScoreBtn} onPress={shareMatch}>
+            <Ionicons name="share-social-outline" size={18} color="rgba(255,255,255,0.7)" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.radarButton}
+            onPress={() => (navigation as any).navigate('LiveRadar', { matchId: match.id })}
+          >
+            <MaterialCommunityIcons name="radar" size={18} color="white" />
+            <Text style={styles.radarButtonText}>Radar</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.stageInfo}>
           <Text style={styles.stageText}>
@@ -344,8 +368,11 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: spacing.screen, paddingBottom: spacing.xl },
   backButton: { marginTop: spacing.sm, marginBottom: spacing.md },
-  radarButton: {
+  headerActions: {
     position: 'absolute', top: spacing.sm, right: spacing.screen,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+  },
+  radarButton: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: borderRadius.full,
     paddingHorizontal: spacing.sm, paddingVertical: 4,
@@ -380,7 +407,6 @@ const styles = StyleSheet.create({
   aiButtonLoading: { opacity: 0.7 },
   aiButtonText: { color: 'white', fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.bold },
   editScoreBtn: {
-    position: 'absolute', top: spacing.sm, left: spacing.screen,
     padding: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: borderRadius.full,
   },
 });

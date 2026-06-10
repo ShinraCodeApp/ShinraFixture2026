@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import { MatchController } from '../controllers/matches.controller';
 import { authenticate, optionalAuth } from '../middleware/auth';
 import { prisma } from '../config/database';
+import { NotificationService } from '../services/notifications.service';
 
 export const matchRoutes = Router();
 
@@ -363,6 +364,9 @@ matchRoutes.post('/espn-sync', async (req, res) => {
             data: { matchId: match.id, type: eventType as any, minute: detailMinute, teamId: detailTeamId, description: playerName },
           });
           io?.to(`match:${match.id}`).emit('match:event', { ...ev, playerName });
+          if (eventType === 'GOAL' || eventType === 'OWN_GOAL' || eventType === 'PENALTY_SCORED') {
+            NotificationService.notifyGoal(match.id, detailTeamId ?? '', detailMinute, playerName).catch(() => {});
+          }
         }
       }
 

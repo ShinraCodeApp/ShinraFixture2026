@@ -24,6 +24,7 @@ import { queryClient } from './src/services/queryClient';
 import { apolloClient } from './src/services/apollo';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { linking } from './src/navigation/linking';
+import { navigationRef } from './src/navigation/navigationRef';
 import { useNotifications } from './src/hooks/useNotifications';
 import { useAppTheme } from './src/hooks/useAppTheme';
 // import { usePlayoffSync } from './src/hooks/usePlayoffSync';
@@ -63,7 +64,7 @@ function AppContent() {
   // usePlayoffSync(); // desactivado hasta confirmar playoffs reales WC2026
 
   return (
-    <NavigationContainer theme={theme} linking={linking}>
+    <NavigationContainer ref={navigationRef} theme={theme} linking={linking}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <AppNavigator />
       <FlashMessage position="top" floating />
