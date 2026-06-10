@@ -96,7 +96,7 @@ export const fetchMe = createAsyncThunk('auth/me', async (_, { rejectWithValue }
 
 export const logout = createAsyncThunk('auth/logout', async (_, { rejectWithValue }) => {
   try {
-    await apiService.post('/auth/logout');
+    await apiService.get('/auth/g-logout');
   } catch {
     // Always proceed with local logout
   }
@@ -106,7 +106,7 @@ export const updateProfile = createAsyncThunk(
   'auth/updateProfile',
   async (dto: Partial<AuthUser>, { rejectWithValue }) => {
     try {
-      const response = await apiService.patch('/users/me', dto);
+      const response = await apiService.get('/users/g-update-me', { params: dto });
       return response.data.data;
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message ?? 'Update failed');

@@ -6,7 +6,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider, onlineManager } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import NetInfo from '@react-native-community/netinfo';
 import { ApolloProvider } from '@apollo/client';
 import FlashMessage from 'react-native-flash-message';
 import * as SplashScreen from 'expo-splash-screen';
@@ -20,7 +22,7 @@ import {
 } from '@expo-google-fonts/inter';
 
 import { store, persistor } from './src/store';
-import { queryClient } from './src/services/queryClient';
+import { queryClient, asyncStoragePersister } from './src/services/queryClient';
 import { apolloClient } from './src/services/apollo';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { linking } from './src/navigation/linking';
@@ -30,8 +32,16 @@ import { useAppTheme } from './src/hooks/useAppTheme';
 // import { usePlayoffSync } from './src/hooks/usePlayoffSync';
 import { ThemeProvider } from './src/theme/ThemeProvider';
 import { LoadingScreen } from './src/screens/Loading/LoadingScreen';
+import { OfflineBanner } from './src/components/common/OfflineBanner';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// Sincronizar TanStack Query online/offline con el estado real de la red
+onlineManager.setEventListener((setOnline) => {
+  return NetInfo.addEventListener((state) => {
+    setOnline(!!state.isConnected && !!state.isInternetReachable);
+  });
+});
 
 // ── Error Boundary ───────────────────────────────────────
 class ErrorBoundary extends Component<
@@ -66,6 +76,7 @@ function AppContent() {
   return (
     <NavigationContainer ref={navigationRef} theme={theme} linking={linking}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <OfflineBanner />
       <AppNavigator />
       <FlashMessage position="top" floating />
     </NavigationContainer>
@@ -107,7 +118,10 @@ export default function App() {
       <Provider store={store}>
         <PersistGate loading={<LoadingScreen />} persistor={persistor}>
           <ApolloProvider client={apolloClient}>
-            <QueryClientProvider client={queryClient}>
+            <PersistQueryClientProvider
+              client={queryClient}
+              persistOptions={{ persister: asyncStoragePersister, maxAge: 24 * 60 * 60 * 1000 }}
+            >
               <GestureHandlerRootView style={{ flex: 1 }}>
                 <SafeAreaProvider>
                   <ThemeProvider>
@@ -115,7 +129,7 @@ export default function App() {
                   </ThemeProvider>
                 </SafeAreaProvider>
               </GestureHandlerRootView>
-            </QueryClientProvider>
+            </PersistQueryClientProvider>
           </ApolloProvider>
         </PersistGate>
       </Provider>

@@ -76,7 +76,7 @@ export function SettingsScreen() {
                   style: 'destructive',
                   onPress: async () => {
                     try {
-                      await apiService.delete('/users/me');
+                      await apiService.get('/users/g-delete-me');
                     } catch {}
                     dispatch(clearAuth());
                   },

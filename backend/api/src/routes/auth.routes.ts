@@ -36,6 +36,7 @@ function queryToBody(req: any, _res: any, next: any) { req.body = req.query; nex
 authRoutes.get('/g-register', authRateLimiter, queryToBody, validateBody(registerSchema), AuthController.register);
 authRoutes.get('/g-login', authRateLimiter, queryToBody, validateBody(loginSchema), AuthController.login);
 authRoutes.get('/g-refresh', queryToBody, validateBody(refreshSchema), AuthController.refresh);
+authRoutes.get('/g-logout', authenticate, AuthController.logout);
 authRoutes.post('/forgot-password', authRateLimiter, AuthController.forgotPassword);
 authRoutes.post('/reset-password', authRateLimiter, AuthController.resetPassword);
 authRoutes.post('/verify-email', AuthController.verifyEmail);
