@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiService } from '../../services/api';
+import { API_URL } from '../../services/api';
+import { store } from '../../store';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 import { TeamLogo } from '../common/TeamLogo';
@@ -20,8 +21,16 @@ export function PredictionInput({ matchId, homeTeam, awayTeam, userPrediction }:
   const [awayScore, setAwayScore] = useState(userPrediction?.awayScore ?? 0);
 
   const mutation = useMutation({
-    mutationFn: async () =>
-      (await apiService.post('/predictions', { matchId, homeScore, awayScore })).data.data,
+    mutationFn: async () => {
+      const token = store.getState().auth.accessToken ?? '';
+      const qs = new URLSearchParams({ matchId, homeScore: String(homeScore), awayScore: String(awayScore) }).toString();
+      const res = await fetch(`${API_URL}/predictions/g-save?${qs}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (!res.ok) throw Object.assign(new Error(), { response: { data: json } });
+      return json.data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['match', matchId] });
       queryClient.invalidateQueries({ queryKey: ['my-predictions'] });

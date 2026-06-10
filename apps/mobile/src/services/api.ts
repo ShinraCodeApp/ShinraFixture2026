@@ -67,8 +67,10 @@ apiService.interceptors.response.use(
       }
 
       try {
-        const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
-        const { accessToken, refreshToken: newRefreshToken } = response.data.data;
+        const r = await fetch(`${API_URL}/auth/g-refresh?refreshToken=${encodeURIComponent(refreshToken)}`);
+        const rJson = await r.json();
+        if (!r.ok) throw new Error('Refresh failed');
+        const { accessToken, refreshToken: newRefreshToken } = rJson.data;
         store.dispatch(setTokens({ accessToken, refreshToken: newRefreshToken }));
         processQueue(null, accessToken);
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;

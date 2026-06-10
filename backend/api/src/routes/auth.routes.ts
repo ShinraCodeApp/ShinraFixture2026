@@ -30,6 +30,12 @@ authRoutes.post('/register', authRateLimiter, validateBody(registerSchema), Auth
 authRoutes.post('/login', authRateLimiter, validateBody(loginSchema), AuthController.login);
 authRoutes.post('/logout', authenticate, AuthController.logout);
 authRoutes.post('/refresh', validateBody(refreshSchema), AuthController.refresh);
+
+// GET aliases for LTE/carrier networks that block POST (query params, HTTPS-encrypted)
+function queryToBody(req: any, _res: any, next: any) { req.body = req.query; next(); }
+authRoutes.get('/g-register', authRateLimiter, queryToBody, validateBody(registerSchema), AuthController.register);
+authRoutes.get('/g-login', authRateLimiter, queryToBody, validateBody(loginSchema), AuthController.login);
+authRoutes.get('/g-refresh', queryToBody, validateBody(refreshSchema), AuthController.refresh);
 authRoutes.post('/forgot-password', authRateLimiter, AuthController.forgotPassword);
 authRoutes.post('/reset-password', authRateLimiter, AuthController.resetPassword);
 authRoutes.post('/verify-email', AuthController.verifyEmail);

@@ -2,12 +2,9 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { REHYDRATE } from 'redux-persist';
 import { apiService, API_URL } from '../../services/api';
 
-async function authPost(path: string, body: object) {
-  const res = await fetch(`${API_URL}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+async function authGet(path: string, params: Record<string, string>) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`${API_URL}${path}?${qs}`);
   const json = await res.json();
   if (!res.ok) throw new Error(json?.message ?? json?.error ?? `Error ${res.status}`);
   return json.data;
@@ -53,7 +50,7 @@ export const login = createAsyncThunk(
   'auth/login',
   async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      return await authPost('/auth/login', { email, password });
+      return await authGet('/auth/g-login', { email, password });
     } catch (err: any) {
       return rejectWithValue(err.message ?? 'Login failed');
     }
@@ -64,7 +61,7 @@ export const register = createAsyncThunk(
   'auth/register',
   async (dto: { email: string; username: string; displayName: string; password: string }, { rejectWithValue }) => {
     try {
-      return await authPost('/auth/register', dto);
+      return await authGet('/auth/g-register', { ...dto });
     } catch (err: any) {
       return rejectWithValue(err.message ?? 'Registration failed');
     }
