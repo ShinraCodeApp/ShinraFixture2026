@@ -2,16 +2,14 @@ import { Request, Response, NextFunction } from 'express';
 import { ZodSchema } from 'zod';
 
 export function validateBody<T>(schema: ZodSchema<T>) {
-  return (req: Request, _res: Response, next: NextFunction): void => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     const result = schema.safeParse(req.body);
     if (!result.success) {
+      const errors = result.error.errors.map((e) => ({ field: e.path.join('.'), message: e.message }));
       res.status(422).json({
         success: false,
-        message: 'Validation error',
-        errors: result.error.errors.map((e) => ({
-          field: e.path.join('.'),
-          message: e.message,
-        })),
+        message: errors.map((e) => `${e.field}: ${e.message}`).join(' | '),
+        errors,
       });
       return;
     }
@@ -26,7 +24,7 @@ export function validateQuery<T>(schema: ZodSchema<T>) {
     if (!result.success) {
       res.status(422).json({
         success: false,
-        message: 'Query validation error',
+        message: 'Datos inválidos',
         errors: result.error.errors.map((e) => ({
           field: e.path.join('.'),
           message: e.message,

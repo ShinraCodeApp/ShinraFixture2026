@@ -4,19 +4,26 @@ import { apiService, API_URL } from '../../services/api';
 
 async function authGet(path: string, params: Record<string, string>) {
   const qs = new URLSearchParams(params).toString();
+  const fullUrl = `${API_URL}${path}?${qs}`;
   let res: Response;
   try {
-    res = await fetch(`${API_URL}${path}?${qs}`);
-  } catch {
-    throw new Error('Sin conexión al servidor. Verificá tu internet.');
+    res = await fetch(fullUrl);
+  } catch (e: any) {
+    const msg = `Sin conexión. URL: ${fullUrl.substring(0, 60)}... Error: ${e?.message}`;
+    throw new Error(msg);
   }
   let json: any;
+  let rawText = '';
   try {
-    json = await res.json();
+    rawText = await res.text();
+    json = JSON.parse(rawText);
   } catch {
-    throw new Error(`Error del servidor (${res.status})`);
+    throw new Error(`Respuesta inválida (${res.status}): ${rawText.substring(0, 100)}`);
   }
-  if (!res.ok) throw new Error(json?.message ?? json?.error ?? `Error ${res.status}`);
+  if (!res.ok) {
+    const fieldErrors = json?.errors?.map((e: any) => `${e.field}: ${e.message}`).join(', ');
+    throw new Error(fieldErrors ?? json?.message ?? json?.error ?? `Error ${res.status}`);
+  }
   return json.data;
 }
 
