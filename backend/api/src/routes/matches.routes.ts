@@ -417,6 +417,72 @@ matchRoutes.post('/espn-sync', async (req, res) => {
   }
 });
 
+// GET alias for espn-sync (LTE-friendly)
+matchRoutes.get('/g-espn-sync', async (req, res) => {
+  try {
+    const r = await axios.post(`http://localhost:${process.env.PORT ?? 3000}/api/v1/matches/espn-sync`, {}, { timeout: 50000 });
+    res.json(r.data);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Recalculate WC2026 group standings from FINISHED matches
+matchRoutes.get('/sync-standings', async (_req, res) => {
+  try {
+    const wc = await prisma.tournament.findFirst({
+      where: { type: 'WORLD_CUP', year: 2026 },
+      include: { groups: { include: { teams: { select: { id: true, teamId: true } } } } },
+    });
+    if (!wc) return res.status(404).json({ success: false, message: 'WC2026 not found' });
+
+    const matches = await prisma.match.findMany({
+      where: { tournamentId: wc.id, stage: 'GROUP', status: 'FINISHED' },
+      select: { group: true, homeTeamId: true, awayTeamId: true, homeScore: true, awayScore: true },
+    });
+
+    const stats: Record<string, { played: number; won: number; drawn: number; lost: number; gf: number; ga: number }> = {};
+    const ensure = (id: string) => { if (!stats[id]) stats[id] = { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0 }; };
+
+    for (const m of matches) {
+      if (!m.homeTeamId || !m.awayTeamId || m.homeScore == null || m.awayScore == null) continue;
+      ensure(m.homeTeamId); ensure(m.awayTeamId);
+      const h = stats[m.homeTeamId]; const a = stats[m.awayTeamId];
+      h.played++; h.gf += m.homeScore; h.ga += m.awayScore;
+      a.played++; a.gf += m.awayScore; a.ga += m.homeScore;
+      if (m.homeScore > m.awayScore) { h.won++; a.lost++; }
+      else if (m.homeScore < m.awayScore) { a.won++; h.lost++; }
+      else { h.drawn++; a.drawn++; }
+    }
+
+    let updated = 0;
+    for (const group of wc.groups) {
+      const sorted = group.teams
+        .map((gt) => ({ gt, s: stats[gt.teamId] ?? { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0 } }))
+        .sort((a, b) => {
+          const pa = a.s.won * 3 + a.s.drawn, pb = b.s.won * 3 + b.s.drawn;
+          if (pb !== pa) return pb - pa;
+          const da = a.s.gf - a.s.ga, db = b.s.gf - b.s.ga;
+          if (db !== da) return db - da;
+          return b.s.gf - a.s.gf;
+        });
+      for (let i = 0; i < sorted.length; i++) {
+        const { gt, s } = sorted[i];
+        const pts = s.won * 3 + s.drawn;
+        await prisma.tournamentGroupTeam.update({
+          where: { id: gt.id },
+          data: { played: s.played, won: s.won, drawn: s.drawn, lost: s.lost, goalsFor: s.gf, goalsAgainst: s.ga, goalDifference: s.gf - s.ga, points: pts, position: i + 1 },
+        });
+        updated++;
+      }
+    }
+
+    res.json({ success: true, data: { matchesProcessed: matches.length, teamsUpdated: updated } });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 matchRoutes.get('/', optionalAuth, MatchController.list);
 matchRoutes.get('/live', MatchController.getLive);
 matchRoutes.get('/today', MatchController.getToday);
