@@ -6,6 +6,22 @@ export const localLeagueRoutes = Router();
 
 localLeagueRoutes.use(authenticate);
 
+// GET aliases for LTE/carrier networks that block POST/PUT/DELETE
+// Must be declared BEFORE /:id routes to avoid param capture
+function queryToBody(req: Request, _res: Response, next: NextFunction) {
+  const body: any = { ...req.query };
+  for (const key of Object.keys(body)) {
+    const val = body[key];
+    if (typeof val === 'string' && (val.startsWith('[') || val.startsWith('{'))) {
+      try { body[key] = JSON.parse(val); } catch {}
+    }
+  }
+  req.body = body;
+  next();
+}
+
+localLeagueRoutes.get('/g-create', queryToBody, localLeagueController.create);
+
 // Standard REST routes
 localLeagueRoutes.get('/', localLeagueController.list);
 localLeagueRoutes.post('/', localLeagueController.create);
@@ -20,20 +36,6 @@ localLeagueRoutes.delete('/:id/teams/:teamId', localLeagueController.removeTeam)
 localLeagueRoutes.post('/:id/generate-fixture', localLeagueController.generateFixture);
 localLeagueRoutes.put('/:id/matches/:matchId', localLeagueController.updateMatchResult);
 
-// GET aliases for LTE/carrier networks that block POST/PUT/DELETE
-function queryToBody(req: Request, _res: Response, next: NextFunction) {
-  const body: any = { ...req.query };
-  for (const key of Object.keys(body)) {
-    const val = body[key];
-    if (typeof val === 'string' && (val.startsWith('[') || val.startsWith('{'))) {
-      try { body[key] = JSON.parse(val); } catch {}
-    }
-  }
-  req.body = body;
-  next();
-}
-
-localLeagueRoutes.get('/g-create', queryToBody, localLeagueController.create);
 localLeagueRoutes.get('/:id/g-delete', localLeagueController.remove);
 localLeagueRoutes.get('/:id/g-add-team', queryToBody, localLeagueController.addTeam);
 localLeagueRoutes.get('/:id/teams/:teamId/g-update', queryToBody, localLeagueController.updateTeam);
