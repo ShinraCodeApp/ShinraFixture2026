@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, ActivityIndicator,
+  Alert, ActivityIndicator, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -22,15 +22,20 @@ function teamInitials(name: string) {
 
 function TeamBadge({ team, size = 36 }: { team: any; size?: number }) {
   const bg = team.color ?? TEAM_COLORS[0];
+  const isImg = team.badge && (team.badge.startsWith('file://') || team.badge.startsWith('content://'));
   return (
     <View style={{
       width: size, height: size, borderRadius: size / 2,
       backgroundColor: bg + '33', borderWidth: 2, borderColor: bg,
-      alignItems: 'center', justifyContent: 'center',
+      alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
     }}>
-      <Text style={{ color: bg, fontFamily: typography.fontFamily.bold, fontSize: size * 0.35 }}>
-        {team.badge ?? teamInitials(team.name)}
-      </Text>
+      {isImg ? (
+        <Image source={{ uri: team.badge }} style={{ width: size, height: size }} resizeMode="cover" />
+      ) : (
+        <Text style={{ color: bg, fontFamily: typography.fontFamily.bold, fontSize: size * 0.35 }}>
+          {team.badge ?? teamInitials(team.name)}
+        </Text>
+      )}
     </View>
   );
 }
@@ -43,8 +48,8 @@ function MatchRow({ match, leagueId, onResultSaved }: { match: any; leagueId: st
   const qc = useQueryClient();
 
   const saveMutation = useMutation({
-    mutationFn: () => apiService.put(`/local-leagues/${leagueId}/matches/${match.id}`, {
-      homeScore: Number(hs), awayScore: Number(as_),
+    mutationFn: () => apiService.get(`/local-leagues/${leagueId}/matches/${match.id}/g-update-result`, {
+      params: { homeScore: Number(hs), awayScore: Number(as_) },
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['local-league', leagueId] });
@@ -124,7 +129,7 @@ export function LocalLeagueDetailScreen() {
   });
 
   const generateMutation = useMutation({
-    mutationFn: () => apiService.post(`/local-leagues/${leagueId}/generate-fixture`, {}),
+    mutationFn: () => apiService.get(`/local-leagues/${leagueId}/g-generate-fixture`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['local-league', leagueId] }),
     onError: () => Alert.alert('Error', 'No se pudo generar el fixture'),
   });

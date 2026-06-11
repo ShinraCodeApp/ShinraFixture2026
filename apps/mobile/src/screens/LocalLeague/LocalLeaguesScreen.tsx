@@ -96,7 +96,8 @@ export function LocalLeaguesScreen() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (body: { name: string; type: LeagueType }) => apiService.post('/local-leagues', body),
+    mutationFn: (body: { name: string; type: LeagueType }) =>
+      apiService.get('/local-leagues/g-create', { params: body }),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['local-leagues'] });
       setShowCreate(false);
@@ -106,7 +107,7 @@ export function LocalLeaguesScreen() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => apiService.delete(`/local-leagues/${id}`),
+    mutationFn: (id: string) => apiService.get(`/local-leagues/${id}/g-delete`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['local-leagues'] }),
   });
 

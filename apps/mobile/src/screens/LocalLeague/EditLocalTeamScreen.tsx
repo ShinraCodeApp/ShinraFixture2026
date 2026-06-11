@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, ActivityIndicator,
+  TextInput, Alert, ActivityIndicator, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
 import { apiService } from '../../services/api';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { colors, spacing, typography, borderRadius } from '../../theme';
@@ -28,6 +29,10 @@ const TEAM_COLORS = [
 ];
 
 const BADGE_EMOJIS = ['⚽', '🏆', '⭐', '🦁', '🐯', '🦅', '🔥', '💪', '🌟', '🎯', '🥇', '🏅'];
+
+function isImageUri(val: string) {
+  return val.startsWith('file://') || val.startsWith('content://');
+}
 
 interface Player {
   id?: string;
@@ -52,6 +57,24 @@ export function EditLocalTeamScreen() {
   );
   const [showBadgePicker, setShowBadgePicker] = useState(false);
 
+  const pickBadgeImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galería para subir el escudo');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setBadge(result.assets[0].uri);
+      setShowBadgePicker(false);
+    }
+  };
+
   const addPlayer = () => {
     setPlayers((prev) => [...prev, { name: '', number: '', position: '' }]);
   };
@@ -68,24 +91,24 @@ export function EditLocalTeamScreen() {
     mutationFn: async () => {
       if (!teamName.trim()) throw new Error('Nombre requerido');
       const validPlayers = players.filter((p) => p.name.trim());
+      const playersJson = JSON.stringify(validPlayers.map((p) => ({
+        name: p.name.trim(),
+        number: p.number ? Number(p.number) : null,
+        position: p.position || null,
+      })));
+
       if (isEdit) {
-        return apiService.put(`/local-leagues/${leagueId}/teams/${team.id}`, {
-          name: teamName.trim(), badge, color,
-          players: validPlayers.map((p) => ({
-            name: p.name.trim(), number: p.number ? Number(p.number) : null, position: p.position || null,
-          })),
+        return apiService.get(`/local-leagues/${leagueId}/teams/${team.id}/g-update`, {
+          params: { name: teamName.trim(), badge, color, players: playersJson },
         });
       } else {
-        const res = await apiService.post(`/local-leagues/${leagueId}/teams`, {
-          name: teamName.trim(), badge, color,
+        const res = await apiService.get(`/local-leagues/${leagueId}/g-add-team`, {
+          params: { name: teamName.trim(), badge, color },
         });
         const teamId = res.data.data.id;
         if (validPlayers.length > 0) {
-          await apiService.put(`/local-leagues/${leagueId}/teams/${teamId}`, {
-            name: teamName.trim(), badge, color,
-            players: validPlayers.map((p) => ({
-              name: p.name.trim(), number: p.number ? Number(p.number) : null, position: p.position || null,
-            })),
+          await apiService.get(`/local-leagues/${leagueId}/teams/${teamId}/g-update`, {
+            params: { name: teamName.trim(), badge, color, players: playersJson },
           });
         }
         return res;
@@ -104,7 +127,7 @@ export function EditLocalTeamScreen() {
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Eliminar', style: 'destructive', onPress: async () => {
-          await apiService.delete(`/local-leagues/${leagueId}/teams/${team.id}`);
+          await apiService.get(`/local-leagues/${leagueId}/teams/${team.id}/g-delete`);
           qc.invalidateQueries({ queryKey: ['local-league', leagueId] });
           navigation.goBack();
         },
@@ -149,12 +172,16 @@ export function EditLocalTeamScreen() {
           {/* Badge & Color */}
           <Text style={styles.label}>ESCUDO Y COLOR</Text>
           <View style={styles.badgeColorRow}>
-            {/* Badge emoji picker */}
+            {/* Badge preview / picker toggle */}
             <TouchableOpacity
               style={[styles.badgeBtn, { borderColor: color }]}
               onPress={() => setShowBadgePicker(!showBadgePicker)}
             >
-              <Text style={styles.badgeEmoji}>{badge || '⚽'}</Text>
+              {isImageUri(badge) ? (
+                <Image source={{ uri: badge }} style={styles.badgeImage} />
+              ) : (
+                <Text style={styles.badgeEmoji}>{badge || '⚽'}</Text>
+              )}
             </TouchableOpacity>
 
             {/* Color picker */}
@@ -170,16 +197,25 @@ export function EditLocalTeamScreen() {
           </View>
 
           {showBadgePicker && (
-            <View style={styles.emojiGrid}>
-              {BADGE_EMOJIS.map((e) => (
-                <TouchableOpacity
-                  key={e}
-                  style={[styles.emojiBtn, badge === e && { backgroundColor: 'rgba(255,255,255,0.2)' }]}
-                  onPress={() => { setBadge(e); setShowBadgePicker(false); }}
-                >
-                  <Text style={{ fontSize: 24 }}>{e}</Text>
-                </TouchableOpacity>
-              ))}
+            <View style={styles.badgePickerContainer}>
+              {/* Photo from gallery */}
+              <TouchableOpacity style={styles.photoPickerBtn} onPress={pickBadgeImage}>
+                <Ionicons name="image-outline" size={20} color={colors.accent} />
+                <Text style={styles.photoPickerText}>Subir foto del escudo</Text>
+              </TouchableOpacity>
+
+              {/* Emoji grid */}
+              <View style={styles.emojiGrid}>
+                {BADGE_EMOJIS.map((e) => (
+                  <TouchableOpacity
+                    key={e}
+                    style={[styles.emojiBtn, badge === e && { backgroundColor: 'rgba(255,255,255,0.2)' }]}
+                    onPress={() => { setBadge(e); setShowBadgePicker(false); }}
+                  >
+                    <Text style={{ fontSize: 24 }}>{e}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           )}
 
@@ -288,16 +324,26 @@ const styles = StyleSheet.create({
   badgeBtn: {
     width: 56, height: 56, borderRadius: 28, borderWidth: 2.5,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden',
   },
+  badgeImage: { width: 56, height: 56, borderRadius: 28 },
   badgeEmoji: { fontSize: 28 },
   colorGrid: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   colorDot: { width: 28, height: 28, borderRadius: 14 },
   colorDotSelected: { borderWidth: 3, borderColor: 'white' },
 
+  badgePickerContainer: {
+    backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: borderRadius.lg, padding: spacing.sm, gap: spacing.sm,
+  },
+  photoPickerBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    paddingVertical: spacing.sm, paddingHorizontal: spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: borderRadius.md,
+    borderWidth: 1, borderColor: colors.accent,
+  },
+  photoPickerText: { color: colors.accent, fontFamily: typography.fontFamily.semiBold, fontSize: typography.fontSize.sm },
   emojiGrid: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: borderRadius.lg, padding: spacing.sm,
   },
   emojiBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 8 },
 
