@@ -195,13 +195,67 @@ async function resolveFinishedPredictions(): Promise<void> {
 }
 
 async function updateGroupStandings(): Promise<void> {
-  const activeTournament = await prisma.tournament.findFirst({
-    where: { isActive: true },
-    select: { id: true },
+  const wc = await prisma.tournament.findFirst({
+    where: { type: 'WORLD_CUP', year: 2026, isActive: true },
+    include: { groups: { include: { teams: { select: { id: true, teamId: true } } } } },
   });
-  if (!activeTournament) return;
+  if (!wc) return;
 
-  await cache.del(`standings:${activeTournament.id}`);
+  // Get all FINISHED group-stage matches
+  const matches = await prisma.match.findMany({
+    where: { tournamentId: wc.id, stage: 'GROUP', status: 'FINISHED' },
+    select: { id: true, group: true, homeTeamId: true, awayTeamId: true, homeScore: true, awayScore: true },
+  });
+
+  // Build a stats map: teamId → { played, won, drawn, lost, gf, ga }
+  const stats: Record<string, { played: number; won: number; drawn: number; lost: number; gf: number; ga: number }> = {};
+  const ensure = (id: string) => {
+    if (!stats[id]) stats[id] = { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0 };
+  };
+
+  for (const m of matches) {
+    if (m.homeTeamId == null || m.awayTeamId == null || m.homeScore == null || m.awayScore == null) continue;
+    ensure(m.homeTeamId);
+    ensure(m.awayTeamId);
+    const h = stats[m.homeTeamId];
+    const a = stats[m.awayTeamId];
+    h.played++; h.gf += m.homeScore; h.ga += m.awayScore;
+    a.played++; a.gf += m.awayScore; a.ga += m.homeScore;
+    if (m.homeScore > m.awayScore) { h.won++; a.lost++; }
+    else if (m.homeScore < m.awayScore) { a.won++; h.lost++; }
+    else { h.drawn++; a.drawn++; }
+  }
+
+  // Update TournamentGroupTeam records
+  for (const group of wc.groups) {
+    const groupTeams = group.teams;
+    const teamStats = groupTeams
+      .map((gt) => ({ gt, s: stats[gt.teamId] ?? { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0 } }))
+      .sort((a, b) => {
+        const ptsA = a.s.won * 3 + a.s.drawn;
+        const ptsB = b.s.won * 3 + b.s.drawn;
+        if (ptsB !== ptsA) return ptsB - ptsA;
+        const dgA = a.s.gf - a.s.ga, dgB = b.s.gf - b.s.ga;
+        if (dgB !== dgA) return dgB - dgA;
+        return b.s.gf - a.s.gf;
+      });
+
+    for (let i = 0; i < teamStats.length; i++) {
+      const { gt, s } = teamStats[i];
+      const pts = s.won * 3 + s.drawn;
+      await prisma.tournamentGroupTeam.update({
+        where: { id: gt.id },
+        data: {
+          played: s.played, won: s.won, drawn: s.drawn, lost: s.lost,
+          goalsFor: s.gf, goalsAgainst: s.ga, goalDifference: s.gf - s.ga,
+          points: pts, position: i + 1,
+        },
+      });
+    }
+  }
+
+  await cache.del(`standings:${wc.id}`);
+  await cache.del(`tournament:${wc.id}`);
 }
 
 async function cleanExpiredTokens(): Promise<void> {
