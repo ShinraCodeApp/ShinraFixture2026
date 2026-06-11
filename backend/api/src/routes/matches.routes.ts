@@ -204,11 +204,15 @@ matchRoutes.post('/espn-sync', async (req, res) => {
 
     const events: any[] = [];
     for (const url of urls) {
+      const isWcUrl = url.includes('FIFA.WORLD');
       try {
         const r = await axios.get(url, { timeout: 8000 });
         const evs: any[] = r.data.events ?? [];
         for (const ev of evs) {
-          if (!events.find((e: any) => e.id === ev.id)) events.push(ev);
+          if (!events.find((e: any) => e.id === ev.id)) {
+            // Tag the event with its source so we can determine WC vs FRIENDLY later
+            events.push({ ...ev, _isWcSource: isWcUrl });
+          }
         }
       } catch { /* skip unreachable endpoint */ }
     }
@@ -260,9 +264,9 @@ matchRoutes.post('/espn-sync', async (req, res) => {
       ]);
       if (!homeTeam || !awayTeam) continue;
 
-      // Determine tournament type from ESPN league slug
+      // Determine tournament type: use source URL tag OR league slug as fallback
       const leagueSlug = (event.leagues?.[0]?.slug ?? '').toUpperCase();
-      const isWC = leagueSlug.includes('FIFA.WORLD') || leagueSlug.includes('FIFA.WC');
+      const isWC = event._isWcSource || leagueSlug.includes('FIFA.WORLD') || leagueSlug.includes('FIFA.WC');
       const tournamentType = isWC ? 'WORLD_CUP' : 'FRIENDLY';
       const stage = isWC ? 'GROUP' : 'FRIENDLY';
 
