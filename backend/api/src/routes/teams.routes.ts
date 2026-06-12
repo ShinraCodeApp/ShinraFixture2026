@@ -152,7 +152,76 @@ teamRoutes.get('/:id/espn-team-stats', async (req, res) => {
   res.json({ success: true, data: { stats, topScorers } });
 });
 
-// WC2026 national team crests: football-data.org verified IDs + flagcdn fallback
+// ── Correct shields for non-WC national teams + club fixes ─────────────────
+// Fixes: code conflicts (BOL=Bolivia/Bologna, COM=Comoros/Como), wrong fd.org IDs
+// Applied by /teams/g-fix-other-shields
+const OTHER_FIXES: Array<{
+  matchBy: 'code' | 'name';
+  value: string;
+  shieldUrl: string;
+  flagUrl?: string;
+  note: string;
+}> = [
+  // ── CODE CONFLICTS: match by name to update only the right team ───────────
+  { matchBy: 'name', value: 'Bolivia',  shieldUrl: 'https://flagcdn.com/w160/bo.png', note: 'Bolivia: overridden by Bologna fd(103)' },
+  { matchBy: 'name', value: 'Comoros',  shieldUrl: 'https://flagcdn.com/w160/km.png', note: 'Comoros: overridden by Como 1907 fd(5456)' },
+
+  // ── WRONG fd.org CLUB IDs: fix duplicates ────────────────────────────────
+  // WOB (VfL Wolfsburg) incorrectly uses id=11 = Stuttgart → use api-sports
+  { matchBy: 'code', value: 'WOB',  shieldUrl: 'https://media.api-sports.io/football/teams/162.png', note: 'Wolfsburg: was fd(11)=Stuttgart' },
+  // RAY (Rayo Vallecano) incorrectly uses id=87 = Osasuna → correct fd id
+  { matchBy: 'code', value: 'RAY',  shieldUrl: 'https://crests.football-data.org/726.png', note: 'Rayo Vallecano: was fd(87)=Osasuna' },
+  // PFC (Paris FC) incorrectly uses id=523 = Lyon → ui-avatars
+  { matchBy: 'code', value: 'PFC',  shieldUrl: 'https://ui-avatars.com/api/?name=PFC&background=003087&color=fff&size=128&bold=true&font-size=0.45', note: 'Paris FC: was fd(523)=Lyon' },
+  // LHC (Le Havre) incorrectly uses id=543 = FC Nantes
+  { matchBy: 'code', value: 'LHC',  shieldUrl: 'https://media.api-sports.io/football/teams/111.png', note: 'Le Havre: was fd(543)=Nantes' },
+
+  // ── NON-WC NATIONAL TEAMS: fd.org crests ────────────────────────────────
+  { matchBy: 'code', value: 'ITA',  shieldUrl: 'https://crests.football-data.org/784.png', note: 'Italy' },
+  { matchBy: 'code', value: 'DEN',  shieldUrl: 'https://crests.football-data.org/807.png', note: 'Denmark' },
+  { matchBy: 'code', value: 'POL',  shieldUrl: 'https://crests.football-data.org/778.png', note: 'Poland' },
+  { matchBy: 'code', value: 'SRB',  shieldUrl: 'https://crests.football-data.org/793.png', note: 'Serbia' },
+  { matchBy: 'code', value: 'CHI',  shieldUrl: 'https://crests.football-data.org/777.png', note: 'Chile' },
+  { matchBy: 'code', value: 'PER',  shieldUrl: 'https://crests.football-data.org/785.png', note: 'Peru' },
+  { matchBy: 'code', value: 'VEN',  shieldUrl: 'https://crests.football-data.org/786.png', note: 'Venezuela' },
+  { matchBy: 'code', value: 'NGA',  shieldUrl: 'https://crests.football-data.org/1028.png', note: 'Nigeria' },
+  { matchBy: 'code', value: 'CMR',  shieldUrl: 'https://crests.football-data.org/1022.png', note: 'Cameroon' },
+  { matchBy: 'code', value: 'CRC',  shieldUrl: 'https://crests.football-data.org/773.png', note: 'Costa Rica - checking' },
+  // Use flagcdn w160 (HD) for less common national teams
+  { matchBy: 'code', value: 'CRC',  shieldUrl: 'https://flagcdn.com/w160/cr.png', note: 'Costa Rica HD flag' },
+  { matchBy: 'code', value: 'JAM',  shieldUrl: 'https://flagcdn.com/w160/jm.png', note: 'Jamaica HD flag' },
+  { matchBy: 'code', value: 'HUN',  shieldUrl: 'https://crests.football-data.org/812.png', note: 'Hungary' },
+  { matchBy: 'code', value: 'ALB',  shieldUrl: 'https://flagcdn.com/w160/al.png', note: 'Albania HD flag' },
+  { matchBy: 'code', value: 'SVN',  shieldUrl: 'https://crests.football-data.org/814.png', note: 'Slovenia' },
+  { matchBy: 'code', value: 'SVK',  shieldUrl: 'https://crests.football-data.org/800.png', note: 'Slovakia' },
+  { matchBy: 'code', value: 'ROU',  shieldUrl: 'https://crests.football-data.org/813.png', note: 'Romania' },
+  { matchBy: 'code', value: 'UKR',  shieldUrl: 'https://crests.football-data.org/790.png', note: 'Ukraine' },
+  { matchBy: 'code', value: 'GEO',  shieldUrl: 'https://crests.football-data.org/1963.png', note: 'Georgia' },
+  // Africa/Asia - flagcdn HD for less common
+  { matchBy: 'code', value: 'NGA',  shieldUrl: 'https://crests.football-data.org/1028.png', note: 'Nigeria' },
+  { matchBy: 'code', value: 'MLI',  shieldUrl: 'https://flagcdn.com/w160/ml.png', note: 'Mali HD flag' },
+  { matchBy: 'code', value: 'GAM',  shieldUrl: 'https://flagcdn.com/w160/gm.png', note: 'Gambia HD flag' },
+  { matchBy: 'code', value: 'GNB',  shieldUrl: 'https://flagcdn.com/w160/gw.png', note: 'Guinea-Bissau HD flag' },
+  { matchBy: 'code', value: 'GUI',  shieldUrl: 'https://flagcdn.com/w160/gn.png', note: 'Guinea HD flag' },
+  { matchBy: 'code', value: 'ANG',  shieldUrl: 'https://flagcdn.com/w160/ao.png', note: 'Angola HD flag' },
+  { matchBy: 'code', value: 'MOZ',  shieldUrl: 'https://flagcdn.com/w160/mz.png', note: 'Mozambique HD flag' },
+  { matchBy: 'code', value: 'NAM',  shieldUrl: 'https://flagcdn.com/w160/na.png', note: 'Namibia HD flag' },
+  { matchBy: 'code', value: 'ZAM',  shieldUrl: 'https://flagcdn.com/w160/zm.png', note: 'Zambia HD flag' },
+  { matchBy: 'code', value: 'TAN',  shieldUrl: 'https://flagcdn.com/w160/tz.png', note: 'Tanzania HD flag' },
+  { matchBy: 'code', value: 'EQG',  shieldUrl: 'https://flagcdn.com/w160/gq.png', note: 'Equatorial Guinea HD flag' },
+  { matchBy: 'code', value: 'BFA',  shieldUrl: 'https://flagcdn.com/w160/bf.png', note: 'Burkina Faso HD flag' },
+  { matchBy: 'code', value: 'CHN',  shieldUrl: 'https://flagcdn.com/w160/cn.png', note: 'China HD flag' },
+  { matchBy: 'code', value: 'IND',  shieldUrl: 'https://flagcdn.com/w160/in.png', note: 'India HD flag' },
+  { matchBy: 'code', value: 'VIE',  shieldUrl: 'https://flagcdn.com/w160/vn.png', note: 'Vietnam HD flag' },
+  { matchBy: 'code', value: 'TAJ',  shieldUrl: 'https://flagcdn.com/w160/tj.png', note: 'Tajikistan HD flag' },
+  { matchBy: 'code', value: 'THA',  shieldUrl: 'https://flagcdn.com/w160/th.png', note: 'Thailand HD flag' },
+  { matchBy: 'code', value: 'UAE',  shieldUrl: 'https://flagcdn.com/w160/ae.png', note: 'UAE HD flag' },
+  { matchBy: 'code', value: 'SYR',  shieldUrl: 'https://flagcdn.com/w160/sy.png', note: 'Syria HD flag' },
+  { matchBy: 'code', value: 'BHR',  shieldUrl: 'https://flagcdn.com/w160/bh.png', note: 'Bahrain HD flag' },
+  { matchBy: 'code', value: 'MTN',  shieldUrl: 'https://flagcdn.com/w160/mr.png', note: 'Mauritania HD flag' },
+];
+
+// ── WC2026 national team crests: football-data.org verified IDs + flagcdn fallback
 const WC_SHIELDS: Record<string, string> = {
   // fd.org confirmed
   ARG: 'https://crests.football-data.org/762.png',
@@ -239,6 +308,46 @@ teamRoutes.get('/g-sync-shields', async (req, res) => {
     }
 
     res.json({ success: true, data: { updated: updates.length, skipped: skipped.length, updates, skipped } });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Maintenance: fix code conflicts (BOL/COM) + wrong club fd.org IDs + non-WC national teams
+teamRoutes.get('/g-fix-other-shields', async (req, res) => {
+  try {
+    const results: Array<{ matched: string; id: string; shieldUrl: string; note: string }> = [];
+    const notFound: string[] = [];
+
+    for (const fix of OTHER_FIXES) {
+      let teams: Array<{ id: string; code: string; name: string }> = [];
+
+      if (fix.matchBy === 'code') {
+        teams = await prisma.team.findMany({
+          where: { code: fix.value },
+          select: { id: true, code: true, name: true },
+        });
+      } else {
+        teams = await prisma.team.findMany({
+          where: { name: { contains: fix.value, mode: 'insensitive' } },
+          select: { id: true, code: true, name: true },
+        });
+      }
+
+      if (teams.length === 0) {
+        notFound.push(`${fix.matchBy}=${fix.value}`);
+        continue;
+      }
+
+      for (const team of teams) {
+        const data: any = { shieldUrl: fix.shieldUrl };
+        if (fix.flagUrl) data.flagUrl = fix.flagUrl;
+        await prisma.team.update({ where: { id: team.id }, data });
+        results.push({ matched: `${team.code}|${team.name}`, id: team.id, shieldUrl: fix.shieldUrl, note: fix.note });
+      }
+    }
+
+    res.json({ success: true, data: { updated: results.length, notFound, results } });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
   }
