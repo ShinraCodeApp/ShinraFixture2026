@@ -176,108 +176,72 @@ const OTHER_FIXES: Array<{
   // LHC (Le Havre) incorrectly uses id=543 = FC Nantes
   { matchBy: 'code', value: 'LHC',  shieldUrl: 'https://media.api-sports.io/football/teams/111.png', note: 'Le Havre: was fd(543)=Nantes' },
 
-  // ── NON-WC NATIONAL TEAMS: fd.org crests ────────────────────────────────
-  { matchBy: 'code', value: 'ITA',  shieldUrl: 'https://crests.football-data.org/784.png', note: 'Italy' },
-  { matchBy: 'code', value: 'DEN',  shieldUrl: 'https://crests.football-data.org/807.png', note: 'Denmark' },
-  { matchBy: 'code', value: 'POL',  shieldUrl: 'https://crests.football-data.org/778.png', note: 'Poland' },
-  { matchBy: 'code', value: 'SRB',  shieldUrl: 'https://crests.football-data.org/793.png', note: 'Serbia' },
-  { matchBy: 'code', value: 'CHI',  shieldUrl: 'https://crests.football-data.org/777.png', note: 'Chile' },
-  { matchBy: 'code', value: 'PER',  shieldUrl: 'https://crests.football-data.org/785.png', note: 'Peru' },
-  { matchBy: 'code', value: 'VEN',  shieldUrl: 'https://crests.football-data.org/786.png', note: 'Venezuela' },
-  { matchBy: 'code', value: 'NGA',  shieldUrl: 'https://crests.football-data.org/1028.png', note: 'Nigeria' },
-  { matchBy: 'code', value: 'CMR',  shieldUrl: 'https://crests.football-data.org/1022.png', note: 'Cameroon' },
-  { matchBy: 'code', value: 'CRC',  shieldUrl: 'https://crests.football-data.org/773.png', note: 'Costa Rica - checking' },
-  // Use flagcdn w160 (HD) for less common national teams
-  { matchBy: 'code', value: 'CRC',  shieldUrl: 'https://flagcdn.com/w160/cr.png', note: 'Costa Rica HD flag' },
-  { matchBy: 'code', value: 'JAM',  shieldUrl: 'https://flagcdn.com/w160/jm.png', note: 'Jamaica HD flag' },
-  { matchBy: 'code', value: 'HUN',  shieldUrl: 'https://crests.football-data.org/812.png', note: 'Hungary' },
-  { matchBy: 'code', value: 'ALB',  shieldUrl: 'https://flagcdn.com/w160/al.png', note: 'Albania HD flag' },
-  { matchBy: 'code', value: 'SVN',  shieldUrl: 'https://crests.football-data.org/814.png', note: 'Slovenia' },
-  { matchBy: 'code', value: 'SVK',  shieldUrl: 'https://crests.football-data.org/800.png', note: 'Slovakia' },
-  { matchBy: 'code', value: 'ROU',  shieldUrl: 'https://crests.football-data.org/813.png', note: 'Romania' },
-  { matchBy: 'code', value: 'UKR',  shieldUrl: 'https://crests.football-data.org/790.png', note: 'Ukraine' },
-  { matchBy: 'code', value: 'GEO',  shieldUrl: 'https://crests.football-data.org/1963.png', note: 'Georgia' },
-  // Africa/Asia - flagcdn HD for less common
-  { matchBy: 'code', value: 'NGA',  shieldUrl: 'https://crests.football-data.org/1028.png', note: 'Nigeria' },
-  { matchBy: 'code', value: 'MLI',  shieldUrl: 'https://flagcdn.com/w160/ml.png', note: 'Mali HD flag' },
-  { matchBy: 'code', value: 'GAM',  shieldUrl: 'https://flagcdn.com/w160/gm.png', note: 'Gambia HD flag' },
-  { matchBy: 'code', value: 'GNB',  shieldUrl: 'https://flagcdn.com/w160/gw.png', note: 'Guinea-Bissau HD flag' },
-  { matchBy: 'code', value: 'GUI',  shieldUrl: 'https://flagcdn.com/w160/gn.png', note: 'Guinea HD flag' },
-  { matchBy: 'code', value: 'ANG',  shieldUrl: 'https://flagcdn.com/w160/ao.png', note: 'Angola HD flag' },
-  { matchBy: 'code', value: 'MOZ',  shieldUrl: 'https://flagcdn.com/w160/mz.png', note: 'Mozambique HD flag' },
-  { matchBy: 'code', value: 'NAM',  shieldUrl: 'https://flagcdn.com/w160/na.png', note: 'Namibia HD flag' },
-  { matchBy: 'code', value: 'ZAM',  shieldUrl: 'https://flagcdn.com/w160/zm.png', note: 'Zambia HD flag' },
-  { matchBy: 'code', value: 'TAN',  shieldUrl: 'https://flagcdn.com/w160/tz.png', note: 'Tanzania HD flag' },
-  { matchBy: 'code', value: 'EQG',  shieldUrl: 'https://flagcdn.com/w160/gq.png', note: 'Equatorial Guinea HD flag' },
-  { matchBy: 'code', value: 'BFA',  shieldUrl: 'https://flagcdn.com/w160/bf.png', note: 'Burkina Faso HD flag' },
-  { matchBy: 'code', value: 'CHN',  shieldUrl: 'https://flagcdn.com/w160/cn.png', note: 'China HD flag' },
-  { matchBy: 'code', value: 'IND',  shieldUrl: 'https://flagcdn.com/w160/in.png', note: 'India HD flag' },
-  { matchBy: 'code', value: 'VIE',  shieldUrl: 'https://flagcdn.com/w160/vn.png', note: 'Vietnam HD flag' },
-  { matchBy: 'code', value: 'TAJ',  shieldUrl: 'https://flagcdn.com/w160/tj.png', note: 'Tajikistan HD flag' },
-  { matchBy: 'code', value: 'THA',  shieldUrl: 'https://flagcdn.com/w160/th.png', note: 'Thailand HD flag' },
-  { matchBy: 'code', value: 'UAE',  shieldUrl: 'https://flagcdn.com/w160/ae.png', note: 'UAE HD flag' },
-  { matchBy: 'code', value: 'SYR',  shieldUrl: 'https://flagcdn.com/w160/sy.png', note: 'Syria HD flag' },
-  { matchBy: 'code', value: 'BHR',  shieldUrl: 'https://flagcdn.com/w160/bh.png', note: 'Bahrain HD flag' },
-  { matchBy: 'code', value: 'MTN',  shieldUrl: 'https://flagcdn.com/w160/mr.png', note: 'Mauritania HD flag' },
+  // ── NON-WC NATIONAL TEAMS: ESPN country logos (verified 200 on ESPN CDN) ─
+  // URL pattern: https://a.espncdn.com/i/teamlogos/countries/500/{abbr}.png
+  { matchBy: 'code', value: 'ITA', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/ita.png', note: 'Italy ESPN' },
+  { matchBy: 'code', value: 'DEN', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/den.png', note: 'Denmark ESPN' },
+  { matchBy: 'code', value: 'POL', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/pol.png', note: 'Poland ESPN' },
+  { matchBy: 'code', value: 'SRB', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/srb.png', note: 'Serbia ESPN' },
+  { matchBy: 'code', value: 'CHI', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/chi.png', note: 'Chile ESPN' },
+  { matchBy: 'code', value: 'PER', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/per.png', note: 'Peru ESPN' },
+  { matchBy: 'code', value: 'VEN', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/ven.png', note: 'Venezuela ESPN' },
+  { matchBy: 'code', value: 'NGA', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/nga.png', note: 'Nigeria ESPN' },
+  { matchBy: 'code', value: 'CMR', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/cmr.png', note: 'Cameroon ESPN' },
+  { matchBy: 'code', value: 'CRC', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/crc.png', note: 'Costa Rica ESPN' },
+  { matchBy: 'code', value: 'JAM', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/jam.png', note: 'Jamaica ESPN' },
+  { matchBy: 'code', value: 'HUN', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/hun.png', note: 'Hungary ESPN' },
+  { matchBy: 'code', value: 'ALB', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/alb.png', note: 'Albania ESPN' },
+  { matchBy: 'code', value: 'SVN', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/svn.png', note: 'Slovenia ESPN' },
+  { matchBy: 'code', value: 'SVK', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/svk.png', note: 'Slovakia ESPN' },
+  { matchBy: 'code', value: 'ROU', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/rou.png', note: 'Romania ESPN' },
+  { matchBy: 'code', value: 'UKR', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/ukr.png', note: 'Ukraine ESPN' },
+  { matchBy: 'code', value: 'GEO', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/geo.png', note: 'Georgia ESPN' },
+  { matchBy: 'code', value: 'MLI', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/mli.png', note: 'Mali ESPN' },
+  { matchBy: 'code', value: 'GAM', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/gam.png', note: 'Gambia ESPN' },
+  { matchBy: 'code', value: 'GNB', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/gnb.png', note: 'Guinea-Bissau ESPN' },
+  { matchBy: 'code', value: 'GUI', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/gui.png', note: 'Guinea ESPN' },
+  { matchBy: 'code', value: 'ANG', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/ang.png', note: 'Angola ESPN' },
+  { matchBy: 'code', value: 'MOZ', shieldUrl: 'https://flagcdn.com/w160/mz.png', note: 'Mozambique flag HD' },
+  { matchBy: 'code', value: 'NAM', shieldUrl: 'https://flagcdn.com/w160/na.png', note: 'Namibia flag HD' },
+  { matchBy: 'code', value: 'ZAM', shieldUrl: 'https://flagcdn.com/w160/zm.png', note: 'Zambia flag HD' },
+  { matchBy: 'code', value: 'TAN', shieldUrl: 'https://flagcdn.com/w160/tz.png', note: 'Tanzania flag HD' },
+  { matchBy: 'code', value: 'EQG', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/eqg.png', note: 'Equatorial Guinea ESPN' },
+  { matchBy: 'code', value: 'BFA', shieldUrl: 'https://flagcdn.com/w160/bf.png', note: 'Burkina Faso flag HD' },
+  { matchBy: 'code', value: 'CHN', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/chn.png', note: 'China ESPN' },
+  { matchBy: 'code', value: 'IND', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/ind.png', note: 'India ESPN' },
+  { matchBy: 'code', value: 'VIE', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/vie.png', note: 'Vietnam ESPN' },
+  { matchBy: 'code', value: 'TAJ', shieldUrl: 'https://flagcdn.com/w160/tj.png', note: 'Tajikistan flag HD' },
+  { matchBy: 'code', value: 'THA', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/tha.png', note: 'Thailand ESPN' },
+  { matchBy: 'code', value: 'UAE', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/uae.png', note: 'UAE ESPN' },
+  { matchBy: 'code', value: 'SYR', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/syr.png', note: 'Syria ESPN' },
+  { matchBy: 'code', value: 'BHR', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/bhr.png', note: 'Bahrain ESPN' },
+  { matchBy: 'code', value: 'MTN', shieldUrl: 'https://flagcdn.com/w160/mr.png', note: 'Mauritania flag HD' },
 ];
 
-// ── WC2026 national team crests: football-data.org verified IDs + flagcdn fallback
-const WC_SHIELDS: Record<string, string> = {
-  // fd.org confirmed
-  ARG: 'https://crests.football-data.org/762.png',
-  AUS: 'https://crests.football-data.org/825.png',
-  AUT: 'https://crests.football-data.org/816.png',
-  BEL: 'https://crests.football-data.org/805.png',
-  BRA: 'https://crests.football-data.org/764.png',
-  CAN: 'https://crests.football-data.org/769.png',
-  COL: 'https://crests.football-data.org/779.png',
-  CRO: 'https://crests.football-data.org/799.png',
-  CZE: 'https://crests.football-data.org/798.png',
-  ECU: 'https://crests.football-data.org/774.png',
-  ENG: 'https://crests.football-data.org/770.png',
-  ESP: 'https://crests.football-data.org/760.png',
-  FRA: 'https://crests.football-data.org/773.png',
-  GER: 'https://crests.football-data.org/759.png',
-  IRN: 'https://crests.football-data.org/794.png',
-  JPN: 'https://crests.football-data.org/827.png',
-  KOR: 'https://crests.football-data.org/788.png',
-  KSA: 'https://crests.football-data.org/1030.png',
-  MAR: 'https://crests.football-data.org/1031.png',
-  MEX: 'https://crests.football-data.org/772.png',
-  NED: 'https://crests.football-data.org/776.png',
-  NOR: 'https://crests.football-data.org/782.png',
-  NZL: 'https://crests.football-data.org/826.png',
-  PAR: 'https://crests.football-data.org/775.png',
-  POR: 'https://crests.football-data.org/765.png',
-  QAT: 'https://crests.football-data.org/1029.png',
-  SCO: 'https://crests.football-data.org/833.png',
-  SEN: 'https://crests.football-data.org/907.png',
-  SUI: 'https://crests.football-data.org/781.png',
-  SWE: 'https://crests.football-data.org/784.png',
-  TUN: 'https://crests.football-data.org/1024.png',
-  TUR: 'https://crests.football-data.org/792.png',
-  URU: 'https://crests.football-data.org/780.png',
-  USA: 'https://crests.football-data.org/771.png',
-  BIH: 'https://crests.football-data.org/811.png',
-  CIV: 'https://crests.football-data.org/1021.png',
-  EGY: 'https://crests.football-data.org/1016.png',
-  GHA: 'https://crests.football-data.org/1920.png',
-  RSA: 'https://crests.football-data.org/1019.png',
-  // flagcdn fallback (HD w160) for less common nations
-  ALG: 'https://flagcdn.com/w160/dz.png',
-  COD: 'https://flagcdn.com/w160/cd.png',
-  CPV: 'https://flagcdn.com/w160/cv.png',
-  CUW: 'https://flagcdn.com/w160/cw.png',
-  HTI: 'https://flagcdn.com/w160/ht.png',
-  IRQ: 'https://flagcdn.com/w160/iq.png',
-  JOR: 'https://flagcdn.com/w160/jo.png',
-  PAN: 'https://flagcdn.com/w160/pa.png',
-  UZB: 'https://flagcdn.com/w160/uz.png',
+// Our 3-letter code → ESPN abbreviation (only when they differ)
+const ESPN_ABBR_OVERRIDE: Record<string, string> = {
+  HTI: 'HAI',   // Haiti: FIFA=HTI, ESPN=HAI
 };
 
-// Maintenance: update WC2026 national team shields to proper federation crests
+// Maintenance: update WC2026 national team shields using ESPN official logos
 teamRoutes.get('/g-sync-shields', async (req, res) => {
   try {
+    // 1. Fetch WC2026 team logos from ESPN (no API key needed)
+    const espnRes = await axios.get(
+      'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/teams?limit=100',
+      { timeout: 10000 }
+    );
+    const espnTeams: any[] = espnRes.data?.sports?.[0]?.leagues?.[0]?.teams ?? [];
+
+    // Build map: ESPN abbreviation (uppercase) → logo URL
+    const espnLogoByAbbr: Record<string, string> = {};
+    for (const entry of espnTeams) {
+      const abbr = (entry.team?.abbreviation ?? '').toUpperCase();
+      const logo = entry.team?.logos?.[0]?.href;
+      if (abbr && logo) espnLogoByAbbr[abbr] = logo;
+    }
+
+    // 2. Load our WC2026 teams from DB
     const tournament = await prisma.tournament.findFirst({
       where: { type: 'WORLD_CUP', year: 2026 },
       include: { groups: { include: { teams: { include: { team: true } } } } },
@@ -294,16 +258,18 @@ teamRoutes.get('/g-sync-shields', async (req, res) => {
       }
     }
 
+    // 3. Match & update
     const updates: Array<{ code: string; name: string; crest: string }> = [];
     const skipped: string[] = [];
 
     for (const team of ourTeams) {
-      const crest = WC_SHIELDS[team.code];
-      if (crest) {
-        await prisma.team.update({ where: { id: team.id }, data: { shieldUrl: crest } });
-        updates.push({ code: team.code, name: team.name, crest });
+      const espnAbbr = ESPN_ABBR_OVERRIDE[team.code] ?? team.code;
+      const logo = espnLogoByAbbr[espnAbbr];
+      if (logo) {
+        await prisma.team.update({ where: { id: team.id }, data: { shieldUrl: logo } });
+        updates.push({ code: team.code, name: team.name, crest: logo });
       } else {
-        skipped.push(`${team.code} (${team.name})`);
+        skipped.push(`${team.code} (${team.name}) — ESPN abbr tried: ${espnAbbr}`);
       }
     }
 
