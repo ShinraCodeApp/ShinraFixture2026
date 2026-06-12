@@ -28,6 +28,11 @@ export class UserController {
     res.json({ success: true, data });
   }
 
+  static async getFavoriteTeams(req: Request, res: Response): Promise<void> {
+    const data = await UsersService.getFavoriteTeams(req.user!.id);
+    res.json({ success: true, data });
+  }
+
   static async addFavoriteTeam(req: Request, res: Response): Promise<void> {
     await UsersService.addFavoriteTeam(req.user!.id, req.body.teamId);
     res.json({ success: true });

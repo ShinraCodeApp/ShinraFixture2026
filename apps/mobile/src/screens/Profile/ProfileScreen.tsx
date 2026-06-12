@@ -121,7 +121,7 @@ export function ProfileScreen() {
   }, [xpProgress]);
 
   const menuItems = [
-    { icon: 'heart', label: 'Equipos favoritos', onPress: () => {} },
+    { icon: 'heart', label: 'Equipos favoritos', onPress: () => navigation.navigate('FavoriteTeams') },
     { icon: 'account-group', label: 'Mis amigos', onPress: () => navigation.navigate('Friends') },
     { icon: 'trophy', label: 'Mis logros', onPress: () => {} },
     { icon: 'history', label: 'Historial de predicciones', onPress: () => navigation.navigate('PredictionsTab') },

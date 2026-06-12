@@ -10,6 +10,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '../../services/api';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { useFavoriteTeams } from '../../hooks/useFavoriteTeams';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 import { MatchCard } from '../../components/match/MatchCard';
 
@@ -156,6 +157,8 @@ export function TeamDetailScreen() {
   const { appColors } = useAppTheme();
   const [tab, setTab] = useState<Tab>('squad');
 
+  const { isFavorite, toggle, isPending: favPending } = useFavoriteTeams();
+
   const { data: team, isLoading } = useQuery({
     queryKey: ['team', teamId],
     queryFn: async () => (await apiService.get(`/teams/${teamId}`)).data.data,
@@ -207,6 +210,17 @@ export function TeamDetailScreen() {
         <View style={styles.hero}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back}>
             <Ionicons name="chevron-back" size={24} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.favoriteBtn}
+            onPress={() => toggle(teamId)}
+            disabled={favPending}
+          >
+            <Ionicons
+              name={isFavorite(teamId) ? 'heart' : 'heart-outline'}
+              size={26}
+              color={isFavorite(teamId) ? '#EF4444' : 'rgba(255,255,255,0.7)'}
+            />
           </TouchableOpacity>
           <View style={styles.heroCenter}>
             <Image
@@ -386,6 +400,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   hero: { paddingHorizontal: spacing.base, paddingTop: spacing.sm, paddingBottom: spacing.md },
   back: { marginBottom: spacing.xs },
+  favoriteBtn: { position: 'absolute', top: spacing.sm, right: spacing.base, padding: 6, zIndex: 10 },
   heroCenter: { alignItems: 'center' },
   flag: { width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: 'rgba(255,255,255,0.3)', marginBottom: spacing.xs },
   teamName: { color: 'white', fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, textAlign: 'center' },

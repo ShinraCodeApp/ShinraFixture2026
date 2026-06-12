@@ -26,6 +26,7 @@ import { MatchesScreen } from '../screens/Matches/MatchesScreen';
 import { GroupDetailScreen } from '../screens/Fixture/GroupDetailScreen';
 import { AppGuideScreen } from '../screens/Profile/AppGuideScreen';
 import { FriendsScreen } from '../screens/Profile/FriendsScreen';
+import { FavoriteTeamsScreen } from '../screens/Profile/FavoriteTeamsScreen';
 import { PrivacyPolicyScreen } from '../screens/Settings/PrivacyPolicyScreen';
 import { NotificationsScreen } from '../screens/Notifications/NotificationsScreen';
 import { LiveRadarScreen } from '../screens/Match/LiveRadarScreen';
@@ -98,6 +99,7 @@ function ProfileStack() {
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="AppGuide" component={AppGuideScreen} />
       <Stack.Screen name="Friends" component={FriendsScreen} />
+      <Stack.Screen name="FavoriteTeams" component={FavoriteTeamsScreen} />
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
     </Stack.Navigator>
   );

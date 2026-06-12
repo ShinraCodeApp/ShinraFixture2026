@@ -14,6 +14,7 @@ userRoutes.get('/:id/achievements', UserController.getAchievements);
 userRoutes.use(authenticate);
 userRoutes.patch('/me', UserController.updateProfile);
 userRoutes.patch('/me/avatar', UserController.updateAvatar);
+userRoutes.get('/me/favorite-teams', UserController.getFavoriteTeams);
 userRoutes.post('/me/favorite-teams', UserController.addFavoriteTeam);
 userRoutes.delete('/me/favorite-teams/:teamId', UserController.removeFavoriteTeam);
 userRoutes.get('/me/stats', UserController.myStats);
@@ -21,3 +22,5 @@ userRoutes.delete('/me', UserController.deleteAccount);
 // GET aliases for LTE/carrier networks
 userRoutes.get('/g-update-me', queryToBody, UserController.updateProfile);
 userRoutes.get('/g-delete-me', UserController.deleteAccount);
+userRoutes.get('/g-fav-add', queryToBody, UserController.addFavoriteTeam);
+userRoutes.get('/teams/:teamId/g-fav-remove', UserController.removeFavoriteTeam);

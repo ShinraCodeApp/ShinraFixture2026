@@ -105,6 +105,18 @@ export class UsersService {
     await prisma.userFavoriteTeam.deleteMany({ where: { userId, teamId } });
   }
 
+  static async getFavoriteTeams(userId: string) {
+    return prisma.userFavoriteTeam.findMany({
+      where: { userId },
+      include: {
+        team: {
+          select: { id: true, name: true, shortName: true, code: true, flagUrl: true, shieldUrl: true, region: true },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
   static async leaderboard(page = 1, limit = 20) {
     const cacheKey = `leaderboard:${page}:${limit}`;
     const cached = await cache.get(cacheKey);
