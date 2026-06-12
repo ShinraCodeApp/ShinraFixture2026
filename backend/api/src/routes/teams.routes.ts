@@ -152,23 +152,63 @@ teamRoutes.get('/:id/espn-team-stats', async (req, res) => {
   res.json({ success: true, data: { stats, topScorers } });
 });
 
-// Maintenance: sync WC2026 national team shields from football-data.org
+// WC2026 national team crests: football-data.org verified IDs + flagcdn fallback
+const WC_SHIELDS: Record<string, string> = {
+  // fd.org confirmed
+  ARG: 'https://crests.football-data.org/762.png',
+  AUS: 'https://crests.football-data.org/825.png',
+  AUT: 'https://crests.football-data.org/816.png',
+  BEL: 'https://crests.football-data.org/805.png',
+  BRA: 'https://crests.football-data.org/764.png',
+  CAN: 'https://crests.football-data.org/769.png',
+  COL: 'https://crests.football-data.org/779.png',
+  CRO: 'https://crests.football-data.org/799.png',
+  CZE: 'https://crests.football-data.org/798.png',
+  ECU: 'https://crests.football-data.org/774.png',
+  ENG: 'https://crests.football-data.org/770.png',
+  ESP: 'https://crests.football-data.org/760.png',
+  FRA: 'https://crests.football-data.org/773.png',
+  GER: 'https://crests.football-data.org/759.png',
+  IRN: 'https://crests.football-data.org/794.png',
+  JPN: 'https://crests.football-data.org/827.png',
+  KOR: 'https://crests.football-data.org/788.png',
+  KSA: 'https://crests.football-data.org/1030.png',
+  MAR: 'https://crests.football-data.org/1031.png',
+  MEX: 'https://crests.football-data.org/772.png',
+  NED: 'https://crests.football-data.org/776.png',
+  NOR: 'https://crests.football-data.org/782.png',
+  NZL: 'https://crests.football-data.org/826.png',
+  PAR: 'https://crests.football-data.org/775.png',
+  POR: 'https://crests.football-data.org/765.png',
+  QAT: 'https://crests.football-data.org/1029.png',
+  SCO: 'https://crests.football-data.org/833.png',
+  SEN: 'https://crests.football-data.org/907.png',
+  SUI: 'https://crests.football-data.org/781.png',
+  SWE: 'https://crests.football-data.org/784.png',
+  TUN: 'https://crests.football-data.org/1024.png',
+  TUR: 'https://crests.football-data.org/792.png',
+  URU: 'https://crests.football-data.org/780.png',
+  USA: 'https://crests.football-data.org/771.png',
+  BIH: 'https://crests.football-data.org/811.png',
+  CIV: 'https://crests.football-data.org/1021.png',
+  EGY: 'https://crests.football-data.org/1016.png',
+  GHA: 'https://crests.football-data.org/1920.png',
+  RSA: 'https://crests.football-data.org/1019.png',
+  // flagcdn fallback (HD w160) for less common nations
+  ALG: 'https://flagcdn.com/w160/dz.png',
+  COD: 'https://flagcdn.com/w160/cd.png',
+  CPV: 'https://flagcdn.com/w160/cv.png',
+  CUW: 'https://flagcdn.com/w160/cw.png',
+  HTI: 'https://flagcdn.com/w160/ht.png',
+  IRQ: 'https://flagcdn.com/w160/iq.png',
+  JOR: 'https://flagcdn.com/w160/jo.png',
+  PAN: 'https://flagcdn.com/w160/pa.png',
+  UZB: 'https://flagcdn.com/w160/uz.png',
+};
+
+// Maintenance: update WC2026 national team shields to proper federation crests
 teamRoutes.get('/g-sync-shields', async (req, res) => {
   try {
-    // 1. Fetch WC2026 teams from football-data.org
-    const fdRes = await axios.get('https://api.football-data.org/v4/competitions/WC/teams', {
-      headers: { 'X-Auth-Token': config.sportsApi.key },
-      timeout: 15000,
-    });
-
-    const fdTeams: Array<{ id: number; name: string; shortName: string; tla: string; crest: string }> =
-      fdRes.data?.teams ?? [];
-
-    if (fdTeams.length === 0) {
-      return res.json({ success: false, message: 'No teams from football-data.org' });
-    }
-
-    // 2. Load our WC2026 teams from DB
     const tournament = await prisma.tournament.findFirst({
       where: { type: 'WORLD_CUP', year: 2026 },
       include: { groups: { include: { teams: { include: { team: true } } } } },
@@ -176,49 +216,29 @@ teamRoutes.get('/g-sync-shields', async (req, res) => {
 
     if (!tournament) return res.status(404).json({ success: false, message: 'Tournament not found' });
 
-    const ourTeams: Array<{ id: string; code: string; name: string; shortName: string }> = [];
+    const ourTeams: Array<{ id: string; code: string; name: string }> = [];
     for (const g of tournament.groups) {
       for (const gt of g.teams) {
         if (!ourTeams.find((t) => t.id === gt.team.id)) {
-          ourTeams.push({ id: gt.team.id, code: gt.team.code, name: gt.team.name, shortName: gt.team.shortName });
+          ourTeams.push({ id: gt.team.id, code: gt.team.code, name: gt.team.name });
         }
       }
     }
 
-    // 3. Match & update
-    const updates: Array<{ code: string; name: string; crest: string; matched: string }> = [];
-    const failed: string[] = [];
+    const updates: Array<{ code: string; name: string; crest: string }> = [];
+    const skipped: string[] = [];
 
-    const normalize = (s: string) =>
-      s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, '').trim();
-
-    for (const ours of ourTeams) {
-      const ourNorm = normalize(ours.name);
-      const ourShortNorm = normalize(ours.shortName);
-      const ourCode = ours.code.toUpperCase();
-
-      let match = fdTeams.find((f) => f.tla.toUpperCase() === ourCode);
-      if (!match) match = fdTeams.find((f) => normalize(f.name) === ourNorm);
-      if (!match) match = fdTeams.find((f) => normalize(f.shortName) === ourShortNorm);
-      if (!match) match = fdTeams.find((f) =>
-        normalize(f.name).includes(ourNorm) || ourNorm.includes(normalize(f.name))
-      );
-
-      if (match && match.crest) {
-        await prisma.team.update({
-          where: { id: ours.id },
-          data: { shieldUrl: match.crest },
-        });
-        updates.push({ code: ours.code, name: ours.name, crest: match.crest, matched: match.name });
+    for (const team of ourTeams) {
+      const crest = WC_SHIELDS[team.code];
+      if (crest) {
+        await prisma.team.update({ where: { id: team.id }, data: { shieldUrl: crest } });
+        updates.push({ code: team.code, name: team.name, crest });
       } else {
-        failed.push(`${ours.code} (${ours.name})`);
+        skipped.push(`${team.code} (${team.name})`);
       }
     }
 
-    res.json({
-      success: true,
-      data: { updated: updates.length, failed: failed.length, updates, failed },
-    });
+    res.json({ success: true, data: { updated: updates.length, skipped: skipped.length, updates, skipped } });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
   }
