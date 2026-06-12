@@ -254,6 +254,33 @@ const OTHER_FIXES: Array<{
   { matchBy: 'code', value: 'PLE', shieldUrl: 'https://flagcdn.com/w160/ps.png', note: 'Palestine flag HD' },
   { matchBy: 'code', value: 'BOL', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/bol.png', note: 'Bolivia ESPN (re-apply after Bologna overwrite)' },
 
+  // ── ARGENTINA: switch all clubs from api-sports.io (wrong IDs) to ESPN ───
+  // Seed had incorrect api-sports IDs for most Argentine clubs
+  { matchBy: 'code', value: 'BOC',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/5.png',     note: 'Boca Juniors ESPN' },
+  { matchBy: 'code', value: 'RIV',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/16.png',    note: 'River Plate ESPN (was wrong api-sports ID)' },
+  { matchBy: 'code', value: 'RAC',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/15.png',    note: 'Racing Club ESPN' },
+  { matchBy: 'code', value: 'SLO',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/18.png',    note: 'San Lorenzo ESPN' },
+  { matchBy: 'code', value: 'EST',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/8.png',     note: 'Estudiantes LP ESPN (was showing River Plate)' },
+  { matchBy: 'code', value: 'INDP',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/11.png',    note: 'Independiente ESPN (was showing Rosario Central)' },
+  { matchBy: 'code', value: 'VEL',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/21.png',    note: 'Vélez Sársfield ESPN' },
+  { matchBy: 'code', value: 'BAN',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/235.png',   note: 'Banfield ESPN' },
+  { matchBy: 'code', value: 'RCS',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/17.png',    note: 'Rosario Central ESPN' },
+  { matchBy: 'code', value: 'NOB',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/14.png',    note: "Newell's Old Boys ESPN" },
+  { matchBy: 'code', value: 'LAN',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/12.png',    note: 'Lanús ESPN (was showing wrong stripes)' },
+  { matchBy: 'code', value: 'HUR',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/10.png',    note: 'Huracán ESPN' },
+  { matchBy: 'code', value: 'TAL',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/19.png',    note: 'Talleres ESPN' },
+  { matchBy: 'code', value: 'ARJ',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/3.png',     note: 'Argentinos Juniors ESPN' },
+  { matchBy: 'code', value: 'DJU',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/8950.png',  note: 'Defensa y Justicia ESPN' },
+  { matchBy: 'code', value: 'UNIO',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/20.png',    note: 'Unión Santa Fe ESPN' },
+  { matchBy: 'code', value: 'SARJ',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/10158.png', note: 'Sarmiento Junín ESPN' },
+  { matchBy: 'code', value: 'ALD',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/9739.png',  note: 'Aldosivi ESPN' },
+  { matchBy: 'code', value: 'PLT',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/7764.png',  note: 'Platense ESPN' },
+  { matchBy: 'code', value: 'TIG',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/7767.png',  note: 'Tigre ESPN' },
+  { matchBy: 'code', value: 'ATU',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/9785.png',  note: 'Atlético Tucumán ESPN' },
+  { matchBy: 'code', value: 'ATT',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/9785.png',  note: 'Atlético Tucumán (Copa) ESPN' },
+  { matchBy: 'code', value: 'GLP',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/9.png',     note: 'Gimnasia La Plata ESPN' },
+  { matchBy: 'code', value: 'BELC',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/4.png',     note: 'Belgrano ESPN' },
+
   // ── SOUTH AMERICAN LEAGUE CLUBS: ESPN soccer logos (all verified) ────────
   // Argentine Liga Profesional
   { matchBy: 'code', value: 'INS',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2975.png',  note: 'Instituto Córdoba ESPN' },
