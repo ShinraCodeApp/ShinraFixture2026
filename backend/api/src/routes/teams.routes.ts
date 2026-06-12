@@ -3,6 +3,7 @@ import axios from 'axios';
 import { TeamController } from '../controllers/teams.controller';
 import { authenticate, optionalAuth } from '../middleware/auth';
 import { prisma } from '../config/database';
+import { config } from '../config';
 
 export const teamRoutes = Router();
 
@@ -149,6 +150,78 @@ teamRoutes.get('/:id/espn-team-stats', async (req, res) => {
   } catch (_) {}
 
   res.json({ success: true, data: { stats, topScorers } });
+});
+
+// Maintenance: sync WC2026 national team shields from football-data.org
+teamRoutes.get('/g-sync-shields', async (req, res) => {
+  try {
+    // 1. Fetch WC2026 teams from football-data.org
+    const fdRes = await axios.get('https://api.football-data.org/v4/competitions/WC/teams', {
+      headers: { 'X-Auth-Token': config.sportsApi.key },
+      timeout: 15000,
+    });
+
+    const fdTeams: Array<{ id: number; name: string; shortName: string; tla: string; crest: string }> =
+      fdRes.data?.teams ?? [];
+
+    if (fdTeams.length === 0) {
+      return res.json({ success: false, message: 'No teams from football-data.org' });
+    }
+
+    // 2. Load our WC2026 teams from DB
+    const tournament = await prisma.tournament.findFirst({
+      where: { type: 'WORLD_CUP', year: 2026 },
+      include: { groups: { include: { teams: { include: { team: true } } } } },
+    });
+
+    if (!tournament) return res.status(404).json({ success: false, message: 'Tournament not found' });
+
+    const ourTeams: Array<{ id: string; code: string; name: string; shortName: string }> = [];
+    for (const g of tournament.groups) {
+      for (const gt of g.teams) {
+        if (!ourTeams.find((t) => t.id === gt.team.id)) {
+          ourTeams.push({ id: gt.team.id, code: gt.team.code, name: gt.team.name, shortName: gt.team.shortName });
+        }
+      }
+    }
+
+    // 3. Match & update
+    const updates: Array<{ code: string; name: string; crest: string; matched: string }> = [];
+    const failed: string[] = [];
+
+    const normalize = (s: string) =>
+      s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, '').trim();
+
+    for (const ours of ourTeams) {
+      const ourNorm = normalize(ours.name);
+      const ourShortNorm = normalize(ours.shortName);
+      const ourCode = ours.code.toUpperCase();
+
+      let match = fdTeams.find((f) => f.tla.toUpperCase() === ourCode);
+      if (!match) match = fdTeams.find((f) => normalize(f.name) === ourNorm);
+      if (!match) match = fdTeams.find((f) => normalize(f.shortName) === ourShortNorm);
+      if (!match) match = fdTeams.find((f) =>
+        normalize(f.name).includes(ourNorm) || ourNorm.includes(normalize(f.name))
+      );
+
+      if (match && match.crest) {
+        await prisma.team.update({
+          where: { id: ours.id },
+          data: { shieldUrl: match.crest },
+        });
+        updates.push({ code: ours.code, name: ours.name, crest: match.crest, matched: match.name });
+      } else {
+        failed.push(`${ours.code} (${ours.name})`);
+      }
+    }
+
+    res.json({
+      success: true,
+      data: { updated: updates.length, failed: failed.length, updates, failed },
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 teamRoutes.get('/', TeamController.list);
