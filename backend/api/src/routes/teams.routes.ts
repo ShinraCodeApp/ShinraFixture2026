@@ -171,8 +171,8 @@ const OTHER_FIXES: Array<{
   { matchBy: 'code', value: 'WOB',  shieldUrl: 'https://media.api-sports.io/football/teams/162.png', note: 'Wolfsburg: was fd(11)=Stuttgart' },
   // RAY (Rayo Vallecano) incorrectly uses id=87 = Osasuna → correct fd id
   { matchBy: 'code', value: 'RAY',  shieldUrl: 'https://crests.football-data.org/726.png', note: 'Rayo Vallecano: was fd(87)=Osasuna' },
-  // PFC (Paris FC) incorrectly uses id=523 = Lyon → ui-avatars
-  { matchBy: 'code', value: 'PFC',  shieldUrl: 'https://ui-avatars.com/api/?name=PFC&background=003087&color=fff&size=128&bold=true&font-size=0.45', note: 'Paris FC: was fd(523)=Lyon' },
+  // PFC (Paris FC) incorrectly uses id=523 = Lyon → ESPN logo
+  { matchBy: 'code', value: 'PFC',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/6851.png', note: 'Paris FC: ESPN correct logo' },
   // LHC (Le Havre) incorrectly uses id=543 = FC Nantes
   { matchBy: 'code', value: 'LHC',  shieldUrl: 'https://media.api-sports.io/football/teams/111.png', note: 'Le Havre: was fd(543)=Nantes' },
 
@@ -253,6 +253,36 @@ const OTHER_FIXES: Array<{
   { matchBy: 'code', value: 'MYA', shieldUrl: 'https://flagcdn.com/w160/mm.png', note: 'Myanmar flag HD' },
   { matchBy: 'code', value: 'PLE', shieldUrl: 'https://flagcdn.com/w160/ps.png', note: 'Palestine flag HD' },
   { matchBy: 'code', value: 'BOL', shieldUrl: 'https://a.espncdn.com/i/teamlogos/countries/500/bol.png', note: 'Bolivia ESPN (re-apply after Bologna overwrite)' },
+
+  // ── SOUTH AMERICAN LEAGUE CLUBS: ESPN soccer logos (all verified) ────────
+  // Argentine Liga Profesional
+  { matchBy: 'code', value: 'INS',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2975.png',  note: 'Instituto Córdoba ESPN' },
+  { matchBy: 'code', value: 'CEC',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/11989.png', note: 'Central Córdoba SdE ESPN' },
+  { matchBy: 'code', value: 'GIMM',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/11972.png', note: 'Gimnasia Mendoza ESPN (was wrong duplicate of Belgrano)' },
+  { matchBy: 'code', value: 'IRV',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/9744.png',  note: 'Ind. Rivadavia ESPN' },
+  { matchBy: 'code', value: 'BRC',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/10060.png', note: 'Barracas Central ESPN' },
+  { matchBy: 'code', value: 'RIE',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/17702.png', note: 'Deportivo Riestra ESPN' },
+  { matchBy: 'code', value: 'ERC',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/19685.png', note: 'Estudiantes Río Cuarto ESPN' },
+  // Uruguayan league
+  { matchBy: 'code', value: 'CERL',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/9902.png',  note: 'Cerro Largo ESPN' },
+  { matchBy: 'code', value: 'LIVU',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/5492.png',  note: 'Liverpool FC Uruguay ESPN' },
+  // Bolivian league
+  { matchBy: 'code', value: 'BLO',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/6047.png',  note: 'Blooming ESPN' },
+  // Venezuelan league
+  { matchBy: 'code', value: 'MON2',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/6041.png',  note: 'Monagas SC ESPN' },
+  // Chilean league
+  { matchBy: 'code', value: 'PAL2',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/4422.png',  note: 'Palestino ESPN' },
+  { matchBy: 'code', value: 'COQU',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/8186.png',  note: 'Coquimbo Unido ESPN' },
+  { matchBy: 'code', value: 'IQI',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/10142.png', note: 'Deportes Iquique ESPN' },
+  { matchBy: 'code', value: 'DIQU',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/10142.png', note: 'Dep. Iquique ESPN (same club as IQI)' },
+  // Ecuadorian league
+  { matchBy: 'code', value: 'MUSH',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/17176.png', note: 'Mushuc Runa ESPN (was wrong duplicate of Aucas)' },
+  { matchBy: 'code', value: 'DCUE',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/4812.png',  note: 'Deportivo Cuenca ESPN' },
+  // Peruvian league
+  { matchBy: 'code', value: 'CUSC',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/11995.png', note: 'Cusco FC ESPN' },
+  { matchBy: 'code', value: 'SPHU',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/10318.png', note: 'Sport Huancayo ESPN' },
+  // Paraguayan — Guaireña not in ESPN top division, use ui-avatars to avoid showing Guaraní badge
+  { matchBy: 'code', value: 'GNA',   shieldUrl: 'https://ui-avatars.com/api/?name=GNA&background=003DA5&color=fff&size=128&bold=true&font-size=0.45', note: 'Guaireña: corrected placeholder (was wrong duplicate of Guaraní)' },
 ];
 
 // Our 3-letter code → ESPN abbreviation (only when they differ)
