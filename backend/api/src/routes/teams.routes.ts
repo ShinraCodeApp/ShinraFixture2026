@@ -310,6 +310,65 @@ const OTHER_FIXES: Array<{
   { matchBy: 'code', value: 'SPHU',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/10318.png', note: 'Sport Huancayo ESPN' },
   // Paraguayan — Guaireña not in ESPN top division, use ui-avatars to avoid showing Guaraní badge
   { matchBy: 'code', value: 'GNA',   shieldUrl: 'https://ui-avatars.com/api/?name=GNA&background=003DA5&color=fff&size=128&bold=true&font-size=0.45', note: 'Guaireña: corrected placeholder (was wrong duplicate of Guaraní)' },
+
+  // ── BRAZIL: switch to ESPN (consistent source) ───────────────────────────
+  { matchBy: 'code', value: 'FLA',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/819.png',  note: 'Flamengo ESPN' },
+  { matchBy: 'code', value: 'FLA2',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/819.png',  note: 'Flamengo 2 ESPN' },
+  { matchBy: 'code', value: 'FLU',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/3445.png', note: 'Fluminense ESPN' },
+  { matchBy: 'code', value: 'COR',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/874.png',  note: 'Corinthians ESPN' },
+  { matchBy: 'code', value: 'SAN',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2674.png', note: 'Santos ESPN' },
+  { matchBy: 'code', value: 'SAOP',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2026.png', note: 'São Paulo ESPN' },
+  { matchBy: 'code', value: 'CAM',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/7632.png', note: 'Atlético Mineiro ESPN' },
+  { matchBy: 'code', value: 'CAPR',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/3458.png', note: 'Athletico PR ESPN' },
+  { matchBy: 'code', value: 'GRM',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/6273.png', note: 'Grêmio ESPN' },
+  { matchBy: 'code', value: 'PAL',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2029.png', note: 'Palmeiras ESPN' },
+
+  // ── COLOMBIA: switch to ESPN ──────────────────────────────────────────────
+  { matchBy: 'code', value: 'ATLN',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/5264.png', note: 'Atlético Nacional ESPN' },
+  { matchBy: 'code', value: 'JUN',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/4815.png', note: 'Junior Barranquilla ESPN' },
+  { matchBy: 'code', value: 'JUNB',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/4815.png', note: 'Junior Barranquilla (Copa) ESPN' },
+  { matchBy: 'code', value: 'AMEC',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/8109.png', note: 'América de Cali ESPN' },
+  { matchBy: 'code', value: 'DIM',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2690.png', note: 'Dep. Medellín ESPN' },
+  { matchBy: 'code', value: 'SAF',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/5488.png', note: 'Santa Fe ESPN' },
+  { matchBy: 'code', value: 'TOLI',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/5489.png', note: 'Dep. Tolima ESPN' },
+  { matchBy: 'code', value: 'DPTO',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/5489.png', note: 'Dep. Tolima (Copa) ESPN' },
+
+  // ── URUGUAY: switch to ESPN ───────────────────────────────────────────────
+  { matchBy: 'code', value: 'NAC',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2684.png', note: 'Nacional Uruguay ESPN' },
+  { matchBy: 'code', value: 'NACU',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2684.png', note: 'Nacional Uruguay (Copa) ESPN' },
+  { matchBy: 'code', value: 'PEN',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2683.png', note: 'Peñarol ESPN' },
+
+  // ── PARAGUAY: switch to ESPN ──────────────────────────────────────────────
+  { matchBy: 'code', value: 'OLI',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2675.png', note: 'Olimpia ESPN' },
+  { matchBy: 'code', value: 'COLI',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2675.png', note: 'Olimpia (Copa) ESPN' },
+  { matchBy: 'code', value: 'CERP',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2671.png', note: 'Cerro Porteño ESPN' },
+  { matchBy: 'code', value: 'GUAR',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/7385.png', note: 'Guaraní ESPN' },
+
+  // ── CHILE: switch to ESPN ─────────────────────────────────────────────────
+  { matchBy: 'code', value: 'CLC',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2688.png', note: 'Colo-Colo ESPN' },
+  { matchBy: 'code', value: 'UCH',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/4139.png', note: 'Universidad de Chile ESPN' },
+
+  // ── ECUADOR: switch to ESPN ───────────────────────────────────────────────
+  { matchBy: 'code', value: 'BASC',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2686.png', note: 'Barcelona SC ESPN' },
+  { matchBy: 'code', value: 'LDU',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/4816.png', note: 'LDU Quito ESPN' },
+  { matchBy: 'code', value: 'EME',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2668.png', note: 'Emelec ESPN' },
+  { matchBy: 'code', value: 'INDV',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/17086.png',note: 'Independiente del Valle ESPN' },
+  { matchBy: 'code', value: 'AUC',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/6017.png', note: 'Aucas ESPN' },
+
+  // ── PERU: switch to ESPN ──────────────────────────────────────────────────
+  { matchBy: 'code', value: 'ALI',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2680.png', note: 'Alianza Lima ESPN' },
+  { matchBy: 'code', value: 'SPC',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2673.png', note: 'Sporting Cristal ESPN' },
+  { matchBy: 'code', value: 'SPC2',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2673.png', note: 'Sporting Cristal (Copa) ESPN' },
+  { matchBy: 'code', value: 'SPCX',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2673.png', note: 'Sporting Cristal 2 ESPN' },
+  { matchBy: 'code', value: 'UNI2',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2685.png', note: 'Universitario ESPN' },
+  { matchBy: 'code', value: 'UNIP',  shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2685.png', note: 'Universitario (Copa) ESPN' },
+
+  // ── BOLIVIA ───────────────────────────────────────────────────────────────
+  { matchBy: 'code', value: 'STR',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/2687.png', note: 'The Strongest ESPN' },
+
+  // ── EUROPE: Wolfsburg and Le Havre ───────────────────────────────────────
+  { matchBy: 'code', value: 'WOB',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/138.png',  note: 'VfL Wolfsburg ESPN' },
+  { matchBy: 'code', value: 'LHC',   shieldUrl: 'https://a.espncdn.com/i/teamlogos/soccer/500/3236.png', note: 'Le Havre ESPN' },
 ];
 
 // Our 3-letter code → ESPN abbreviation (only when they differ)
