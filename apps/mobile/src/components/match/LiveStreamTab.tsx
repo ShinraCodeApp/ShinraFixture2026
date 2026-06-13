@@ -13,6 +13,7 @@ const SOURCES = [
   { label: 'ESPN+', url: 'https://www.espn.com.ar/deportes/' },
   { label: 'Canal 13', url: 'https://www.eltrecetv.com.ar/en-vivo', browserOnly: true },
   { label: 'TV Pública', url: 'https://www.tvpublica.com.ar/tvpublica/player' },
+  { label: 'Pluto TV', url: 'https://pluto.tv/latam/live-tv/66997d18a1b69e00082ee85f?lang=es' },
 ];
 
 // Chrome Android user-agent to bypass mobile-blocking sites
