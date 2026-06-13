@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
@@ -48,10 +49,21 @@ export function FixtureScreen() {
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {/* Header */}
         <View style={[styles.header, { backgroundColor: appColors.surface + 'EE', borderBottomColor: appColors.border }]}>
-          <Text style={[styles.title, { color: appColors.text }]}>Fixture</Text>
-          <Text style={[styles.subtitle, { color: appColors.textSecondary }]} numberOfLines={1}>
-            {activeTournament?.name ?? 'Copa Mundial 2026'}
-          </Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.title, { color: appColors.text }]}>Fixture</Text>
+            <Text style={[styles.subtitle, { color: appColors.textSecondary }]} numberOfLines={1}>
+              {activeTournament?.name ?? 'Copa Mundial 2026'}
+            </Text>
+          </View>
+          {activeTournament?.type === 'WORLD_CUP' && (
+            <TouchableOpacity
+              style={[styles.bracketBtn, { backgroundColor: colors.primary + '22', borderColor: colors.primary }]}
+              onPress={() => navigation.navigate('Bracket')}
+            >
+              <MaterialCommunityIcons name="tournament" size={14} color={colors.primary} />
+              <Text style={[styles.bracketTxt, { color: colors.primary }]}>Llaves</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Selector de torneos */}
@@ -100,11 +112,18 @@ export function FixtureScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
+    flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: spacing.screen, paddingTop: spacing.sm, paddingBottom: spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   title: { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold },
   subtitle: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.regular },
+  bracketBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 16, borderWidth: 1,
+  },
+  bracketTxt: { fontSize: 12, fontFamily: typography.fontFamily.semiBold },
   tournamentBar: { borderBottomWidth: StyleSheet.hairlineWidth, paddingVertical: spacing.xs },
   tournamentList: { paddingHorizontal: spacing.screen, gap: spacing.xs },
   tournamentPill: {

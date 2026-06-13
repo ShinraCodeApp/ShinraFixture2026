@@ -33,6 +33,7 @@ import { LiveRadarScreen } from '../screens/Match/LiveRadarScreen';
 import { LocalLeaguesScreen } from '../screens/LocalLeague/LocalLeaguesScreen';
 import { LocalLeagueDetailScreen } from '../screens/LocalLeague/LocalLeagueDetailScreen';
 import { EditLocalTeamScreen } from '../screens/LocalLeague/EditLocalTeamScreen';
+import { BracketScreen } from '../screens/Bracket/BracketScreen';
 
 export type MainTabParamList = {
   HomeTab: undefined;
@@ -67,6 +68,7 @@ function FixtureStack() {
       <Stack.Screen name="LiveRadar" component={LiveRadarScreen} />
       <Stack.Screen name="Teams" component={TeamsScreen} />
       <Stack.Screen name="TeamDetail" component={TeamDetailScreen} />
+      <Stack.Screen name="Bracket" component={BracketScreen} />
     </Stack.Navigator>
   );
 }
