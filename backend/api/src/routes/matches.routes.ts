@@ -704,30 +704,30 @@ matchRoutes.get('/:id/espn-lineup', async (req, res) => {
     const rosters: any[] = summary.data?.rosters ?? [];
     if (!rosters.length) return res.json({ success: true, data: null });
 
+    // ESPN uses roster.roster (array), with e.starter boolean and e.jersey for number
     const mapPlayer = (e: any) => ({
       id: e.athlete?.id,
       name: e.athlete?.displayName ?? '',
-      number: e.athlete?.jersey ?? null,
-      position: e.position?.displayName ?? e.athlete?.position?.displayName ?? '',
-      positionAbbr: e.position?.abbreviation ?? e.athlete?.position?.abbreviation ?? '',
+      number: e.jersey ?? e.athlete?.jersey ?? null,
+      position: e.position?.displayName ?? '',
+      positionAbbr: e.position?.abbreviation ?? '',
       photo: e.athlete?.headshot?.href ?? null,
     });
 
-    const lineups = rosters.map((roster: any) => ({
-      team: {
-        abbreviation: roster.team?.abbreviation ?? '',
-        displayName: roster.team?.displayName ?? '',
-        logo: roster.team?.logos?.[0]?.href ?? null,
-      },
-      isHome: (roster.homeAway ?? '').toLowerCase() === 'home',
-      formation: roster.formation ?? null,
-      starters: (roster.entries ?? []).filter((e: any) =>
-        (e.playingStatus ?? '').toLowerCase().includes('start')
-      ).map(mapPlayer),
-      bench: (roster.entries ?? []).filter((e: any) =>
-        !(e.playingStatus ?? '').toLowerCase().includes('start')
-      ).map(mapPlayer),
-    }));
+    const lineups = rosters.map((roster: any) => {
+      const players: any[] = roster.roster ?? roster.entries ?? [];
+      return {
+        team: {
+          abbreviation: roster.team?.abbreviation ?? '',
+          displayName: roster.team?.displayName ?? '',
+          logo: roster.team?.logos?.[0]?.href ?? roster.team?.logo ?? null,
+        },
+        isHome: (roster.homeAway ?? '').toLowerCase() === 'home',
+        formation: roster.formation ?? null,
+        starters: players.filter((e: any) => e.starter === true).map(mapPlayer),
+        bench: players.filter((e: any) => e.starter !== true && e.active !== false).map(mapPlayer),
+      };
+    });
 
     res.json({ success: true, data: { lineups, eventId } });
   } catch (err: any) {
