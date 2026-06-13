@@ -256,24 +256,23 @@ export function MatchDetailScreen() {
           {activeTab === 'info' && (
             <View>
               <EventTimeline events={match.events ?? []} homeTeamId={match.homeTeamId} />
-              {(localAiAnalysis ?? match.aiAnalysis) ? (
+              {(localAiAnalysis ?? match.aiAnalysis) && (
                 <AIAnalysisCard analysis={localAiAnalysis ?? match.aiAnalysis!} matchId={matchId} />
-              ) : (
-                <TouchableOpacity
-                  style={[styles.aiButton, aiLoading && styles.aiButtonLoading]}
-                  onPress={handleGetAI}
-                  disabled={aiLoading}
-                >
-                  {aiLoading ? (
-                    <ActivityIndicator size={16} color="white" />
-                  ) : (
-                    <MaterialCommunityIcons name="robot" size={18} color="white" />
-                  )}
-                  <Text style={styles.aiButtonText}>
-                    {aiLoading ? 'Analizando...' : 'Análisis IA Gemini'}
-                  </Text>
-                </TouchableOpacity>
               )}
+              <TouchableOpacity
+                style={[styles.aiButton, aiLoading && styles.aiButtonLoading]}
+                onPress={handleGetAI}
+                disabled={aiLoading}
+              >
+                {aiLoading ? (
+                  <ActivityIndicator size={16} color="white" />
+                ) : (
+                  <MaterialCommunityIcons name="robot" size={18} color="white" />
+                )}
+                <Text style={styles.aiButtonText}>
+                  {aiLoading ? 'Analizando...' : (localAiAnalysis || match.aiAnalysis) ? 'Nuevo análisis IA' : 'Análisis IA Gemini'}
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
           {activeTab === 'stats' && match.stats && (

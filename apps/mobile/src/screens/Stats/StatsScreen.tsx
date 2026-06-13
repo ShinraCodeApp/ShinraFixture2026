@@ -1,25 +1,24 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, ActivityIndicator, FlatList,
+  Image, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '../../services/api';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { colors, spacing, typography, borderRadius } from '../../theme';
-import { TeamLogo } from '../../components/common/TeamLogo';
 
-type Tab = 'wc-standings' | 'wc-scorers' | 'liga';
+type Tab = 'wc-global' | 'wc-groups' | 'wc-scorers' | 'liga';
 
 export function StatsScreen() {
   const { appColors } = useAppTheme();
-  const [tab, setTab] = useState<Tab>('wc-standings');
+  const [tab, setTab] = useState<Tab>('wc-global');
 
   const { data: wcStandings, isLoading: loadStandings } = useQuery({
     queryKey: ['wc-standings'],
     queryFn: async () => (await apiService.get('/stats/wc-standings')).data.data,
-    enabled: tab === 'wc-standings',
+    enabled: tab === 'wc-global' || tab === 'wc-groups',
     staleTime: 5 * 60_000,
   });
 
@@ -38,12 +37,16 @@ export function StatsScreen() {
   });
 
   const tabs: Array<{ key: Tab; label: string }> = [
-    { key: 'wc-standings', label: 'Grupos WC' },
-    { key: 'wc-scorers', label: 'Goleadores' },
+    { key: 'wc-global', label: '#WC' },
+    { key: 'wc-groups', label: 'Grupos' },
+    { key: 'wc-scorers', label: 'Goles' },
     { key: 'liga', label: 'Liga Arg.' },
   ];
 
-  const isLoading = tab === 'wc-standings' ? loadStandings : tab === 'wc-scorers' ? loadScorers : loadLiga;
+  const isLoading =
+    tab === 'wc-global' ? loadStandings :
+    tab === 'wc-groups' ? loadStandings :
+    tab === 'wc-scorers' ? loadScorers : loadLiga;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>
@@ -65,8 +68,15 @@ export function StatsScreen() {
         </View>
       )}
 
-      {/* WC Group Standings */}
-      {tab === 'wc-standings' && !isLoading && wcStandings && (
+      {/* WC Global ranking — ALL 48 teams sorted by pts/DIF/GF */}
+      {tab === 'wc-global' && !isLoading && wcStandings && (
+        <ScrollView contentContainerStyle={styles.list}>
+          <WCGlobalView data={wcStandings} appColors={appColors} />
+        </ScrollView>
+      )}
+
+      {/* WC Group standings */}
+      {tab === 'wc-groups' && !isLoading && wcStandings && (
         <ScrollView contentContainerStyle={styles.list}>
           <WCStandingsView data={wcStandings} appColors={appColors} />
         </ScrollView>
@@ -89,13 +99,74 @@ export function StatsScreen() {
   );
 }
 
-// ── WC Standings component ──────────────────────────────────────────────────
+// ── WC Global ranking (#1–48) ───────────────────────────────────────────────
+function WCGlobalView({ data, appColors }: { data: any; appColors: any }) {
+  if (!Array.isArray(data) || !data.length) return <EmptyState label="Sin datos del mundial" appColors={appColors} />;
+
+  // Flatten all groups into one array
+  const allTeams: any[] = [];
+  for (const g of data) {
+    for (const entry of g.entries ?? []) {
+      allTeams.push({ ...entry, groupName: g.group });
+    }
+  }
+
+  // Sort globally: pts DESC → DIF DESC → GF DESC
+  allTeams.sort((a, b) => {
+    if (b.pts !== a.pts) return b.pts - a.pts;
+    if (b.dif !== a.dif) return b.dif - a.dif;
+    return b.gf - a.gf;
+  });
+
+  const cols = ['PJ','PG','PE','PP','GF','GC','DIF','Pts'];
+
+  return (
+    <>
+      <Text style={[styles.groupHeader, { color: appColors.text, backgroundColor: `${colors.primary}20` }]}>
+        Clasificación Mundial 2026
+      </Text>
+      <View style={[styles.tableHeader, { backgroundColor: appColors.surface }]}>
+        <Text style={[{ width: 24, color: appColors.textSecondary, fontSize: 9, textAlign: 'center' }]}>#</Text>
+        <Text style={[styles.thTeam, { color: appColors.textSecondary }]}>Equipo</Text>
+        <Text style={[{ width: 20, color: appColors.textSecondary, fontSize: 9, textAlign: 'center' }]}>G</Text>
+        {cols.map(h => (
+          <Text key={h} style={[styles.thNum, { color: appColors.textSecondary }]}>{h}</Text>
+        ))}
+      </View>
+      {allTeams.map((entry: any, idx: number) => {
+        const team = entry.team ?? {};
+        const logo = team.logo;
+        return (
+          <View key={idx} style={[styles.tableRow, { backgroundColor: idx % 2 === 0 ? appColors.surface : appColors.background }]}>
+            <Text style={[styles.rankNum, { color: idx < 3 ? colors.primary : appColors.textSecondary }]}>
+              {idx + 1}
+            </Text>
+            <View style={styles.teamCell}>
+              {logo ? <Image source={{ uri: logo }} style={styles.teamLogo} /> : null}
+              <Text style={[styles.teamName, { color: appColors.text }]} numberOfLines={1}>
+                {team.shortName ?? team.name}
+              </Text>
+            </View>
+            <Text style={[styles.tdNum, { color: appColors.textSecondary, width: 20, fontSize: 9 }]}>
+              {entry.groupName}
+            </Text>
+            {[entry.pj, entry.pg, entry.pe, entry.pp, entry.gf, entry.gc, entry.dif, entry.pts].map((v: any, vi: number) => (
+              <Text key={vi} style={[styles.tdNum, vi === 7 && styles.tdPts, { color: vi === 7 ? colors.primary : vi === 6 ? (v > 0 ? '#10B981' : v < 0 ? '#EF4444' : appColors.text) : appColors.text }]}>
+                {v ?? 0}
+              </Text>
+            ))}
+          </View>
+        );
+      })}
+    </>
+  );
+}
+
+// ── WC Standings by group ───────────────────────────────────────────────────
 function WCStandingsView({ data, appColors }: { data: any; appColors: any }) {
-  // Support both DB format (array of {group, entries}) and ESPN format
   let groups: any[] = [];
 
   if (Array.isArray(data)) {
-    // DB format: [{group:'A', entries:[{team, pj, pg, pe, pp, gf, gc, pts, dif},...]}]
     groups = data;
     return (
       <>
@@ -104,7 +175,7 @@ function WCStandingsView({ data, appColors }: { data: any; appColors: any }) {
             <Text style={[styles.groupHeader, { color: appColors.text, backgroundColor: `${colors.primary}20` }]}>GRUPO {g.group}</Text>
             <View style={[styles.tableHeader, { backgroundColor: appColors.surface }]}>
               <Text style={[styles.thTeam, { color: appColors.textSecondary }]}>Equipo</Text>
-              {['PJ','PG','PE','PP','GF','GC','Pts'].map(h => (
+              {['PJ','PG','PE','PP','GF','GC','DIF','Pts'].map(h => (
                 <Text key={h} style={[styles.thNum, { color: appColors.textSecondary }]}>{h}</Text>
               ))}
             </View>
@@ -117,8 +188,8 @@ function WCStandingsView({ data, appColors }: { data: any; appColors: any }) {
                     {logo ? <Image source={{ uri: logo }} style={styles.teamLogo} /> : null}
                     <Text style={[styles.teamName, { color: appColors.text }]} numberOfLines={1}>{team.shortName ?? team.name}</Text>
                   </View>
-                  {[entry.pj, entry.pg, entry.pe, entry.pp, entry.gf, entry.gc, entry.pts].map((v: any, vi: number) => (
-                    <Text key={vi} style={[styles.tdNum, vi === 6 && styles.tdPts, { color: vi === 6 ? colors.primary : appColors.text }]}>{v ?? 0}</Text>
+                  {[entry.pj, entry.pg, entry.pe, entry.pp, entry.gf, entry.gc, entry.dif, entry.pts].map((v: any, vi: number) => (
+                    <Text key={vi} style={[styles.tdNum, vi === 7 && styles.tdPts, { color: vi === 7 ? colors.primary : appColors.text }]}>{v ?? 0}</Text>
                   ))}
                 </View>
               );
@@ -129,7 +200,6 @@ function WCStandingsView({ data, appColors }: { data: any; appColors: any }) {
     );
   }
 
-  // ESPN format
   groups = data?.standings ?? data?.children ?? [];
   if (!groups.length) return <EmptyState label="Sin datos de grupos" appColors={appColors} />;
   return (
@@ -142,14 +212,14 @@ function WCStandingsView({ data, appColors }: { data: any; appColors: any }) {
             <Text style={[styles.groupHeader, { color: appColors.text, backgroundColor: `${colors.primary}20` }]}>{groupName}</Text>
             <View style={[styles.tableHeader, { backgroundColor: appColors.surface }]}>
               <Text style={[styles.thTeam, { color: appColors.textSecondary }]}>Equipo</Text>
-              {['PJ','PG','PE','PP','GF','GC','Pts'].map(h => (
+              {['PJ','PG','PE','PP','GF','GC','DIF','Pts'].map(h => (
                 <Text key={h} style={[styles.thNum, { color: appColors.textSecondary }]}>{h}</Text>
               ))}
             </View>
             {entries.map((entry: any, ei: number) => {
               const team = entry.team ?? {};
               const stats = entry.stats ?? [];
-              const getStat = (n: string) => stats.find((s: any) => s.name === n || s.abbreviation === n)?.value ?? '-';
+              const getStat = (n: string) => stats.find((s: any) => s.name === n || s.abbreviation === n)?.value ?? 0;
               const logo = team.logos?.[0]?.href ?? team.logo;
               return (
                 <View key={ei} style={[styles.tableRow, { backgroundColor: ei % 2 === 0 ? appColors.surface : appColors.background }]}>
@@ -158,8 +228,9 @@ function WCStandingsView({ data, appColors }: { data: any; appColors: any }) {
                     <Text style={[styles.teamName, { color: appColors.text }]} numberOfLines={1}>{team.shortDisplayName ?? team.displayName ?? team.name}</Text>
                   </View>
                   {[getStat('gamesPlayed'), getStat('wins'), getStat('ties'), getStat('losses'),
-                    getStat('pointsFor'), getStat('pointsAgainst'), getStat('points')].map((v: any, vi: number) => (
-                    <Text key={vi} style={[styles.tdNum, vi === 6 && styles.tdPts, { color: vi === 6 ? colors.primary : appColors.text }]}>{v}</Text>
+                    getStat('pointsFor'), getStat('pointsAgainst'),
+                    getStat('pointsFor') - getStat('pointsAgainst'), getStat('points')].map((v: any, vi: number) => (
+                    <Text key={vi} style={[styles.tdNum, vi === 7 && styles.tdPts, { color: vi === 7 ? colors.primary : appColors.text }]}>{v}</Text>
                   ))}
                 </View>
               );
@@ -171,7 +242,7 @@ function WCStandingsView({ data, appColors }: { data: any; appColors: any }) {
   );
 }
 
-// ── WC Scorers component ────────────────────────────────────────────────────
+// ── WC Scorers ─────────────────────────────────────────────────────────────
 function WCScorersView({ data, appColors }: { data: any; appColors: any }) {
   const categories: any[] = data?.categories ?? data?.leaders ?? [];
   const goalsCategory = categories.find((c: any) =>
@@ -188,8 +259,6 @@ function WCScorersView({ data, appColors }: { data: any; appColors: any }) {
         {goalsCategory?.displayName ?? 'Goleadores'}
       </Text>
       {leaders.map((item: any, i: number) => {
-        // DB format: {name, goals, team:{name,code,flagUrl}}
-        // ESPN format: {athlete:{displayName,headshot,team}, value}
         const isDbFormat = !!item.goals;
         const playerName = isDbFormat ? item.name : (item.athlete?.displayName ?? '—');
         const goals = isDbFormat ? item.goals : (item.value ?? item.statValue ?? '—');
@@ -222,36 +291,36 @@ function WCScorersView({ data, appColors }: { data: any; appColors: any }) {
   );
 }
 
-// ── Liga Argentina component ────────────────────────────────────────────────
+// ── Liga Argentina ─────────────────────────────────────────────────────────
 function LigaView({ data, appColors }: { data: any; appColors: any }) {
-  // Handle both TyC Sports scraped array and ESPN JSON format
   if (Array.isArray(data) && data[0]?.team !== undefined) {
-    // TyC Sports format
     return (
       <>
         <View style={[styles.tableHeader, { backgroundColor: appColors.surface }]}>
-          <Text style={[{ width: 28, color: appColors.textSecondary, fontSize: 10 }]}>#</Text>
+          <Text style={[{ width: 24, color: appColors.textSecondary, fontSize: 9, textAlign: 'center' }]}>#</Text>
           <Text style={[styles.thTeam, { color: appColors.textSecondary }]}>Equipo</Text>
-          {['PJ','Pts'].map(h => (
+          {['PJ','PG','PE','PP','GF','GC','DIF','Pts'].map(h => (
             <Text key={h} style={[styles.thNum, { color: appColors.textSecondary }]}>{h}</Text>
           ))}
         </View>
         {data.map((item: any, i: number) => (
           <View key={i} style={[styles.tableRow, { backgroundColor: i % 2 === 0 ? appColors.surface : appColors.background }]}>
-            <Text style={[styles.rank, { color: appColors.textSecondary }]}>{item.pos ?? i + 1}</Text>
+            <Text style={[styles.rankNum, { color: i < 4 ? colors.primary : appColors.textSecondary }]}>{item.pos ?? i + 1}</Text>
             <View style={styles.teamCell}>
               {item.shield ? <Image source={{ uri: item.shield }} style={styles.teamLogo} /> : null}
               <Text style={[styles.teamName, { color: appColors.text }]} numberOfLines={1}>{item.team}</Text>
             </View>
-            <Text style={[styles.tdNum, { color: appColors.text }]}>{item.pj}</Text>
-            <Text style={[styles.tdNum, styles.tdPts, { color: colors.primary }]}>{item.pts}</Text>
+            {[item.pj, item.pg, item.pe, item.pp, item.gf, item.gc, item.dif, item.pts].map((v: any, vi: number) => (
+              <Text key={vi} style={[styles.tdNum, vi === 7 && styles.tdPts, {
+                color: vi === 7 ? colors.primary : vi === 6 ? (Number(v) > 0 ? '#10B981' : Number(v) < 0 ? '#EF4444' : appColors.text) : appColors.text
+              }]}>{v ?? '-'}</Text>
+            ))}
           </View>
         ))}
       </>
     );
   }
 
-  // ESPN format
   const groups: any[] = data?.standings ?? data?.children ?? [];
   if (!groups.length) return <EmptyState label="Sin datos de Liga Argentina" appColors={appColors} />;
   return <WCStandingsView data={data} appColors={appColors} />;
@@ -283,12 +352,13 @@ const styles = StyleSheet.create({
   },
   tableHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: borderRadius.sm, marginBottom: 2 },
   tableRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm, paddingVertical: 5, borderRadius: borderRadius.sm },
+  rankNum: { width: 24, textAlign: 'center', fontSize: 10, fontFamily: typography.fontFamily.bold },
   thTeam: { flex: 1, fontSize: 9, fontFamily: typography.fontFamily.medium },
   thNum: { width: 26, textAlign: 'center', fontSize: 9, fontFamily: typography.fontFamily.medium },
-  teamCell: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  teamLogo: { width: 20, height: 20, borderRadius: 10, resizeMode: 'contain' },
-  teamName: { flex: 1, fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.medium },
-  tdNum: { width: 26, textAlign: 'center', fontSize: typography.fontSize.xs },
+  teamCell: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  teamLogo: { width: 18, height: 18, borderRadius: 9, resizeMode: 'contain' },
+  teamName: { flex: 1, fontSize: 10, fontFamily: typography.fontFamily.medium },
+  tdNum: { width: 26, textAlign: 'center', fontSize: 10 },
   tdPts: { fontFamily: typography.fontFamily.bold },
 
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, borderRadius: borderRadius.md },
