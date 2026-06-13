@@ -551,6 +551,109 @@ matchRoutes.get('/g-fix-match-dates', async (_req, res) => {
 
   res.json({ success: true, results });
 });
+matchRoutes.get('/g-fix-group-schedule', async (_req, res) => {
+  const allTeams = await prisma.team.findMany({ select: { id: true, code: true } });
+  const tid: Record<string, string> = {};
+  for (const t of allTeams) tid[t.code] = t.id;
+
+  const log: { match: string; updated: number }[] = [];
+
+  async function fix(
+    targetHome: string, targetAway: string, utcDate: string,
+    currentHome?: string, currentAway?: string, matchday?: number
+  ) {
+    const h = tid[currentHome ?? targetHome];
+    const a = tid[currentAway ?? targetAway];
+    const nh = tid[targetHome];
+    const na = tid[targetAway];
+    if (!h || !a || !nh || !na) {
+      log.push({ match: `MISSING_TEAM:${currentHome ?? targetHome}_vs_${currentAway ?? targetAway}`, updated: -1 });
+      return;
+    }
+    const where: any = { homeTeamId: h, awayTeamId: a, stage: 'GROUP' };
+    if (matchday !== undefined) where.round = matchday;
+    const n = await prisma.match.updateMany({
+      where,
+      data: { matchDate: new Date(utcDate), homeTeamId: nh, awayTeamId: na },
+    });
+    log.push({ match: `${targetHome} vs ${targetAway}`, updated: n.count });
+  }
+
+  // ── MD1 fixes ──────────────────────────────────────────────────────────────
+  await fix('ESP','CPV', '2026-06-15T16:00:00Z');
+  await fix('BEL','EGY', '2026-06-15T19:00:00Z');
+  await fix('KSA','URU', '2026-06-15T22:00:00Z');
+  await fix('IRN','NZL', '2026-06-16T01:00:00Z');
+  await fix('ARG','ALG', '2026-06-17T01:00:00Z');
+  await fix('AUT','JOR', '2026-06-17T04:00:00Z');
+  await fix('POR','COD', '2026-06-17T17:00:00Z');
+  await fix('ENG','CRO', '2026-06-17T20:00:00Z');
+  await fix('GHA','PAN', '2026-06-17T23:00:00Z');
+  await fix('UZB','COL', '2026-06-18T02:00:00Z');
+
+  // ── MD2 fixes ──────────────────────────────────────────────────────────────
+  await fix('USA','AUS', '2026-06-19T19:00:00Z');
+  await fix('TUR','PAR', '2026-06-20T03:00:00Z');
+  await fix('NED','SWE', '2026-06-20T17:00:00Z');
+  // Group E wrong teams: seed had GER vs ECU / CIV vs CUW
+  await fix('GER','CIV', '2026-06-20T20:00:00Z', 'GER','ECU', 2);
+  await fix('CUW','ECU', '2026-06-21T00:00:00Z', 'CIV','CUW', 2);
+  await fix('JPN','TUN', '2026-06-21T04:00:00Z');
+  await fix('ESP','KSA', '2026-06-21T16:00:00Z');
+  await fix('BEL','IRN', '2026-06-21T19:00:00Z');
+  // Group H swap: seed had URU vs CPV
+  await fix('CPV','URU', '2026-06-21T22:00:00Z', 'URU','CPV');
+  await fix('EGY','NZL', '2026-06-22T01:00:00Z');
+  await fix('ARG','AUT', '2026-06-22T17:00:00Z');
+  await fix('FRA','IRQ', '2026-06-22T21:00:00Z');
+  // Group I swap: seed had SEN vs NOR
+  await fix('NOR','SEN', '2026-06-23T00:00:00Z', 'SEN','NOR');
+  // Group J swap: seed had ALG vs JOR
+  await fix('JOR','ALG', '2026-06-23T03:00:00Z', 'ALG','JOR');
+  await fix('POR','UZB', '2026-06-23T17:00:00Z');
+  await fix('ENG','GHA', '2026-06-23T20:00:00Z');
+  await fix('CRO','PAN', '2026-06-23T23:00:00Z');
+  await fix('COD','COL', '2026-06-24T02:00:00Z');
+
+  // ── MD3 fixes ──────────────────────────────────────────────────────────────
+  // Fix Group E MD3 BEFORE MD2 swap to avoid team-code collision
+  await fix('ECU','GER', '2026-06-25T20:00:00Z', 'CUW','ECU', 3);
+  await fix('CUW','CIV', '2026-06-25T20:00:00Z', 'CIV','GER', 3);
+  // Group C MD3 (was Jun 26 seed → shifted to Jul 1 by prev fix)
+  await fix('SCO','BRA', '2026-06-24T22:00:00Z');
+  await fix('MAR','HTI', '2026-06-24T22:00:00Z');
+  // Group A MD3 (correct in seed but shifted to Jun 30)
+  await fix('CZE','MEX', '2026-06-25T01:00:00Z');
+  await fix('RSA','KOR', '2026-06-25T01:00:00Z');
+  // Group F MD3 (seed Jun 26 → shifted to Jul 1)
+  await fix('TUN','NED', '2026-06-25T23:00:00Z');
+  await fix('JPN','SWE', '2026-06-25T23:00:00Z');
+  // Group D MD3 (seed Jun 25 → shifted to Jun 30)
+  await fix('TUR','USA', '2026-06-26T02:00:00Z');
+  await fix('PAR','AUS', '2026-06-26T02:00:00Z');
+  // Group I MD3 (seed Jun 25 → shifted to Jun 30)
+  await fix('NOR','FRA', '2026-06-26T19:00:00Z');
+  await fix('SEN','IRQ', '2026-06-26T19:00:00Z');
+  // Group H MD3 (seed Jun 26 → shifted to Jul 1)
+  await fix('URU','ESP', '2026-06-27T00:00:00Z');
+  await fix('CPV','KSA', '2026-06-27T00:00:00Z');
+  // Group G MD3 (seed Jun 26 → shifted to Jul 1)
+  await fix('NZL','BEL', '2026-06-27T03:00:00Z');
+  await fix('EGY','IRN', '2026-06-27T03:00:00Z');
+  // Group L MD3 (seed Jun 26 → shifted to Jul 1)
+  await fix('PAN','ENG', '2026-06-27T21:00:00Z');
+  await fix('CRO','GHA', '2026-06-27T21:00:00Z');
+  // Group K MD3 (seed Jun 26 → shifted to Jul 1)
+  await fix('COL','POR', '2026-06-27T23:30:00Z');
+  await fix('COD','UZB', '2026-06-27T23:30:00Z');
+  // Group J MD3 (seed Jun 25 → shifted to Jun 30)
+  await fix('JOR','ARG', '2026-06-28T02:00:00Z');
+  await fix('ALG','AUT', '2026-06-28T02:00:00Z');
+
+  const totalUpdated = log.reduce((s, e) => s + Math.max(e.updated, 0), 0);
+  res.json({ success: true, totalUpdated, log });
+});
+
 matchRoutes.get('/:id', optionalAuth, MatchController.getById);
 matchRoutes.get('/:id/events', MatchController.getEvents);
 matchRoutes.get('/:id/stats', MatchController.getStats);
