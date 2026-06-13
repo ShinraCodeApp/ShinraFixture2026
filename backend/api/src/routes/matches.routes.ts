@@ -492,13 +492,53 @@ matchRoutes.get('/group/:group', MatchController.getByGroup);
 matchRoutes.get('/g-fix-match-dates', async (_req, res) => {
   const results: Record<string, number> = {};
 
-  // Delete duplicate Haiti vs Escocia
+  // Delete duplicate Haiti vs Escocia entries (idempotent — deleteMany is safe to re-run)
   const deleted = await prisma.match.deleteMany({
-    where: { id: '8a60dea9-53cf-4d0d-ade7-65c6ced5ae23' },
+    where: { id: { in: ['8a60dea9-53cf-4d0d-ade7-65c6ced5ae23', 'ac3ffb17-fa3b-45a2-a6a2-74145fc17987'] } },
   });
   results.duplicate_deleted = deleted.count;
 
-  // Group stage MD3: Jun 25 → Jun 30 (+5d)
+  // CORRECTION: revert over-shifted knockout dates (double-application of previous fix)
+  // R32/R16/QF: currently +5 too far → subtract 5 days to bring back to target range
+  const corrR32 = await prisma.$executeRawUnsafe(
+    `UPDATE "Match" SET "matchDate" = "matchDate" - INTERVAL '5 days'
+     WHERE stage = 'ROUND_OF_32'
+       AND "matchDate" >= '2026-07-09T00:00:00Z' AND "matchDate" < '2026-07-17T00:00:00Z'`
+  );
+  results.correction_r32 = corrR32;
+  const corrR16 = await prisma.$executeRawUnsafe(
+    `UPDATE "Match" SET "matchDate" = "matchDate" - INTERVAL '5 days'
+     WHERE stage = 'ROUND_OF_16'
+       AND "matchDate" >= '2026-07-17T00:00:00Z' AND "matchDate" < '2026-07-21T00:00:00Z'`
+  );
+  results.correction_r16 = corrR16;
+  const corrQF = await prisma.$executeRawUnsafe(
+    `UPDATE "Match" SET "matchDate" = "matchDate" - INTERVAL '5 days'
+     WHERE stage = 'QUARTER_FINAL'
+       AND "matchDate" >= '2026-07-22T00:00:00Z' AND "matchDate" < '2026-07-24T00:00:00Z'`
+  );
+  results.correction_qf = corrQF;
+  // SF/3P/Final: currently +7 too far → subtract 7 days
+  const corrSF = await prisma.$executeRawUnsafe(
+    `UPDATE "Match" SET "matchDate" = "matchDate" - INTERVAL '7 days'
+     WHERE stage = 'SEMI_FINAL'
+       AND "matchDate" >= '2026-07-29T00:00:00Z' AND "matchDate" < '2026-07-31T00:00:00Z'`
+  );
+  results.correction_sf = corrSF;
+  const corrTP = await prisma.$executeRawUnsafe(
+    `UPDATE "Match" SET "matchDate" = "matchDate" - INTERVAL '7 days'
+     WHERE stage = 'THIRD_PLACE'
+       AND "matchDate" >= '2026-08-01T00:00:00Z' AND "matchDate" < '2026-08-03T00:00:00Z'`
+  );
+  results.correction_3p = corrTP;
+  const corrFin = await prisma.$executeRawUnsafe(
+    `UPDATE "Match" SET "matchDate" = "matchDate" - INTERVAL '7 days'
+     WHERE stage = 'FINAL'
+       AND "matchDate" >= '2026-08-02T00:00:00Z' AND "matchDate" < '2026-08-04T00:00:00Z'`
+  );
+  results.correction_final = corrFin;
+
+  // Group stage MD3: Jun 25 → Jun 30 (idempotent: only if still in Jun 25)
   const md3a = await prisma.$executeRawUnsafe(
     `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '5 days'
      WHERE stage = 'GROUP'
@@ -507,7 +547,7 @@ matchRoutes.get('/g-fix-match-dates', async (_req, res) => {
   );
   results.group_md3_jun25 = md3a;
 
-  // Group stage MD3: Jun 26 → Jul 1 (+5d)
+  // Group stage MD3: Jun 26 → Jul 1 (idempotent: only if still in Jun 26)
   const md3b = await prisma.$executeRawUnsafe(
     `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '5 days'
      WHERE stage = 'GROUP'
@@ -516,45 +556,45 @@ matchRoutes.get('/g-fix-match-dates', async (_req, res) => {
   );
   results.group_md3_jun26 = md3b;
 
-  // ROUND_OF_32: +5 days → Jul 4-11
+  // ROUND_OF_32: force to Jul 4-11 range (idempotent: only shift if before Jul 4)
   const r32 = await prisma.$executeRawUnsafe(
     `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '5 days'
-     WHERE stage = 'ROUND_OF_32'`
+     WHERE stage = 'ROUND_OF_32' AND "matchDate" < '2026-07-04T00:00:00Z'`
   );
   results.round_of_32 = r32;
 
-  // ROUND_OF_16: +5 days → Jul 12-15
+  // ROUND_OF_16: force to Jul 12-15 range (idempotent: only shift if before Jul 12)
   const r16 = await prisma.$executeRawUnsafe(
     `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '5 days'
-     WHERE stage = 'ROUND_OF_16'`
+     WHERE stage = 'ROUND_OF_16' AND "matchDate" < '2026-07-12T00:00:00Z'`
   );
   results.round_of_16 = r16;
 
-  // QUARTER_FINAL: +5 days → Jul 17-18
+  // QUARTER_FINAL: force to Jul 17-18 (idempotent: only shift if before Jul 17)
   const qf = await prisma.$executeRawUnsafe(
     `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '5 days'
-     WHERE stage = 'QUARTER_FINAL'`
+     WHERE stage = 'QUARTER_FINAL' AND "matchDate" < '2026-07-17T00:00:00Z'`
   );
   results.quarter_final = qf;
 
-  // SEMI_FINAL: +7 days → Jul 22-23
+  // SEMI_FINAL: force to Jul 22-23 (idempotent: only shift if before Jul 22)
   const sf = await prisma.$executeRawUnsafe(
     `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '7 days'
-     WHERE stage = 'SEMI_FINAL'`
+     WHERE stage = 'SEMI_FINAL' AND "matchDate" < '2026-07-22T00:00:00Z'`
   );
   results.semi_final = sf;
 
-  // THIRD_PLACE: +7 days → Jul 25
+  // THIRD_PLACE: force to Jul 25 (idempotent: only shift if before Jul 25)
   const tp = await prisma.$executeRawUnsafe(
     `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '7 days'
-     WHERE stage = 'THIRD_PLACE'`
+     WHERE stage = 'THIRD_PLACE' AND "matchDate" < '2026-07-25T00:00:00Z'`
   );
   results.third_place = tp;
 
-  // FINAL: +7 days → Jul 26
+  // FINAL: force to Jul 26 (idempotent: only shift if before Jul 26)
   const fin = await prisma.$executeRawUnsafe(
     `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '7 days'
-     WHERE stage = 'FINAL'`
+     WHERE stage = 'FINAL' AND "matchDate" < '2026-07-26T00:00:00Z'`
   );
   results.final = fin;
 
