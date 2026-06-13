@@ -492,7 +492,7 @@ matchRoutes.get('/group/:group', MatchController.getByGroup);
 matchRoutes.get('/g-fix-match-dates', async (_req, res) => {
   const results: Record<string, number> = {};
 
-  // Delete ALL duplicate Haiti vs Escocia entries — keep only the one with group='C'
+  // Delete ALL duplicate Haiti vs Escocia entries — keep only group='C' entry (d32eb9a8)
   const deleted = await prisma.$executeRawUnsafe(
     `DELETE FROM "Match"
      WHERE "homeTeamId" IN (SELECT id FROM "Team" WHERE code = 'HTI')
@@ -500,46 +500,6 @@ matchRoutes.get('/g-fix-match-dates', async (_req, res) => {
        AND id != 'd32eb9a8-e637-4546-af0a-71bf17fd7ed0'`
   );
   results.duplicate_deleted = deleted;
-
-  // CORRECTION: revert over-shifted knockout dates (double-application of previous fix)
-  // R32/R16/QF: currently +5 too far → subtract 5 days to bring back to target range
-  const corrR32 = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" - INTERVAL '5 days'
-     WHERE stage = 'ROUND_OF_32'
-       AND "matchDate" >= '2026-07-09T00:00:00Z' AND "matchDate" < '2026-07-17T00:00:00Z'`
-  );
-  results.correction_r32 = corrR32;
-  const corrR16 = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" - INTERVAL '5 days'
-     WHERE stage = 'ROUND_OF_16'
-       AND "matchDate" >= '2026-07-17T00:00:00Z' AND "matchDate" < '2026-07-21T00:00:00Z'`
-  );
-  results.correction_r16 = corrR16;
-  const corrQF = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" - INTERVAL '5 days'
-     WHERE stage = 'QUARTER_FINAL'
-       AND "matchDate" >= '2026-07-22T00:00:00Z' AND "matchDate" < '2026-07-24T00:00:00Z'`
-  );
-  results.correction_qf = corrQF;
-  // SF/3P/Final: currently +7 too far → subtract 7 days
-  const corrSF = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" - INTERVAL '7 days'
-     WHERE stage = 'SEMI_FINAL'
-       AND "matchDate" >= '2026-07-29T00:00:00Z' AND "matchDate" < '2026-07-31T00:00:00Z'`
-  );
-  results.correction_sf = corrSF;
-  const corrTP = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" - INTERVAL '7 days'
-     WHERE stage = 'THIRD_PLACE'
-       AND "matchDate" >= '2026-08-01T00:00:00Z' AND "matchDate" < '2026-08-03T00:00:00Z'`
-  );
-  results.correction_3p = corrTP;
-  const corrFin = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" - INTERVAL '7 days'
-     WHERE stage = 'FINAL'
-       AND "matchDate" >= '2026-08-02T00:00:00Z' AND "matchDate" < '2026-08-04T00:00:00Z'`
-  );
-  results.correction_final = corrFin;
 
   // Group stage MD3: Jun 25 → Jun 30 (idempotent: only if still in Jun 25)
   const md3a = await prisma.$executeRawUnsafe(
@@ -559,47 +519,34 @@ matchRoutes.get('/g-fix-match-dates', async (_req, res) => {
   );
   results.group_md3_jun26 = md3b;
 
-  // ROUND_OF_32: force to Jul 4-11 range (idempotent: only shift if before Jul 4)
-  const r32 = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '5 days'
-     WHERE stage = 'ROUND_OF_32' AND "matchDate" < '2026-07-04T00:00:00Z'`
-  );
-  results.round_of_32 = r32;
-
-  // ROUND_OF_16: force to Jul 12-15 range (idempotent: only shift if before Jul 12)
-  const r16 = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '5 days'
-     WHERE stage = 'ROUND_OF_16' AND "matchDate" < '2026-07-12T00:00:00Z'`
-  );
-  results.round_of_16 = r16;
-
-  // QUARTER_FINAL: force to Jul 17-18 (idempotent: only shift if before Jul 17)
-  const qf = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '5 days'
-     WHERE stage = 'QUARTER_FINAL' AND "matchDate" < '2026-07-17T00:00:00Z'`
-  );
-  results.quarter_final = qf;
-
-  // SEMI_FINAL: force to Jul 22-23 (idempotent: only shift if before Jul 22)
-  const sf = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '7 days'
-     WHERE stage = 'SEMI_FINAL' AND "matchDate" < '2026-07-22T00:00:00Z'`
-  );
-  results.semi_final = sf;
-
-  // THIRD_PLACE: force to Jul 25 (idempotent: only shift if before Jul 25)
-  const tp = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '7 days'
-     WHERE stage = 'THIRD_PLACE' AND "matchDate" < '2026-07-25T00:00:00Z'`
-  );
-  results.third_place = tp;
-
-  // FINAL: force to Jul 26 (idempotent: only shift if before Jul 26)
-  const fin = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '7 days'
-     WHERE stage = 'FINAL' AND "matchDate" < '2026-07-26T00:00:00Z'`
-  );
-  results.final = fin;
+  // KNOCKOUT: set absolute dates by round number — fully idempotent
+  const koMap: [number, string][] = [
+    [73,'2026-07-04T19:00:00Z'],[74,'2026-07-04T22:00:00Z'],
+    [75,'2026-07-05T19:00:00Z'],[76,'2026-07-05T22:00:00Z'],
+    [77,'2026-07-06T19:00:00Z'],[78,'2026-07-06T22:00:00Z'],
+    [79,'2026-07-07T19:00:00Z'],[80,'2026-07-07T22:00:00Z'],
+    [81,'2026-07-08T19:00:00Z'],[82,'2026-07-08T22:00:00Z'],
+    [83,'2026-07-09T19:00:00Z'],[84,'2026-07-09T22:00:00Z'],
+    [85,'2026-07-10T19:00:00Z'],[86,'2026-07-10T22:00:00Z'],
+    [87,'2026-07-11T19:00:00Z'],[88,'2026-07-11T22:00:00Z'],
+    [89,'2026-07-12T19:00:00Z'],[90,'2026-07-12T22:00:00Z'],
+    [91,'2026-07-13T19:00:00Z'],[92,'2026-07-13T22:00:00Z'],
+    [93,'2026-07-14T19:00:00Z'],[94,'2026-07-14T22:00:00Z'],
+    [95,'2026-07-15T19:00:00Z'],[96,'2026-07-15T22:00:00Z'],
+    [97,'2026-07-17T19:00:00Z'],[98,'2026-07-17T22:00:00Z'],
+    [99,'2026-07-18T19:00:00Z'],[100,'2026-07-18T22:00:00Z'],
+    [101,'2026-07-22T22:00:00Z'],[102,'2026-07-23T22:00:00Z'],
+    [103,'2026-07-25T19:00:00Z'],
+    [104,'2026-07-26T19:00:00Z'],
+  ];
+  let koUpdated = 0;
+  for (const [round, date] of koMap) {
+    const n = await prisma.$executeRawUnsafe(
+      `UPDATE "Match" SET "matchDate" = '${date}' WHERE round = ${round}`
+    );
+    koUpdated += n;
+  }
+  results.knockout_updated = koUpdated;
 
   res.json({ success: true, results });
 });
