@@ -34,6 +34,23 @@ const AWAY_FORMATION_442: [number, number][] = [
 
 const POS_ORDER: Record<string, number> = { GK: 0, DF: 1, MF: 2, FW: 3 };
 
+const TEAM_COLORS: Record<string, string> = {
+  ARG:'#75AADB', BRA:'#FCD116', GER:'#333333', FRA:'#002395', ESP:'#AA151B',
+  ENG:'#003090', MEX:'#006847', USA:'#BF0A30', CAN:'#FF0000', POR:'#006600',
+  NED:'#FF6600', BEL:'#EF2B2D', CRO:'#CC0000', SUI:'#FF0000', JPN:'#BC002D',
+  KOR:'#003478', AUS:'#00843D', MAR:'#C1272D', SEN:'#00853F', URU:'#5EB6E4',
+  ECU:'#FFD100', TUN:'#E70013', NZL:'#2B2B2B', KSA:'#006C35', IRN:'#239F40',
+  QAT:'#8D1B3D', RSA:'#007A4D', GHA:'#FCD116', TUR:'#E30A17', AUT:'#ED2939',
+  SWE:'#006AA7', ALG:'#006233', HTI:'#00209F', CPV:'#003893', EGY:'#CE1126',
+  COD:'#007FFF', CUW:'#4B9CD3', UZB:'#1EB53A', COL:'#FCD116', IRQ:'#CE1126',
+  NOR:'#EF2B2D', PAN:'#DA121A', BIH:'#002395', JOR:'#007A3D', PAR:'#D52B1E',
+  CZE:'#D7141A', ZAF:'#007A4D', BOL:'#009A44', PER:'#D91023',
+};
+
+function teamColor(code?: string, fallback = '#3B82F6') {
+  return code ? (TEAM_COLORS[code] ?? fallback) : fallback;
+}
+
 const { width: W } = Dimensions.get('window');
 const PITCH_W = W - spacing.base * 2;
 const PITCH_H = PITCH_W * 0.65;
@@ -56,13 +73,17 @@ const EVENT_ICONS: Record<string, { icon: string; color: string; label: string }
 };
 
 function FootballPitch({
-  events, homeTeamId, homePlayers, awayPlayers,
+  events, homeTeamId, homePlayers, awayPlayers, homeCode, awayCode,
 }: {
   events: any[];
   homeTeamId?: string;
   homePlayers: any[];
   awayPlayers: any[];
+  homeCode?: string;
+  awayCode?: string;
 }) {
+  const homeCol = teamColor(homeCode, '#1D4ED8');
+  const awayCol = teamColor(awayCode, '#DC2626');
   const pw = PITCH_W;
   const ph = PITCH_H;
   const goalH = ph * 0.22;
@@ -72,7 +93,8 @@ function FootballPitch({
 
   const getEventPos = (ev: any, idx: number): { x: number; y: number } => {
     const isHome = ev.teamId === homeTeamId;
-    const baseX = isHome ? pw * 0.14 : pw * 0.86;
+    // Home attacks RIGHT → goals shown at right side (opponent's goal); away goals at left
+    const baseX = isHome ? pw * 0.86 : pw * 0.14;
     const spread = (idx % 3) * 9;
     switch (ev.type) {
       case 'GOAL': case 'OWN_GOAL': case 'PENALTY_SCORED':
@@ -107,7 +129,7 @@ function FootballPitch({
       <Rect x={pw*0.91} y={(ph-goalH)/2} width={pw*0.06} height={goalH} fill="none" stroke="rgba(255,255,255,0.65)" strokeWidth={1.2} />
       <Rect x={pw*0.975} y={(ph-goalH*0.55)/2} width={pw*0.025} height={goalH*0.55} fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.9)" strokeWidth={2} />
 
-      {/* HOME players — blue dots */}
+      {/* HOME players — team color dots */}
       {homePlayers.map((p: any, i: number) => {
         if (i >= HOME_FORMATION_433.length) return null;
         const [fx, fy] = HOME_FORMATION_433[i];
@@ -116,7 +138,7 @@ function FootballPitch({
         const lastName = (p.name ?? '').split(' ').pop()?.substring(0, 7) ?? '';
         return (
           <G key={`h${i}`}>
-            <Circle cx={cx} cy={cy} r={9} fill="#1D4ED8" stroke="white" strokeWidth={1.5} opacity={0.95} />
+            <Circle cx={cx} cy={cy} r={9} fill={homeCol} stroke="white" strokeWidth={1.5} opacity={0.95} />
             <SvgText x={cx} y={cy + 4} textAnchor="middle" fontSize={8} fill="white" fontWeight="bold">
               {p.number ?? i + 1}
             </SvgText>
@@ -127,7 +149,7 @@ function FootballPitch({
         );
       })}
 
-      {/* AWAY players — red dots */}
+      {/* AWAY players — team color dots */}
       {awayPlayers.map((p: any, i: number) => {
         if (i >= AWAY_FORMATION_442.length) return null;
         const [fx, fy] = AWAY_FORMATION_442[i];
@@ -136,7 +158,7 @@ function FootballPitch({
         const lastName = (p.name ?? '').split(' ').pop()?.substring(0, 7) ?? '';
         return (
           <G key={`a${i}`}>
-            <Circle cx={cx} cy={cy} r={9} fill="#DC2626" stroke="white" strokeWidth={1.5} opacity={0.95} />
+            <Circle cx={cx} cy={cy} r={9} fill={awayCol} stroke="white" strokeWidth={1.5} opacity={0.95} />
             <SvgText x={cx} y={cy + 4} textAnchor="middle" fontSize={8} fill="white" fontWeight="bold">
               {p.number ?? i + 1}
             </SvgText>
@@ -169,7 +191,9 @@ function FootballPitch({
   );
 }
 
-function StatBar({ label, home, away }: { label: string; home: number; away: number }) {
+function StatBar({ label, home, away, homeColor = '#3B82F6', awayColor = '#EF4444' }: {
+  label: string; home: number; away: number; homeColor?: string; awayColor?: string;
+}) {
   const total = (home + away) || 1;
   const homeP = Math.round((home / total) * 100);
   return (
@@ -178,8 +202,8 @@ function StatBar({ label, home, away }: { label: string; home: number; away: num
       <View style={radarStyles.middle}>
         <Text style={radarStyles.barLabelText}>{label}</Text>
         <View style={radarStyles.track}>
-          <View style={[radarStyles.barFill, { width: `${homeP}%` as any }]} />
-          <View style={[radarStyles.barFillRight, { width: `${100-homeP}%` as any }]} />
+          <View style={[radarStyles.barFill, { width: `${homeP}%` as any, backgroundColor: homeColor }]} />
+          <View style={[radarStyles.barFillRight, { width: `${100-homeP}%` as any, backgroundColor: awayColor }]} />
         </View>
       </View>
       <Text style={radarStyles.statVal}>{away}</Text>
@@ -205,6 +229,7 @@ export function LiveRadarScreen() {
 
   const [liveEvents, setLiveEvents] = useState<any[]>([]);
   const [liveScore, setLiveScore] = useState<{ home: number; away: number; minute: number } | null>(null);
+  const [clockSec, setClockSec] = useState(0);
   const [liveStats, setLiveStats] = useState<any>(null);
   const [connected, setConnected] = useState(false);
   const socketRef = useRef<any>(null);
@@ -388,6 +413,16 @@ export function LiveRadarScreen() {
   const awayScore = liveScore?.away ?? match.awayScore ?? 0;
   const minute = liveScore?.minute ?? match.minute ?? 0;
 
+  // Live seconds counter — resets each time the server pushes a new minute
+  useEffect(() => {
+    if (!isLive) { setClockSec(0); return; }
+    setClockSec(0);
+    const id = setInterval(() => setClockSec(s => (s >= 59 ? 59 : s + 1)), 1000);
+    return () => clearInterval(id);
+  }, [minute, isLive]);
+
+  const clockLabel = minute > 0 ? `${minute}:${String(clockSec).padStart(2, '0')}` : '';
+
   const sortedEvents = [...allEvents].sort((a, b) => b.minute - a.minute);
   const home = match.homeTeam;
   const away = match.awayTeam;
@@ -407,7 +442,7 @@ export function LiveRadarScreen() {
             {isLive ? (
               <View style={styles.liveRow}>
                 <Animated.View style={[styles.liveDot, { opacity: pulseAnim }]} />
-                <Text style={styles.liveText}>EN VIVO {minute > 0 ? `• ${minute}'` : ''}</Text>
+                <Text style={styles.liveText}>EN VIVO {clockLabel ? `• ${clockLabel}'` : ''}</Text>
               </View>
             ) : (
               <Text style={styles.notLiveText}>
@@ -433,9 +468,9 @@ export function LiveRadarScreen() {
             </View>
             <View style={styles.scoreCenter}>
               <Text style={styles.score}>{homeScore} — {awayScore}</Text>
-              {isLive && minute > 0 && (
+              {isLive && clockLabel && (
                 <View style={styles.minuteTag}>
-                  <Text style={styles.minuteText}>{minute}'</Text>
+                  <Text style={styles.minuteText}>{clockLabel}'</Text>
                 </View>
               )}
             </View>
@@ -450,7 +485,7 @@ export function LiveRadarScreen() {
           {/* Goal counts visual */}
           <View style={styles.goalRow}>
             {sortedEvents.filter(e => e.type === 'GOAL' || e.type === 'OWN_GOAL' || e.type === 'PENALTY_SCORED').map((e, i) => (
-              <View key={i} style={[styles.goalBadge, { backgroundColor: e.teamId === home?.id ? '#1D4ED8' : '#7F1D1D' }]}>
+              <View key={i} style={[styles.goalBadge, { backgroundColor: e.teamId === home?.id ? teamColor(home?.code) : teamColor(away?.code, '#7F1D1D') }]}>
                 <Text style={styles.goalBadgeText}>⚽ {e.minute}'</Text>
                 {e.description ? <Text style={styles.goalBadgePlayer} numberOfLines={1}>{e.description}</Text> : null}
               </View>
@@ -466,6 +501,8 @@ export function LiveRadarScreen() {
                 homeTeamId={home?.id}
                 homePlayers={homePlayers}
                 awayPlayers={awayPlayers}
+                homeCode={home?.code}
+                awayCode={away?.code}
               />
               <Animated.View
                 style={[styles.ball, { left: ballX, top: ballY }]}
@@ -480,25 +517,25 @@ export function LiveRadarScreen() {
             <View style={styles.statsCard}>
               <Text style={styles.sectionTitle}>Estadísticas del partido</Text>
               {allStats.homePossession != null && (
-                <StatBar label="Posesión %" home={allStats.homePossession} away={allStats.awayPossession ?? 0} />
+                <StatBar label="Posesión %" home={allStats.homePossession} away={allStats.awayPossession ?? 0} homeColor={teamColor(home?.code)} awayColor={teamColor(away?.code, '#EF4444')} />
               )}
               {allStats.homeShots != null && (
-                <StatBar label="Tiros" home={allStats.homeShots} away={allStats.awayShots ?? 0} />
+                <StatBar label="Tiros" home={allStats.homeShots} away={allStats.awayShots ?? 0} homeColor={teamColor(home?.code)} awayColor={teamColor(away?.code, '#EF4444')} />
               )}
               {allStats.homeShotsOnTarget != null && (
-                <StatBar label="Al arco" home={allStats.homeShotsOnTarget} away={allStats.awayShotsOnTarget ?? 0} />
+                <StatBar label="Al arco" home={allStats.homeShotsOnTarget} away={allStats.awayShotsOnTarget ?? 0} homeColor={teamColor(home?.code)} awayColor={teamColor(away?.code, '#EF4444')} />
               )}
               {allStats.homeCorners != null && (
-                <StatBar label="Córners" home={allStats.homeCorners} away={allStats.awayCorners ?? 0} />
+                <StatBar label="Córners" home={allStats.homeCorners} away={allStats.awayCorners ?? 0} homeColor={teamColor(home?.code)} awayColor={teamColor(away?.code, '#EF4444')} />
               )}
               {allStats.homeFouls != null && (
-                <StatBar label="Faltas" home={allStats.homeFouls} away={allStats.awayFouls ?? 0} />
+                <StatBar label="Faltas" home={allStats.homeFouls} away={allStats.awayFouls ?? 0} homeColor={teamColor(home?.code)} awayColor={teamColor(away?.code, '#EF4444')} />
               )}
               {allStats.homeYellowCards != null && (
-                <StatBar label="Amarillas" home={allStats.homeYellowCards} away={allStats.awayYellowCards ?? 0} />
+                <StatBar label="Amarillas" home={allStats.homeYellowCards} away={allStats.awayYellowCards ?? 0} homeColor={teamColor(home?.code)} awayColor={teamColor(away?.code, '#EF4444')} />
               )}
               {allStats.homeXG != null && (
-                <StatBar label="xG" home={allStats.homeXG} away={allStats.awayXG ?? 0} />
+                <StatBar label="xG" home={allStats.homeXG} away={allStats.awayXG ?? 0} homeColor={teamColor(home?.code)} awayColor={teamColor(away?.code, '#EF4444')} />
               )}
             </View>
           )}
