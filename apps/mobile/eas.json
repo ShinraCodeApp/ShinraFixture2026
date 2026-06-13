@@ -14,12 +14,14 @@
         "EXPO_NO_METRO_WORKSPACE_ROOT": "1",
         "EXPO_PUBLIC_API_URL": "https://shinraapi-production.up.railway.app/api/v1",
         "EXPO_PUBLIC_WS_URL": "https://shinraapi-production.up.railway.app"
-      }
+      },
+      "channel": "preview"
     },
     "production": {
       "android": {
         "buildType": "app-bundle"
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {
