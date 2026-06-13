@@ -220,6 +220,53 @@ statsRoutes.get('/wc-team-stats', async (_req, res) => {
   }
 });
 
+// ESPN CDN shields for Argentine clubs — keyed by partial team name (lowercase)
+const ARG_ESPN_SHIELDS: Array<[string, string]> = [
+  ['river',          'https://a.espncdn.com/i/teamlogos/soccer/500/16.png'],
+  ['boca',           'https://a.espncdn.com/i/teamlogos/soccer/500/5.png'],
+  ['racing',         'https://a.espncdn.com/i/teamlogos/soccer/500/15.png'],
+  ['independiente r','https://a.espncdn.com/i/teamlogos/soccer/500/9744.png'],
+  ['independiente',  'https://a.espncdn.com/i/teamlogos/soccer/500/11.png'],
+  ['san lorenzo',    'https://a.espncdn.com/i/teamlogos/soccer/500/18.png'],
+  ['vélez',          'https://a.espncdn.com/i/teamlogos/soccer/500/21.png'],
+  ['velez',          'https://a.espncdn.com/i/teamlogos/soccer/500/21.png'],
+  ['estudiantes',    'https://a.espncdn.com/i/teamlogos/soccer/500/8.png'],
+  ['huracán',        'https://a.espncdn.com/i/teamlogos/soccer/500/10.png'],
+  ['huracan',        'https://a.espncdn.com/i/teamlogos/soccer/500/10.png'],
+  ['lanús',          'https://a.espncdn.com/i/teamlogos/soccer/500/12.png'],
+  ['lanus',          'https://a.espncdn.com/i/teamlogos/soccer/500/12.png'],
+  ['rosario central','https://a.espncdn.com/i/teamlogos/soccer/500/17.png'],
+  ['belgrano',       'https://a.espncdn.com/i/teamlogos/soccer/500/4.png'],
+  ['talleres',       'https://a.espncdn.com/i/teamlogos/soccer/500/19.png'],
+  ["newell",         'https://a.espncdn.com/i/teamlogos/soccer/500/14.png'],
+  ['argentinos',     'https://a.espncdn.com/i/teamlogos/soccer/500/3.png'],
+  ['gimnasia mendoza','https://a.espncdn.com/i/teamlogos/soccer/500/11972.png'],
+  ['gimnasia',       'https://a.espncdn.com/i/teamlogos/soccer/500/9.png'],
+  ['banfield',       'https://a.espncdn.com/i/teamlogos/soccer/500/235.png'],
+  ['platense',       'https://a.espncdn.com/i/teamlogos/soccer/500/7764.png'],
+  ['tigre',          'https://a.espncdn.com/i/teamlogos/soccer/500/7767.png'],
+  ['defensa',        'https://a.espncdn.com/i/teamlogos/soccer/500/8950.png'],
+  ['barracas',       'https://a.espncdn.com/i/teamlogos/soccer/500/10060.png'],
+  ['tucumán',        'https://a.espncdn.com/i/teamlogos/soccer/500/9785.png'],
+  ['tucuman',        'https://a.espncdn.com/i/teamlogos/soccer/500/9785.png'],
+  ['instituto',      'https://a.espncdn.com/i/teamlogos/soccer/500/2975.png'],
+  ['central córdoba','https://a.espncdn.com/i/teamlogos/soccer/500/11989.png'],
+  ['central cordoba','https://a.espncdn.com/i/teamlogos/soccer/500/11989.png'],
+  ['unión',          'https://a.espncdn.com/i/teamlogos/soccer/500/20.png'],
+  ['union',          'https://a.espncdn.com/i/teamlogos/soccer/500/20.png'],
+  ['sarmiento',      'https://a.espncdn.com/i/teamlogos/soccer/500/10158.png'],
+  ['riestra',        'https://a.espncdn.com/i/teamlogos/soccer/500/17702.png'],
+  ['aldosivi',       'https://a.espncdn.com/i/teamlogos/soccer/500/9739.png'],
+];
+
+function resolveArgShield(teamName: string): string | null {
+  const lower = teamName.toLowerCase();
+  for (const [key, url] of ARG_ESPN_SHIELDS) {
+    if (lower.includes(key)) return url;
+  }
+  return null;
+}
+
 // ─── Liga Argentina standings ── TyC Sports scraping + ESPN fallback ──────
 statsRoutes.get('/liga-argentina', async (_req, res) => {
   const cached = cacheGet('liga-argentina');
@@ -250,10 +297,12 @@ statsRoutes.get('/liga-argentina', async (_req, res) => {
       }
       if (teamIdx < 0 || cells.length < 5) return;
 
+      const teamName = cells[teamIdx];
+      const espnShield = resolveArgShield(teamName);
       teams.push({
         pos: i + 1,
-        team: cells[teamIdx],
-        shield: realShield,
+        team: teamName,
+        shield: espnShield ?? realShield,
         pts: cells[teamIdx + 1] ?? '-',
         pj:  cells[teamIdx + 2] ?? '-',
         pg:  cells[teamIdx + 3] ?? '-',
