@@ -489,6 +489,77 @@ matchRoutes.get('/today', MatchController.getToday);
 matchRoutes.get('/upcoming', MatchController.getUpcoming);
 matchRoutes.get('/stage/:stage', MatchController.getByStage);
 matchRoutes.get('/group/:group', MatchController.getByGroup);
+matchRoutes.get('/g-fix-match-dates', async (_req, res) => {
+  const results: Record<string, number> = {};
+
+  // Delete duplicate Haiti vs Escocia
+  const deleted = await prisma.match.deleteMany({
+    where: { id: '8a60dea9-53cf-4d0d-ade7-65c6ced5ae23' },
+  });
+  results.duplicate_deleted = deleted.count;
+
+  // Group stage MD3: Jun 25 → Jun 30 (+5d)
+  const md3a = await prisma.$executeRawUnsafe(
+    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '5 days'
+     WHERE stage = 'GROUP'
+       AND "matchDate" >= '2026-06-25T00:00:00Z'
+       AND "matchDate" < '2026-06-26T00:00:00Z'`
+  );
+  results.group_md3_jun25 = md3a;
+
+  // Group stage MD3: Jun 26 → Jul 1 (+5d)
+  const md3b = await prisma.$executeRawUnsafe(
+    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '5 days'
+     WHERE stage = 'GROUP'
+       AND "matchDate" >= '2026-06-26T00:00:00Z'
+       AND "matchDate" < '2026-06-27T00:00:00Z'`
+  );
+  results.group_md3_jun26 = md3b;
+
+  // ROUND_OF_32: +5 days → Jul 4-11
+  const r32 = await prisma.$executeRawUnsafe(
+    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '5 days'
+     WHERE stage = 'ROUND_OF_32'`
+  );
+  results.round_of_32 = r32;
+
+  // ROUND_OF_16: +5 days → Jul 12-15
+  const r16 = await prisma.$executeRawUnsafe(
+    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '5 days'
+     WHERE stage = 'ROUND_OF_16'`
+  );
+  results.round_of_16 = r16;
+
+  // QUARTER_FINAL: +5 days → Jul 17-18
+  const qf = await prisma.$executeRawUnsafe(
+    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '5 days'
+     WHERE stage = 'QUARTER_FINAL'`
+  );
+  results.quarter_final = qf;
+
+  // SEMI_FINAL: +7 days → Jul 22-23
+  const sf = await prisma.$executeRawUnsafe(
+    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '7 days'
+     WHERE stage = 'SEMI_FINAL'`
+  );
+  results.semi_final = sf;
+
+  // THIRD_PLACE: +7 days → Jul 25
+  const tp = await prisma.$executeRawUnsafe(
+    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '7 days'
+     WHERE stage = 'THIRD_PLACE'`
+  );
+  results.third_place = tp;
+
+  // FINAL: +7 days → Jul 26
+  const fin = await prisma.$executeRawUnsafe(
+    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '7 days'
+     WHERE stage = 'FINAL'`
+  );
+  results.final = fin;
+
+  res.json({ success: true, results });
+});
 matchRoutes.get('/:id', optionalAuth, MatchController.getById);
 matchRoutes.get('/:id/events', MatchController.getEvents);
 matchRoutes.get('/:id/stats', MatchController.getStats);
@@ -601,82 +672,3 @@ matchRoutes.put('/:id/live-stats', async (req, res) => {
   res.json({ success: true, data: updated });
 });
 
-// Fix WC 2026 match dates — real FIFA schedule:
-// Group MD3 (Jun 25-26) → Jun 30 - Jul 1
-// R32 (Jun 29 - Jul 6) → Jul 4-11 (+5d)
-// R16 (Jul 7-10) → Jul 12-15 (+5d)
-// QF (Jul 12-13) → Jul 17-18 (+5d)
-// SF (Jul 15-16) → Jul 22-23 (+7d)
-// 3P (Jul 18) → Jul 25 (+7d)
-// Final (Jul 19) → Jul 26 (+7d)
-matchRoutes.get('/g-fix-match-dates', async (_req, res) => {
-  const results: Record<string, number> = {};
-
-  // Delete duplicate Haiti vs Escocia
-  const deleted = await prisma.match.deleteMany({
-    where: { id: '8a60dea9-53cf-4d0d-ade7-65c6ced5ae23' },
-  });
-  results.duplicate_deleted = deleted.count;
-
-  // Group stage MD3: Jun 25 → Jun 30 (+5d)
-  const md3a = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '5 days'
-     WHERE stage = 'GROUP'
-       AND "matchDate" >= '2026-06-25T00:00:00Z'
-       AND "matchDate" < '2026-06-26T00:00:00Z'`
-  );
-  results.group_md3_jun25 = md3a;
-
-  // Group stage MD3: Jun 26 → Jul 1 (+5d)
-  const md3b = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '5 days'
-     WHERE stage = 'GROUP'
-       AND "matchDate" >= '2026-06-26T00:00:00Z'
-       AND "matchDate" < '2026-06-27T00:00:00Z'`
-  );
-  results.group_md3_jun26 = md3b;
-
-  // ROUND_OF_32: +5 days
-  const r32 = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '5 days'
-     WHERE stage = 'ROUND_OF_32'`
-  );
-  results.round_of_32 = r32;
-
-  // ROUND_OF_16: +5 days
-  const r16 = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '5 days'
-     WHERE stage = 'ROUND_OF_16'`
-  );
-  results.round_of_16 = r16;
-
-  // QUARTER_FINAL: +5 days → Jul 17-18
-  const qf = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '5 days'
-     WHERE stage = 'QUARTER_FINAL'`
-  );
-  results.quarter_final = qf;
-
-  // SEMI_FINAL: +7 days → Jul 22-23
-  const sf = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '7 days'
-     WHERE stage = 'SEMI_FINAL'`
-  );
-  results.semi_final = sf;
-
-  // THIRD_PLACE: +7 days → Jul 25
-  const tp = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '7 days'
-     WHERE stage = 'THIRD_PLACE'`
-  );
-  results.third_place = tp;
-
-  // FINAL: +7 days → Jul 26
-  const fin = await prisma.$executeRawUnsafe(
-    `UPDATE "Match" SET "matchDate" = "matchDate" + INTERVAL '7 days'
-     WHERE stage = 'FINAL'`
-  );
-  results.final = fin;
-
-  res.json({ success: true, results });
-});
