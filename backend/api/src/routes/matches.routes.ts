@@ -492,11 +492,14 @@ matchRoutes.get('/group/:group', MatchController.getByGroup);
 matchRoutes.get('/g-fix-match-dates', async (_req, res) => {
   const results: Record<string, number> = {};
 
-  // Delete duplicate Haiti vs Escocia entries (idempotent — deleteMany is safe to re-run)
-  const deleted = await prisma.match.deleteMany({
-    where: { id: { in: ['8a60dea9-53cf-4d0d-ade7-65c6ced5ae23', 'ac3ffb17-fa3b-45a2-a6a2-74145fc17987'] } },
-  });
-  results.duplicate_deleted = deleted.count;
+  // Delete ALL duplicate Haiti vs Escocia entries — keep only the one with group='C'
+  const deleted = await prisma.$executeRawUnsafe(
+    `DELETE FROM "Match"
+     WHERE "homeTeamId" IN (SELECT id FROM "Team" WHERE code = 'HTI')
+       AND "awayTeamId"  IN (SELECT id FROM "Team" WHERE code = 'SCO')
+       AND id != 'd32eb9a8-e637-4546-af0a-71bf17fd7ed0'`
+  );
+  results.duplicate_deleted = deleted;
 
   // CORRECTION: revert over-shifted knockout dates (double-application of previous fix)
   // R32/R16/QF: currently +5 too far → subtract 5 days to bring back to target range
