@@ -654,6 +654,23 @@ matchRoutes.get('/g-fix-group-schedule', async (_req, res) => {
   res.json({ success: true, totalUpdated, log });
 });
 
+// ─── Delete a specific match by ID (GET alias for LTE-restricted devices) ──
+matchRoutes.get('/g-delete/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const match = await prisma.match.findUnique({ where: { id } });
+    if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
+    // Delete related records first
+    await prisma.matchEvent.deleteMany({ where: { matchId: id } });
+    await prisma.matchStats.deleteMany({ where: { matchId: id } });
+    await prisma.prediction.deleteMany({ where: { matchId: id } });
+    await prisma.match.delete({ where: { id } });
+    res.json({ success: true, deleted: id });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ─── ESPN real match lineup (starting XI) ─────────────────────────────────
 matchRoutes.get('/:id/espn-lineup', async (req, res) => {
   try {
