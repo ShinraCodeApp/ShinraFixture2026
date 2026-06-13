@@ -91,10 +91,47 @@ export function StatsScreen() {
 
 // ── WC Standings component ──────────────────────────────────────────────────
 function WCStandingsView({ data, appColors }: { data: any; appColors: any }) {
-  // ESPN standings structure: data.standings is an array of group objects
-  const groups: any[] = data?.standings ?? data?.children ?? [];
-  if (!groups.length) return <EmptyState label="Sin datos de grupos" appColors={appColors} />;
+  // Support both DB format (array of {group, entries}) and ESPN format
+  let groups: any[] = [];
 
+  if (Array.isArray(data)) {
+    // DB format: [{group:'A', entries:[{team, pj, pg, pe, pp, gf, gc, pts, dif},...]}]
+    groups = data;
+    return (
+      <>
+        {groups.map((g: any, gi: number) => (
+          <View key={gi} style={{ marginBottom: spacing.base }}>
+            <Text style={[styles.groupHeader, { color: appColors.text, backgroundColor: `${colors.primary}20` }]}>GRUPO {g.group}</Text>
+            <View style={[styles.tableHeader, { backgroundColor: appColors.surface }]}>
+              <Text style={[styles.thTeam, { color: appColors.textSecondary }]}>Equipo</Text>
+              {['PJ','PG','PE','PP','GF','GC','Pts'].map(h => (
+                <Text key={h} style={[styles.thNum, { color: appColors.textSecondary }]}>{h}</Text>
+              ))}
+            </View>
+            {(g.entries ?? []).map((entry: any, ei: number) => {
+              const team = entry.team ?? {};
+              const logo = team.logo;
+              return (
+                <View key={ei} style={[styles.tableRow, { backgroundColor: ei % 2 === 0 ? appColors.surface : appColors.background }]}>
+                  <View style={styles.teamCell}>
+                    {logo ? <Image source={{ uri: logo }} style={styles.teamLogo} /> : null}
+                    <Text style={[styles.teamName, { color: appColors.text }]} numberOfLines={1}>{team.shortName ?? team.name}</Text>
+                  </View>
+                  {[entry.pj, entry.pg, entry.pe, entry.pp, entry.gf, entry.gc, entry.pts].map((v: any, vi: number) => (
+                    <Text key={vi} style={[styles.tdNum, vi === 6 && styles.tdPts, { color: vi === 6 ? colors.primary : appColors.text }]}>{v ?? 0}</Text>
+                  ))}
+                </View>
+              );
+            })}
+          </View>
+        ))}
+      </>
+    );
+  }
+
+  // ESPN format
+  groups = data?.standings ?? data?.children ?? [];
+  if (!groups.length) return <EmptyState label="Sin datos de grupos" appColors={appColors} />;
   return (
     <>
       {groups.map((group: any, gi: number) => {
@@ -121,7 +158,7 @@ function WCStandingsView({ data, appColors }: { data: any; appColors: any }) {
                     <Text style={[styles.teamName, { color: appColors.text }]} numberOfLines={1}>{team.shortDisplayName ?? team.displayName ?? team.name}</Text>
                   </View>
                   {[getStat('gamesPlayed'), getStat('wins'), getStat('ties'), getStat('losses'),
-                    getStat('pointsFor'), getStat('pointsAgainst'), getStat('points')].map((v, vi) => (
+                    getStat('pointsFor'), getStat('pointsAgainst'), getStat('points')].map((v: any, vi: number) => (
                     <Text key={vi} style={[styles.tdNum, vi === 6 && styles.tdPts, { color: vi === 6 ? colors.primary : appColors.text }]}>{v}</Text>
                   ))}
                 </View>
@@ -136,18 +173,14 @@ function WCStandingsView({ data, appColors }: { data: any; appColors: any }) {
 
 // ── WC Scorers component ────────────────────────────────────────────────────
 function WCScorersView({ data, appColors }: { data: any; appColors: any }) {
-  // ESPN leaders structure varies; try multiple paths
   const categories: any[] = data?.categories ?? data?.leaders ?? [];
   const goalsCategory = categories.find((c: any) =>
-    (c.name ?? '').toLowerCase().includes('goal') ||
-    (c.displayName ?? '').toLowerCase().includes('gol')
+    (c.displayName ?? c.name ?? '').toLowerCase().includes('gol') ||
+    (c.displayName ?? c.name ?? '').toLowerCase().includes('goal')
   ) ?? categories[0];
 
   const leaders: any[] = goalsCategory?.leaders ?? goalsCategory?.items ?? data?.items ?? [];
-  if (!leaders.length) {
-    // Fallback: raw data might be different shape
-    return <EmptyState label="Sin datos de goleadores disponibles" appColors={appColors} />;
-  }
+  if (!leaders.length) return <EmptyState label="Sin datos de goleadores disponibles" appColors={appColors} />;
 
   return (
     <>
@@ -155,24 +188,31 @@ function WCScorersView({ data, appColors }: { data: any; appColors: any }) {
         {goalsCategory?.displayName ?? 'Goleadores'}
       </Text>
       {leaders.map((item: any, i: number) => {
-        const athlete = item.athlete ?? item.player ?? {};
-        const teamLogo = athlete.team?.logos?.[0]?.href ?? athlete.team?.logo ?? athlete.flag;
-        const value = item.value ?? item.goals ?? item.statValue ?? '—';
+        // DB format: {name, goals, team:{name,code,flagUrl}}
+        // ESPN format: {athlete:{displayName,headshot,team}, value}
+        const isDbFormat = !!item.goals;
+        const playerName = isDbFormat ? item.name : (item.athlete?.displayName ?? '—');
+        const goals = isDbFormat ? item.goals : (item.value ?? item.statValue ?? '—');
+        const teamInfo = isDbFormat ? item.team : item.athlete?.team;
+        const teamLogo = teamInfo?.flagUrl ?? teamInfo?.logos?.[0]?.href ?? teamInfo?.logo;
+        const teamName = teamInfo?.name ?? teamInfo?.displayName ?? '';
+        const photo = item.athlete?.headshot?.href;
+
         return (
           <View key={i} style={[styles.row, { backgroundColor: appColors.surface }]}>
             <Text style={[styles.rank, { color: appColors.textSecondary }]}>#{i + 1}</Text>
-            {athlete.headshot?.href
-              ? <Image source={{ uri: athlete.headshot.href }} style={styles.photo} />
-              : <View style={[styles.photo, { backgroundColor: appColors.border }]} />}
+            {photo
+              ? <Image source={{ uri: photo }} style={styles.photo} />
+              : <View style={[styles.photo, { backgroundColor: appColors.border, borderRadius: 20 }]} />}
             <View style={{ flex: 1 }}>
-              <Text style={[styles.name, { color: appColors.text }]}>{athlete.displayName ?? athlete.name ?? '—'}</Text>
+              <Text style={[styles.name, { color: appColors.text }]}>{playerName}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                {teamLogo ? <Image source={{ uri: teamLogo }} style={{ width: 16, height: 11 }} /> : null}
-                <Text style={[styles.sub, { color: appColors.textSecondary }]}>{athlete.team?.displayName ?? athlete.teamName ?? ''}</Text>
+                {teamLogo ? <Image source={{ uri: teamLogo }} style={{ width: 16, height: 11, borderRadius: 1 }} /> : null}
+                <Text style={[styles.sub, { color: appColors.textSecondary }]}>{teamName}</Text>
               </View>
             </View>
             <View style={styles.statBadge}>
-              <Text style={styles.statBadgeText}>{value}</Text>
+              <Text style={styles.statBadgeText}>{goals}</Text>
               <Text style={[styles.statBadgeLabel, { color: appColors.textSecondary }]}>goles</Text>
             </View>
           </View>
