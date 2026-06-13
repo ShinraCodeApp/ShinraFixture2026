@@ -492,17 +492,16 @@ matchRoutes.get('/group/:group', MatchController.getByGroup);
 matchRoutes.get('/g-fix-match-dates', async (_req, res) => {
   const results: Record<string, number> = {};
 
-  // Delete known duplicate Haiti vs Escocia entries by explicit ID list
-  const deleted = await prisma.match.deleteMany({
-    where: {
-      id: { in: [
-        '8a60dea9-53cf-4d0d-ade7-65c6ced5ae23',
-        'ac3ffb17-fa3b-45a2-a6a2-74145fc17987',
-        '6b7f5da7-fd35-494a-a207-f77572cb5286',
-      ]},
-    },
-  });
-  results.duplicate_deleted = deleted.count;
+  // Delete duplicate Haiti vs Escocia entries (HAI team variant + known stale IDs)
+  const deleted = await prisma.$executeRawUnsafe(
+    `DELETE FROM "Match"
+     WHERE id IN (
+       '8a60dea9-53cf-4d0d-ade7-65c6ced5ae23',
+       'ac3ffb17-fa3b-45a2-a6a2-74145fc17987',
+       '6b7f5da7-fd35-494a-a207-f77572cb5286'
+     )`
+  );
+  results.duplicate_deleted = deleted;
 
   // Group stage MD3: Jun 25 → Jun 30 (idempotent: only if still in Jun 25)
   const md3a = await prisma.$executeRawUnsafe(
