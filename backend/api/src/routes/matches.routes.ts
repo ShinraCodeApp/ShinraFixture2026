@@ -752,6 +752,98 @@ matchRoutes.get('/:id/espn-lineup', async (req, res) => {
   }
 });
 
+// ─── ESPN match statistics (possession, shots, passes, etc.) ──────────────────
+matchRoutes.get('/:id/espn-stats', async (req, res) => {
+  try {
+    const match = await prisma.match.findUnique({
+      where: { id: req.params.id },
+      include: {
+        homeTeam: { select: { id: true, code: true, name: true, shortName: true } },
+        awayTeam: { select: { id: true, code: true, name: true, shortName: true } },
+      },
+    });
+    if (!match) return res.status(404).json({ success: false });
+
+    const d = new Date(match.matchDate);
+    const dateStr = `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}`;
+
+    const scoreboard = await axios.get(
+      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${dateStr}`,
+      { timeout: 10_000 }
+    );
+
+    const events: any[] = scoreboard.data?.events ?? [];
+    const homeCode = match.homeTeam.code.toUpperCase();
+    const awayCode = match.awayTeam.code.toUpperCase();
+    const homeName = match.homeTeam.name.toLowerCase();
+    const awayName = match.awayTeam.name.toLowerCase();
+
+    let eventId: string | null = null;
+    for (const event of events) {
+      const competitors: any[] = event.competitions?.[0]?.competitors ?? [];
+      const abbrs = competitors.map((c: any) => (c.team?.abbreviation ?? '').toUpperCase());
+      const names = competitors.map((c: any) => (c.team?.displayName ?? '').toLowerCase());
+      if (
+        abbrs.includes(homeCode) || abbrs.includes(awayCode) ||
+        names.some(n => n.includes(homeName.split(' ')[0]) || homeName.includes(n.split(' ')[0]) ||
+          n.includes(awayName.split(' ')[0]) || awayName.includes(n.split(' ')[0]))
+      ) { eventId = event.id; break; }
+    }
+
+    if (!eventId) return res.json({ success: true, data: null });
+
+    const summary = await axios.get(
+      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${eventId}`,
+      { timeout: 10_000 }
+    );
+
+    const boxTeams: any[] = summary.data?.boxscore?.teams ?? [];
+    if (!boxTeams.length) return res.json({ success: true, data: null });
+
+    const KEY_STATS = [
+      'possessionPct', 'totalShots', 'shotsOnTarget', 'wonCorners',
+      'yellowCards', 'redCards', 'foulsCommitted', 'offsides',
+      'saves', 'totalPasses', 'passPct', 'effectiveTackles', 'interceptions',
+    ];
+
+    const teamStats = boxTeams.map((bt: any) => {
+      const statsArr: any[] = bt.statistics ?? [];
+      const statsMap: Record<string, string> = {};
+      for (const s of statsArr) { statsMap[s.name] = s.displayValue; }
+      const filtered = KEY_STATS
+        .filter(k => statsMap[k] !== undefined)
+        .map(k => {
+          const raw = statsArr.find((s: any) => s.name === k);
+          return { name: k, label: raw?.label ?? k, value: statsMap[k] };
+        });
+      return {
+        team: {
+          abbreviation: bt.team?.abbreviation ?? '',
+          displayName: bt.team?.displayName ?? '',
+          logo: bt.team?.logo ?? bt.team?.logos?.[0]?.href ?? null,
+        },
+        isHome: (bt.homeAway ?? '').toLowerCase() === 'home',
+        stats: filtered,
+      };
+    });
+
+    // Key events (goals, cards, substitutions)
+    const keyEvents: any[] = (summary.data?.keyEvents ?? [])
+      .filter((e: any) => ['Goal', 'Yellow Card', 'Red Card', 'Substitution'].includes(e.type?.text ?? ''))
+      .slice(0, 30)
+      .map((e: any) => ({
+        type: e.type?.text ?? '',
+        time: e.clock?.displayValue ?? '',
+        text: e.text ?? '',
+        team: e.team?.abbreviation ?? null,
+      }));
+
+    res.json({ success: true, data: { teamStats, keyEvents, eventId } });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 matchRoutes.get('/:id', optionalAuth, MatchController.getById);
 matchRoutes.get('/:id/events', MatchController.getEvents);
 matchRoutes.get('/:id/stats', MatchController.getStats);

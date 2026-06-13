@@ -17,6 +17,7 @@ import { TeamLogo } from '../../components/common/TeamLogo';
 import { MatchStatusBadge } from '../../components/match/MatchStatusBadge';
 import { EventTimeline } from '../../components/match/EventTimeline';
 import { MatchStatsView } from '../../components/match/MatchStatsView';
+import { EspnMatchStats } from '../../components/match/EspnMatchStats';
 import { MatchLineups } from '../../components/match/MatchLineups';
 import { ProbabilityBars } from '../../components/match/ProbabilityBars';
 import { PredictionInput } from '../../components/predictions/PredictionInput';
@@ -275,8 +276,13 @@ export function MatchDetailScreen() {
               </TouchableOpacity>
             </View>
           )}
-          {activeTab === 'stats' && match.stats && (
-            <MatchStatsView stats={match.stats} homeTeam={match.homeTeam} awayTeam={match.awayTeam} />
+          {activeTab === 'stats' && (
+            <EspnMatchStats
+              matchId={matchId}
+              fallbackStats={match.stats}
+              homeTeam={match.homeTeam}
+              awayTeam={match.awayTeam}
+            />
           )}
           {activeTab === 'lineups' && <MatchLineups matchId={matchId} />}
           {activeTab === 'predict' && (isScheduled || isLive) && (
