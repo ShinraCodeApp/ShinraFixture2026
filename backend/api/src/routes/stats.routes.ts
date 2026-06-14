@@ -30,9 +30,9 @@ statsRoutes.get('/wc-standings', async (_req, res) => {
   const cached = cacheGet('wc-standings');
   if (cached) return res.json({ success: true, source: 'cache', data: cached });
 
-  // Compute standings from our DB (all 72 group matches with scores)
   try {
-    const matches = await prisma.match.findMany({
+    // Step 1: compute standings from finished matches
+    const finishedMatches = await prisma.match.findMany({
       where: { stage: 'GROUP', status: { in: ['FINISHED'] }, tournament: { type: 'WORLD_CUP' } },
       include: {
         homeTeam: { select: { id: true, name: true, shortName: true, code: true, shieldUrl: true, flagUrl: true } },
@@ -42,19 +42,15 @@ statsRoutes.get('/wc-standings', async (_req, res) => {
 
     const groupMap: Record<string, Record<string, any>> = {};
 
-    for (const m of matches) {
+    for (const m of finishedMatches) {
       const group = m.group ?? 'X';
       if (!groupMap[group]) groupMap[group] = {};
-
-      const hId = m.homeTeamId;
-      const aId = m.awayTeamId;
       const hGoals = m.homeScore ?? 0;
       const aGoals = m.awayScore ?? 0;
-
-      for (const [teamId, team, gf, ga, isHome] of [
-        [hId, m.homeTeam, hGoals, aGoals, true],
-        [aId, m.awayTeam, aGoals, hGoals, false],
-      ] as [string, any, number, number, boolean][]) {
+      for (const [teamId, team, gf, ga] of [
+        [m.homeTeamId, m.homeTeam, hGoals, aGoals],
+        [m.awayTeamId, m.awayTeam, aGoals, hGoals],
+      ] as [string, any, number, number][]) {
         if (!groupMap[group][teamId]) {
           groupMap[group][teamId] = {
             team: { id: team.id, name: team.name, shortName: team.shortName, code: team.code, logo: team.shieldUrl ?? team.flagUrl },
@@ -62,16 +58,36 @@ statsRoutes.get('/wc-standings', async (_req, res) => {
           };
         }
         const row = groupMap[group][teamId];
-        row.pj++;
-        row.gf += gf;
-        row.gc += ga;
+        row.pj++; row.gf += gf; row.gc += ga;
         if (gf > ga) { row.pg++; row.pts += 3; }
         else if (gf === ga) { row.pe++; row.pts += 1; }
         else { row.pp++; }
       }
     }
 
-    // Sort each group by pts, then GD, then GF
+    // Step 2: fill in ALL WC teams so groups without finished matches still appear
+    const allGroupMatches = await prisma.match.findMany({
+      where: { stage: 'GROUP', tournament: { type: 'WORLD_CUP' } },
+      include: {
+        homeTeam: { select: { id: true, name: true, shortName: true, code: true, shieldUrl: true, flagUrl: true } },
+        awayTeam: { select: { id: true, name: true, shortName: true, code: true, shieldUrl: true, flagUrl: true } },
+      },
+      orderBy: { matchDate: 'asc' },
+    });
+    for (const m of allGroupMatches) {
+      const g = m.group ?? 'X';
+      if (!groupMap[g]) groupMap[g] = {};
+      for (const [tId, t] of [[m.homeTeamId, m.homeTeam], [m.awayTeamId, m.awayTeam]] as [string, any][]) {
+        if (!groupMap[g][tId]) {
+          groupMap[g][tId] = {
+            team: { id: t.id, name: t.name, shortName: t.shortName, code: t.code, logo: t.shieldUrl ?? t.flagUrl },
+            pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, pts: 0,
+          };
+        }
+      }
+    }
+
+    // Step 3: sort all 12 groups and return
     const standings = Object.entries(groupMap)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([groupName, teams]) => ({
@@ -84,39 +100,6 @@ statsRoutes.get('/wc-standings', async (_req, res) => {
           })
           .map((e: any, i: number) => ({ ...e, pos: i + 1, dif: e.gf - e.gc })),
       }));
-
-    // If no finished matches yet, return scheduled teams per group so UI shows the bracket
-    if (standings.length === 0) {
-      const allGroupMatches = await prisma.match.findMany({
-        where: { stage: 'GROUP', tournament: { type: 'WORLD_CUP' } },
-        include: {
-          homeTeam: { select: { id: true, name: true, shortName: true, code: true, shieldUrl: true, flagUrl: true } },
-          awayTeam: { select: { id: true, name: true, shortName: true, code: true, shieldUrl: true, flagUrl: true } },
-        },
-        orderBy: { matchDate: 'asc' },
-      });
-      const emptyMap: Record<string, Record<string, any>> = {};
-      for (const m of allGroupMatches) {
-        const g = m.group ?? 'X';
-        if (!emptyMap[g]) emptyMap[g] = {};
-        for (const [tId, t] of [[m.homeTeamId, m.homeTeam], [m.awayTeamId, m.awayTeam]] as [string, any][]) {
-          if (!emptyMap[g][tId]) {
-            emptyMap[g][tId] = {
-              team: { id: t.id, name: t.name, shortName: t.shortName, code: t.code, logo: t.shieldUrl ?? t.flagUrl },
-              pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, pts: 0,
-            };
-          }
-        }
-      }
-      const emptyStandings = Object.entries(emptyMap)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([g, teams]) => ({
-          group: g,
-          entries: Object.values(teams).map((e: any, i) => ({ ...e, pos: i + 1, dif: 0 })),
-        }));
-      cacheSet('wc-standings', emptyStandings, 2 * 60_000);
-      return res.json({ success: true, source: 'db-scheduled', data: emptyStandings });
-    }
 
     cacheSet('wc-standings', standings, 3 * 60_000);
     return res.json({ success: true, source: 'db', data: standings });
