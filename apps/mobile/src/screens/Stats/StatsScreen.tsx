@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, ActivityIndicator,
+  Image, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
@@ -15,26 +15,35 @@ export function StatsScreen() {
   const { appColors } = useAppTheme();
   const [tab, setTab] = useState<Tab>('wc-global');
 
-  const { data: wcStandings, isLoading: loadStandings } = useQuery({
+  const { data: wcStandings, isLoading: loadStandings, refetch: refetchStandings } = useQuery({
     queryKey: ['wc-standings'],
     queryFn: async () => (await apiService.get('/stats/wc-standings')).data.data,
     enabled: tab === 'wc-global' || tab === 'wc-groups',
     staleTime: 5 * 60_000,
   });
 
-  const { data: wcScorers, isLoading: loadScorers } = useQuery({
+  const { data: wcScorers, isLoading: loadScorers, refetch: refetchScorers } = useQuery({
     queryKey: ['wc-scorers'],
     queryFn: async () => (await apiService.get('/stats/wc-scorers')).data.data,
     enabled: tab === 'wc-scorers',
     staleTime: 5 * 60_000,
   });
 
-  const { data: ligaData, isLoading: loadLiga } = useQuery({
+  const { data: ligaData, isLoading: loadLiga, refetch: refetchLiga } = useQuery({
     queryKey: ['liga-argentina'],
     queryFn: async () => (await apiService.get('/stats/liga-argentina')).data.data,
     enabled: tab === 'liga',
     staleTime: 5 * 60_000,
   });
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    if (tab === 'wc-global' || tab === 'wc-groups') await refetchStandings();
+    else if (tab === 'wc-scorers') await refetchScorers();
+    else await refetchLiga();
+    setRefreshing(false);
+  };
 
   const tabs: Array<{ key: Tab; label: string }> = [
     { key: 'wc-global', label: '#WC' },
@@ -70,28 +79,28 @@ export function StatsScreen() {
 
       {/* WC Global ranking — ALL 48 teams sorted by pts/DIF/GF */}
       {tab === 'wc-global' && !isLoading && wcStandings && (
-        <ScrollView contentContainerStyle={styles.list}>
+        <ScrollView contentContainerStyle={styles.list} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}>
           <WCGlobalView data={wcStandings} appColors={appColors} />
         </ScrollView>
       )}
 
       {/* WC Group standings */}
       {tab === 'wc-groups' && !isLoading && wcStandings && (
-        <ScrollView contentContainerStyle={styles.list}>
+        <ScrollView contentContainerStyle={styles.list} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}>
           <WCStandingsView data={wcStandings} appColors={appColors} />
         </ScrollView>
       )}
 
       {/* WC Top Scorers */}
       {tab === 'wc-scorers' && !isLoading && wcScorers && (
-        <ScrollView contentContainerStyle={styles.list}>
+        <ScrollView contentContainerStyle={styles.list} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}>
           <WCScorersView data={wcScorers} appColors={appColors} />
         </ScrollView>
       )}
 
       {/* Liga Argentina */}
       {tab === 'liga' && !isLoading && ligaData && (
-        <ScrollView contentContainerStyle={styles.list}>
+        <ScrollView contentContainerStyle={styles.list} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}>
           <LigaView data={ligaData} appColors={appColors} />
         </ScrollView>
       )}

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Dimensions, ActivityIndicator, Image,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Dimensions, ActivityIndicator, Image, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -258,11 +258,14 @@ export function LiveRadarScreen() {
   const [clockSec, setClockSec] = useState(0);
   const [liveStats, setLiveStats] = useState<any>(null);
   const [connected, setConnected] = useState(false);
+  const [showCard, setShowCard] = useState<{ type: 'YELLOW' | 'RED'; teamName: string; playerName?: string } | null>(null);
   const socketRef = useRef<any>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const ballX = useRef(new Animated.Value(PITCH_W / 2 - 8)).current;
   const ballY = useRef(new Animated.Value(PITCH_H / 2 - 8)).current;
   const ballMoveRef = useRef<any>(null);
+  const cardScaleAnim = useRef(new Animated.Value(0)).current;
+  const cardOpacityAnim = useRef(new Animated.Value(0)).current;
 
   const { data: match, isLoading } = useQuery({
     queryKey: ['match', matchId],
@@ -460,6 +463,34 @@ export function LiveRadarScreen() {
     ]).start();
   }, [goalCount]);
 
+  // Card animation — yellow/red card overlay
+  const cardEventCount = allEvents?.filter((e: any) => ['YELLOW_CARD', 'RED_CARD', 'SECOND_YELLOW'].includes(e.type)).length ?? 0;
+  useEffect(() => {
+    if (cardEventCount === 0) return;
+    const cards = (allEvents ?? []).filter((e: any) => ['YELLOW_CARD', 'RED_CARD', 'SECOND_YELLOW'].includes(e.type));
+    const lastCard = cards[cards.length - 1];
+    if (!lastCard || !match) return;
+    const isRed = lastCard.type === 'RED_CARD' || lastCard.type === 'SECOND_YELLOW';
+    const teamName = lastCard.teamId === match.homeTeamId
+      ? (match.homeTeam?.shortName ?? match.homeTeam?.code ?? 'Local')
+      : (match.awayTeam?.shortName ?? match.awayTeam?.code ?? 'Visitante');
+    setShowCard({ type: isRed ? 'RED' : 'YELLOW', teamName, playerName: lastCard.description });
+    cardScaleAnim.setValue(0);
+    cardOpacityAnim.setValue(1);
+    Animated.sequence([
+      Animated.spring(cardScaleAnim, { toValue: 1, tension: 150, friction: 7, useNativeDriver: true }),
+      Animated.delay(2200),
+      Animated.timing(cardOpacityAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
+    ]).start(() => setShowCard(null));
+  }, [cardEventCount]);
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([refetchEvents(), refetchStats(), refetchEspn()]);
+    setRefreshing(false);
+  };
+
   // Refetch events/stats from DB + ESPN every 30s
   useEffect(() => {
     if (!match) return;
@@ -526,7 +557,7 @@ export function LiveRadarScreen() {
           )}
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}>
           {/* Scoreboard */}
           <View style={styles.scoreboard}>
             <View style={styles.teamSide}>
@@ -682,6 +713,20 @@ export function LiveRadarScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
       </SafeAreaView>
+
+      {/* Card animation overlay */}
+      {showCard && (
+        <Animated.View style={[styles.cardOverlay, { opacity: cardOpacityAnim }]} pointerEvents="none">
+          <Animated.View style={{ transform: [{ scale: cardScaleAnim }], alignItems: 'center' }}>
+            <View style={[styles.cardRect, { backgroundColor: showCard.type === 'YELLOW' ? '#F59E0B' : '#DC2626' }]} />
+            <Text style={styles.cardOverlayTeam}>{showCard.teamName}</Text>
+            {showCard.playerName ? <Text style={styles.cardOverlayPlayer} numberOfLines={1}>{showCard.playerName}</Text> : null}
+            <Text style={styles.cardOverlayType}>
+              {showCard.type === 'YELLOW' ? '🟨  TARJETA AMARILLA' : '🟥  TARJETA ROJA'}
+            </Text>
+          </Animated.View>
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -754,5 +799,28 @@ const styles = StyleSheet.create({
     backgroundColor: 'white', borderWidth: 1.5, borderColor: 'rgba(0,0,0,0.25)',
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.6, shadowRadius: 3, elevation: 8, zIndex: 20,
+  },
+  cardOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)', zIndex: 200,
+  },
+  cardRect: {
+    width: 64, height: 90, borderRadius: 8,
+    shadowColor: '#000', shadowOpacity: 0.7, shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 }, elevation: 16,
+    marginBottom: 14,
+  },
+  cardOverlayTeam: {
+    color: 'white', fontSize: 20,
+    fontFamily: typography.fontFamily.bold, textAlign: 'center',
+  },
+  cardOverlayPlayer: {
+    color: 'rgba(255,255,255,0.75)', fontSize: 14,
+    fontFamily: typography.fontFamily.medium, textAlign: 'center', marginTop: 4,
+  },
+  cardOverlayType: {
+    color: 'rgba(255,255,255,0.55)', fontSize: 12, marginTop: 10,
+    fontFamily: typography.fontFamily.semiBold, letterSpacing: 1,
   },
 });

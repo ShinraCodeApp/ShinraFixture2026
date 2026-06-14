@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { createWebSocketConnection } from '../../services/api';
 
-const REACTIONS = ['⚽', '👏', '😱', '❤️', '🔥', '😤'];
+const REACTIONS = ['⚽', '👏', '😱', '❤️', '🔥', '😤', '🟨', '🟥'];
 
 interface FloatingItem { id: number; emoji: string; x: number }
 

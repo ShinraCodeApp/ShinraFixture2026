@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,7 +17,7 @@ export function TeamsScreen() {
   const [search, setSearch] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
 
-  const { data: tournaments = [] } = useQuery({
+  const { data: tournaments = [], refetch: refetchTournaments } = useQuery({
     queryKey: ['tournaments'],
     queryFn: async () => (await apiService.get('/tournaments')).data.data ?? [],
     staleTime: 10 * 60_000,
@@ -25,12 +25,20 @@ export function TeamsScreen() {
 
   const wcTournament: any = (tournaments as any[]).find((t: any) => t.type === 'WORLD_CUP') ?? (tournaments as any[])[0];
 
-  const { data: tournamentDetail } = useQuery({
+  const { data: tournamentDetail, refetch: refetchDetail } = useQuery({
     queryKey: ['tournament-detail', wcTournament?.id],
     queryFn: async () => (await apiService.get(`/tournaments/${wcTournament!.id}`)).data.data,
     enabled: !!wcTournament?.id,
     staleTime: 10 * 60_000,
   });
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetchTournaments();
+    if (wcTournament?.id) await refetchDetail();
+    setRefreshing(false);
+  };
 
   const teams = useMemo(() => {
     if (!tournamentDetail?.groups) return [];
@@ -96,6 +104,7 @@ export function TeamsScreen() {
         keyExtractor={(t: any) => t.id}
         numColumns={3}
         contentContainerStyle={styles.list}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         ListEmptyComponent={
           isLoading ? null : (
             <View style={styles.empty}>

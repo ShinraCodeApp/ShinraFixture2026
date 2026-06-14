@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -24,6 +24,7 @@ export function FixtureScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { appColors } = useAppTheme();
+  const [search, setSearch] = useState('');
   const dispatch = useDispatch();
   const selectedId = useSelector((state: RootState) => state.tournament.selectedId);
 
@@ -104,10 +105,29 @@ export function FixtureScreen() {
           </View>
         )}
 
+        {/* Búsqueda */}
+        <View style={[styles.searchBar, { backgroundColor: appColors.surface + 'CC', borderBottomColor: appColors.border }]}>
+          <TextInput
+            style={[styles.searchInput, { color: appColors.text }]}
+            placeholder="Buscar equipo..."
+            placeholderTextColor={appColors.textSecondary}
+            value={search}
+            onChangeText={setSearch}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Text style={{ color: appColors.textSecondary, fontSize: 16 }}>✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         {/* Tabla de posiciones */}
         <StandingsTab
           tournamentId={activeTournament?.id}
           tournamentType={activeTournament?.type}
+          search={search}
           onGroupPress={(group, tid) =>
             navigation.navigate('GroupDetail', { group, tournamentId: tid })
           }
@@ -133,6 +153,15 @@ const styles = StyleSheet.create({
     borderRadius: 16, borderWidth: 1,
   },
   bracketTxt: { fontSize: 12, fontFamily: typography.fontFamily.semiBold },
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: spacing.screen, paddingVertical: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth, gap: 8,
+  },
+  searchInput: {
+    flex: 1, fontSize: typography.fontSize.sm,
+    fontFamily: typography.fontFamily.regular, paddingVertical: 4,
+  },
   tournamentBar: { borderBottomWidth: StyleSheet.hairlineWidth, paddingVertical: spacing.xs },
   tournamentList: { paddingHorizontal: spacing.screen, gap: spacing.xs },
   tournamentPill: {

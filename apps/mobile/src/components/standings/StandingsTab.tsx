@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
@@ -36,17 +36,18 @@ const SIX_GROUP_TYPES = new Set(['COPA_AMERICA']);
 interface StandingsTabProps {
   tournamentId?: string;
   tournamentType?: string;
+  search?: string;
   onGroupPress?: (group: string, tournamentId: string) => void;
 }
 
-export function StandingsTab({ tournamentId, tournamentType, onGroupPress }: StandingsTabProps) {
+export function StandingsTab({ tournamentId, tournamentType, search = '', onGroupPress }: StandingsTabProps) {
   const { appColors } = useAppTheme();
   const navigation = useNavigation<any>();
   const dispatch = useDispatch<AppDispatch>();
   const [selectedGroup, setSelectedGroup] = useState('A');
   const { language } = useSelector((state: RootState) => state.settings);
 
-  const { data: tournament, isLoading } = useQuery({
+  const { data: tournament, isLoading, refetch } = useQuery({
     queryKey: ['tournament', tournamentId],
     queryFn: async () => {
       if (!tournamentId) return null;
@@ -56,6 +57,9 @@ export function StandingsTab({ tournamentId, tournamentType, onGroupPress }: Sta
     enabled: !!tournamentId,
     staleTime: 5 * 60_000,
   });
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => { setRefreshing(true); await refetch(); setRefreshing(false); };
 
   // Determinar el tipo real (viene del prop o del objeto)
   const tType = tournamentType ?? tournament?.type ?? '';
@@ -108,7 +112,10 @@ export function StandingsTab({ tournamentId, tournamentType, onGroupPress }: Sta
   const rawTeams = currentGroup?.teams ?? [];
 
   // Ordenar por points → goalDifference → goalsFor
-  const teams = [...rawTeams].sort((a: any, b: any) => {
+  const q = search.toLowerCase().trim();
+  const teams = [...rawTeams]
+    .filter((t: any) => !q || (t.team?.name ?? '').toLowerCase().includes(q) || (t.team?.code ?? '').toLowerCase().includes(q))
+    .sort((a: any, b: any) => {
     if (b.points !== a.points) return b.points - a.points;
     if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
     return b.goalsFor - a.goalsFor;
@@ -159,7 +166,7 @@ export function StandingsTab({ tournamentId, tournamentType, onGroupPress }: Sta
   };
 
   return (
-    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}>
       {/* Selector de grupos — oculto en tabla única */}
       {!isSingleTable && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.groups}>

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Animated, Dimensions, ActivityIndicator, Modal, TextInput, Alert, Share, Linking,
+  Animated, Dimensions, ActivityIndicator, Modal, TextInput, Alert, Share, Linking, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -21,6 +21,7 @@ import { EspnMatchStats } from '../../components/match/EspnMatchStats';
 import { MatchLineups } from '../../components/match/MatchLineups';
 import { ProbabilityBars } from '../../components/match/ProbabilityBars';
 import { PredictionInput } from '../../components/predictions/PredictionInput';
+import { SocialPredictions } from '../../components/predictions/SocialPredictions';
 import { CommentSection } from '../../components/community/CommentSection';
 import { AIAnalysisCard } from '../../components/ai/AIAnalysisCard';
 import { LiveStreamTab } from '../../components/match/LiveStreamTab';
@@ -36,6 +37,8 @@ export function MatchDetailScreen() {
   const { appColors, isDark } = useAppTheme();
   const { match, isLoading, refetch } = useMatchDetail(matchId);
   const [activeTab, setActiveTab] = useState('info');
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => { setRefreshing(true); await refetch(); setRefreshing(false); };
   const [localAiAnalysis, setLocalAiAnalysis] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [showScoreEdit, setShowScoreEdit] = useState(false);
@@ -253,6 +256,7 @@ export function MatchDetailScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[styles.content, { paddingBottom: 80 }]}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         >
           {activeTab === 'info' && (
             <View>
@@ -302,6 +306,9 @@ export function MatchDetailScreen() {
                 </Text>
               )}
             </View>
+          )}
+          {activeTab === 'predict' && (
+            <SocialPredictions matchId={matchId} homeTeam={match.homeTeam} awayTeam={match.awayTeam} />
           )}
           {activeTab === 'comments' && <CommentSection matchId={matchId} />}
         </ScrollView>

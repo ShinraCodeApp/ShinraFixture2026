@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Modal, TextInput, Alert, KeyboardAvoidingView, Platform,
+  Modal, TextInput, Alert, KeyboardAvoidingView, Platform, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -279,13 +279,13 @@ export function GroupDetailScreen() {
   const { language } = useSelector((state: RootState) => state.settings);
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
 
-  const { data: tournament } = useQuery({
+  const { data: tournament, refetch: refetchTournament } = useQuery({
     queryKey: ['tournament', tournamentId],
     queryFn: async () => (await apiService.get(`/tournaments/${tournamentId}`)).data.data,
     staleTime: 5 * 60_000,
   });
 
-  const { data: groupMatches = [] } = useQuery({
+  const { data: groupMatches = [], refetch: refetchMatches } = useQuery({
     queryKey: ['group-matches', tournamentId, group],
     queryFn: async () => {
       const res = await apiService.get(`/matches?group=${group}&tournamentId=${tournamentId}&limit=50`);
@@ -293,6 +293,13 @@ export function GroupDetailScreen() {
     },
     staleTime: 60_000,
   });
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([refetchTournament(), refetchMatches()]);
+    setRefreshing(false);
+  };
 
   const currentGroup = tournament?.groups?.find((g: any) => g.letter === group);
   const teams = currentGroup?.teams?.map((t: any) => t.team) ?? [];
@@ -318,7 +325,7 @@ export function GroupDetailScreen() {
         <View style={{ width: 32 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}>
         {/* Teams */}
         <View style={[styles.teamsCard, { backgroundColor: appColors.surface }]}>
           <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>EQUIPOS</Text>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, FlatList, ActivityIndicator,
+  Image, FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -159,25 +159,25 @@ export function TeamDetailScreen() {
 
   const { isFavorite, toggle, isPending: favPending } = useFavoriteTeams();
 
-  const { data: team, isLoading } = useQuery({
+  const { data: team, isLoading, refetch: refetchTeam } = useQuery({
     queryKey: ['team', teamId],
     queryFn: async () => (await apiService.get(`/teams/${teamId}`)).data.data,
   });
 
-  const { data: matches } = useQuery({
+  const { data: matches, refetch: refetchMatches } = useQuery({
     queryKey: ['team-matches', teamId],
     queryFn: async () => (await apiService.get(`/teams/${teamId}/matches`)).data.data ?? [],
     enabled: tab === 'matches',
   });
 
-  const { data: groupData } = useQuery({
+  const { data: groupData, refetch: refetchGroup } = useQuery({
     queryKey: ['team-group', teamId],
     queryFn: async () => (await apiService.get(`/tournaments/team-group/${teamId}`)).data.data,
     enabled: tab === 'standings',
   });
   const standingsData = groupData?.standings ?? [];
 
-  const { data: squadData, isLoading: squadLoading } = useQuery({
+  const { data: squadData, isLoading: squadLoading, refetch: refetchSquad } = useQuery({
     queryKey: ['espn-squad', teamId],
     queryFn: async () => (await apiService.get(`/teams/${teamId}/espn-squad`)).data.data,
     enabled: tab === 'squad' && !!team,
@@ -185,13 +185,24 @@ export function TeamDetailScreen() {
     retry: false,
   });
 
-  const { data: teamStatsData, isLoading: statsLoading } = useQuery({
+  const { data: teamStatsData, isLoading: statsLoading, refetch: refetchStats } = useQuery({
     queryKey: ['espn-team-stats', teamId],
     queryFn: async () => (await apiService.get(`/teams/${teamId}/espn-team-stats`)).data.data,
     enabled: tab === 'stats' && !!team,
     staleTime: 10 * 60_000,
     retry: false,
   });
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetchTeam();
+    if (tab === 'matches') await refetchMatches();
+    else if (tab === 'standings') await refetchGroup();
+    else if (tab === 'squad') await refetchSquad();
+    else if (tab === 'stats') await refetchStats();
+    setRefreshing(false);
+  };
 
   if (isLoading || !team) return (
     <View style={{ flex: 1, backgroundColor: '#001489', alignItems: 'center', justifyContent: 'center' }}>
@@ -258,7 +269,7 @@ export function TeamDetailScreen() {
         </View>
 
         {/* ── Content ── */}
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}>
 
           {/* PLANTEL */}
           {tab === 'squad' && (

@@ -93,7 +93,7 @@ export function setupSocketHandlers(io: SocketServer): void {
     // ── Watch Party: emoji reactions ──────────────────────
     socket.on('watch:reaction', (data: { matchId: string; emoji: string }) => {
       if (!data.matchId || !data.emoji) return;
-      const allowed = ['⚽', '👏', '😱', '❤️', '🔥', '😤', '🎉', '💪'];
+      const allowed = ['⚽', '👏', '😱', '❤️', '🔥', '😤', '🎉', '💪', '🟨', '🟥'];
       if (!allowed.includes(data.emoji)) return;
       socket.to(`match:${data.matchId}`).emit('match:reaction', {
         emoji: data.emoji,

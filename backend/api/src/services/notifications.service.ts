@@ -1,4 +1,3 @@
-import * as admin from 'firebase-admin';
 import { NotificationType } from '@prisma/client';
 import { prisma } from '../config/database';
 import { logger } from '../utils/logger';
@@ -31,36 +30,31 @@ export class NotificationService {
     if (!devices.length) return;
 
     const tokens = devices.map((d) => d.fcmToken);
-    const message: admin.messaging.MulticastMessage = {
-      tokens,
-      notification: { title: payload.title, body: payload.body },
+    const expoTokens = tokens.filter((t) => t.startsWith('ExponentPushToken'));
+
+    if (!expoTokens.length) return;
+
+    const messages = expoTokens.map((token) => ({
+      to: token,
+      title: payload.title,
+      body: payload.body,
       data: { type: payload.type, ...(payload.data ?? {}) },
-      android: {
-        priority: 'high',
-        notification: { channelId: 'shinra-matches', sound: 'default' },
-      },
-      apns: {
-        payload: { aps: { sound: 'default', badge: 1 } },
-      },
-    };
+      sound: 'default',
+      channelId: 'shinra-matches',
+      priority: 'high',
+    }));
 
     try {
-      const response = await admin.messaging().sendEachForMulticast(message);
-      if (response.failureCount > 0) {
-        // Remove invalid tokens
-        const failedTokens = response.responses
-          .map((r, i) => (!r.success ? tokens[i] : null))
-          .filter(Boolean) as string[];
-
-        if (failedTokens.length) {
-          await prisma.userDevice.updateMany({
-            where: { fcmToken: { in: failedTokens } },
-            data: { isActive: false },
-          });
-        }
-      }
+      const res = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Accept-Encoding': 'gzip, deflate' },
+        body: JSON.stringify(messages),
+      });
+      const result = await res.json() as { data?: { status: string; message?: string }[] };
+      const failures = (result.data ?? []).filter((r) => r.status === 'error');
+      if (failures.length) logger.warn('Expo push failures:', failures);
     } catch (err) {
-      logger.warn('Failed to send push notifications:', err);
+      logger.warn('Failed to send Expo push notifications:', err);
     }
   }
 
@@ -103,6 +97,27 @@ export class NotificationService {
       type: NotificationType.GOAL,
       title: `🥅 ¡GOL de ${scoringTeam}! (${minute}')`,
       body: `${match.homeTeam.name} ${score} ${match.awayTeam.name}${scorerName ? ` — ${scorerName}` : ''}`,
+      data: { matchId, minute: String(minute) },
+    });
+  }
+
+  static async notifyCard(matchId: string, teamId: string, isRed: boolean, minute: number, playerName?: string): Promise<void> {
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        homeTeam: { select: { name: true } },
+        awayTeam: { select: { name: true } },
+      },
+    });
+    if (!match) return;
+
+    const teamName = teamId === match.homeTeamId ? match.homeTeam.name : match.awayTeam.name;
+    const interestedUsers = await this.getUsersInterestedInMatch(matchId, [match.homeTeamId, match.awayTeamId]);
+
+    await this.sendPush(interestedUsers, {
+      type: NotificationType.MATCH_START,
+      title: isRed ? `🟥 Tarjeta ROJA — ${teamName} (${minute}')` : `🟨 Tarjeta amarilla — ${teamName} (${minute}')`,
+      body: playerName ? `${playerName} recibió una tarjeta ${isRed ? 'roja' : 'amarilla'}` : `${match.homeTeam.name} vs ${match.awayTeam.name}`,
       data: { matchId, minute: String(minute) },
     });
   }

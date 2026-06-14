@@ -371,6 +371,10 @@ matchRoutes.post('/espn-sync', async (req, res) => {
           io?.to(`match:${match.id}`).emit('match:event', { ...ev, playerName });
           if (eventType === 'GOAL' || eventType === 'OWN_GOAL' || eventType === 'PENALTY_SCORED') {
             NotificationService.notifyGoal(match.id, detailTeamId ?? '', detailMinute, playerName).catch(() => {});
+          } else if (eventType === 'RED_CARD' || eventType === 'SECOND_YELLOW') {
+            NotificationService.notifyCard(match.id, detailTeamId ?? '', true, detailMinute, playerName).catch(() => {});
+          } else if (eventType === 'YELLOW_CARD') {
+            NotificationService.notifyCard(match.id, detailTeamId ?? '', false, detailMinute, playerName).catch(() => {});
           }
         }
       }
@@ -852,6 +856,41 @@ matchRoutes.get('/:id/lineups', MatchController.getLineups);
 matchRoutes.get('/:id/h2h', MatchController.getHeadToHead);
 matchRoutes.get('/:id/comments', optionalAuth, MatchController.getComments);
 matchRoutes.post('/:id/comments', authenticate, MatchController.addComment);
+
+// Prediction stats — aggregate community predictions for this match
+matchRoutes.get('/:id/prediction-stats', async (req, res) => {
+  try {
+    const predictions = await prisma.prediction.findMany({
+      where: { matchId: req.params.id },
+      select: { homeScore: true, awayScore: true },
+    });
+    const total = predictions.length;
+    if (total === 0) {
+      return res.json({ success: true, data: { total: 0, homeWin: 0, draw: 0, awayWin: 0, topPredictions: [] } });
+    }
+    const homeWin = predictions.filter((p) => p.homeScore > p.awayScore).length;
+    const draw = predictions.filter((p) => p.homeScore === p.awayScore).length;
+    const awayWin = predictions.filter((p) => p.homeScore < p.awayScore).length;
+    const scoreCounts: Record<string, number> = {};
+    for (const p of predictions) {
+      const key = `${p.homeScore}-${p.awayScore}`;
+      scoreCounts[key] = (scoreCounts[key] ?? 0) + 1;
+    }
+    const topPredictions = Object.entries(scoreCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([score, count]) => ({ score, count, pct: Math.round((count / total) * 100) }));
+    return res.json({ success: true, data: {
+      total,
+      homeWin: Math.round((homeWin / total) * 100),
+      draw: Math.round((draw / total) * 100),
+      awayWin: Math.round((awayWin / total) * 100),
+      topPredictions,
+    }});
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // AI prediction endpoint — triggers Gemini analysis and caches result
 matchRoutes.post('/:id/ai-predict', async (req, res) => {
