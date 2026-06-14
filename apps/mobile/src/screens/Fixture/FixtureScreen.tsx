@@ -56,13 +56,21 @@ export function FixtureScreen() {
             </Text>
           </View>
           {activeTournament?.type === 'WORLD_CUP' && (
-            <TouchableOpacity
-              style={[styles.bracketBtn, { backgroundColor: colors.primary + '22', borderColor: colors.primary }]}
-              onPress={() => navigation.navigate('Bracket')}
-            >
-              <MaterialCommunityIcons name="tournament" size={14} color={colors.primary} />
-              <Text style={[styles.bracketTxt, { color: colors.primary }]}>Llaves</Text>
-            </TouchableOpacity>
+            <View style={styles.headerBtns}>
+              <TouchableOpacity
+                style={[styles.bracketBtn, { backgroundColor: '#FFD700' + '22', borderColor: '#FFD700' }]}
+                onPress={() => navigation.navigate('HomeTab' as any, { screen: 'Stats' } as any)}
+              >
+                <Text style={[styles.bracketTxt, { color: '#FFD700' }]}>#WC</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.bracketBtn, { backgroundColor: colors.primary + '22', borderColor: colors.primary }]}
+                onPress={() => navigation.navigate('Bracket')}
+              >
+                <MaterialCommunityIcons name="tournament" size={14} color={colors.primary} />
+                <Text style={[styles.bracketTxt, { color: colors.primary }]}>Llaves</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
 
@@ -118,6 +126,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold },
   subtitle: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.regular },
+  headerBtns: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   bracketBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 5,
