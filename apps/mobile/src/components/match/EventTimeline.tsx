@@ -72,7 +72,7 @@ export function EventTimeline({ events, homeTeamId }: EventTimelineProps) {
             {/* Center: minute + icon */}
             <View style={styles.center}>
               <Text style={[styles.minute, { color: appColors.textSecondary }]}>
-                {event.minute}{event.extraTime ? `+${event.extraTime}` : ''}'
+                {event.minute > 90 ? `90+${event.minute - 90}` : event.extraTime ? `${event.minute}+${event.extraTime}` : event.minute}'
               </Text>
               <View style={[styles.iconContainer, { backgroundColor: `${cfg.color}20` }]}>
                 <MaterialCommunityIcons name={cfg.icon as any} size={14} color={cfg.color} />

@@ -51,6 +51,8 @@ function teamColor(code?: string, fallback = '#3B82F6') {
   return code ? (TEAM_COLORS[code] ?? fallback) : fallback;
 }
 
+const fmtMinute = (m: number) => m > 90 ? `90+${m - 90}` : String(m);
+
 const { width: W } = Dimensions.get('window');
 const PITCH_W = W - spacing.base * 2;
 const PITCH_H = PITCH_W * 0.65;
@@ -99,8 +101,8 @@ function FootballPitch({
 
   const getEventPos = (ev: any, idx: number): { x: number; y: number } => {
     const isHome = ev.teamId === homeTeamId;
-    // Home attacks RIGHT → goals shown at right side (opponent's goal); away goals at left
-    const baseX = isHome ? pw * 0.86 : pw * 0.14;
+    // Show goal markers on the SCORING TEAM's side: home=LEFT, away=RIGHT
+    const baseX = isHome ? pw * 0.14 : pw * 0.86;
     const spread = (idx % 3) * 9;
     switch (ev.type) {
       case 'GOAL': case 'OWN_GOAL': case 'PENALTY_SCORED':
@@ -457,7 +459,7 @@ export function LiveRadarScreen() {
     ballMoveRef.current?.stop();
     Animated.sequence([
       Animated.parallel([
-        Animated.timing(ballX, { toValue: isHome ? PITCH_W * 0.92 - 8 : PITCH_W * 0.03, duration: 500, useNativeDriver: false }),
+        Animated.timing(ballX, { toValue: isHome ? PITCH_W * 0.08 : PITCH_W * 0.92 - 8, duration: 500, useNativeDriver: false }),
         Animated.timing(ballY, { toValue: PITCH_H / 2 - 8, duration: 500, useNativeDriver: false }),
       ]),
     ]).start();
@@ -521,7 +523,8 @@ export function LiveRadarScreen() {
     return () => clearInterval(id);
   }, [minute, isLive]);
 
-  const clockLabel = minute > 0 ? `${minute}:${String(clockSec).padStart(2, '0')}` : '';
+  const minutePart = minute > 90 ? `90+${minute - 90}` : String(minute);
+  const clockLabel = minute > 0 ? `${minutePart}:${String(clockSec).padStart(2, '0')}` : '';
 
   const sortedEvents = [...allEvents].sort((a, b) => b.minute - a.minute);
   const home = match.homeTeam;
@@ -582,14 +585,24 @@ export function LiveRadarScreen() {
             </View>
           </View>
 
-          {/* Goal counts visual */}
+          {/* Goal counts visual — home goals LEFT, away goals RIGHT */}
           <View style={styles.goalRow}>
-            {sortedEvents.filter(e => e.type === 'GOAL' || e.type === 'OWN_GOAL' || e.type === 'PENALTY_SCORED').map((e, i) => (
-              <View key={i} style={[styles.goalBadge, { backgroundColor: e.teamId === home?.id ? teamColor(home?.code) : teamColor(away?.code, '#7F1D1D') }]}>
-                <Text style={styles.goalBadgeText}>⚽ {e.minute}'</Text>
-                {e.description ? <Text style={styles.goalBadgePlayer} numberOfLines={1}>{e.description}</Text> : null}
-              </View>
-            ))}
+            <View style={styles.goalColHome}>
+              {sortedEvents.filter(e => ['GOAL','OWN_GOAL','PENALTY_SCORED'].includes(e.type) && e.teamId === home?.id).map((e, i) => (
+                <View key={i} style={[styles.goalBadge, { backgroundColor: teamColor(home?.code) }]}>
+                  <Text style={styles.goalBadgeText}>⚽ {fmtMinute(e.minute)}'</Text>
+                  {e.description ? <Text style={styles.goalBadgePlayer} numberOfLines={1}>{e.description}</Text> : null}
+                </View>
+              ))}
+            </View>
+            <View style={styles.goalColAway}>
+              {sortedEvents.filter(e => ['GOAL','OWN_GOAL','PENALTY_SCORED'].includes(e.type) && e.teamId === away?.id).map((e, i) => (
+                <View key={i} style={[styles.goalBadge, { backgroundColor: teamColor(away?.code, '#7F1D1D') }]}>
+                  <Text style={styles.goalBadgeText}>⚽ {fmtMinute(e.minute)}'</Text>
+                  {e.description ? <Text style={styles.goalBadgePlayer} numberOfLines={1}>{e.description}</Text> : null}
+                </View>
+              ))}
+            </View>
           </View>
 
           {/* Pitch */}
@@ -665,7 +678,7 @@ export function LiveRadarScreen() {
                 const isHomeEv = ev.teamId === home?.id;
                 return (
                   <View key={ev.id ?? i} style={[styles.timelineItem, isHomeEv ? styles.timelineHome : styles.timelineAway]}>
-                    {isHomeEv && <View style={styles.timelineMinuteWrap}><Text style={styles.timelineMinute}>{ev.minute}'</Text></View>}
+                    {isHomeEv && <View style={styles.timelineMinuteWrap}><Text style={styles.timelineMinute}>{fmtMinute(ev.minute)}'</Text></View>}
                     <View style={[styles.timelineDot, { backgroundColor: meta.color }]}>
                       <MaterialCommunityIcons name={meta.icon as any} size={12} color="white" />
                     </View>
@@ -673,7 +686,7 @@ export function LiveRadarScreen() {
                       <Text style={[styles.timelineType, { color: meta.color }]}>{meta.label}</Text>
                       {ev.description ? <Text style={styles.timelineDesc} numberOfLines={1}>{ev.description}</Text> : null}
                     </View>
-                    {!isHomeEv && <View style={styles.timelineMinuteWrap}><Text style={styles.timelineMinute}>{ev.minute}'</Text></View>}
+                    {!isHomeEv && <View style={styles.timelineMinuteWrap}><Text style={styles.timelineMinute}>{fmtMinute(ev.minute)}'</Text></View>}
                   </View>
                 );
               })}
@@ -755,7 +768,9 @@ const styles = StyleSheet.create({
   minuteTag: { backgroundColor: '#EF4444', borderRadius: borderRadius.full, paddingHorizontal: 8, paddingVertical: 2, marginTop: 4 },
   minuteText: { color: 'white', fontSize: 11, fontFamily: typography.fontFamily.bold },
 
-  goalRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: spacing.base, marginTop: spacing.sm },
+  goalRow: { flexDirection: 'row', paddingHorizontal: spacing.base, marginTop: spacing.sm, gap: 8 },
+  goalColHome: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 4, justifyContent: 'flex-start' },
+  goalColAway: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 4, justifyContent: 'flex-end' },
   goalBadge: { borderRadius: borderRadius.sm, paddingHorizontal: 8, paddingVertical: 4 },
   goalBadgeText: { color: 'white', fontSize: 11, fontFamily: typography.fontFamily.bold },
   goalBadgePlayer: { color: 'rgba(255,255,255,0.7)', fontSize: 9 },
