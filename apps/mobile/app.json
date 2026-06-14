@@ -2,7 +2,7 @@
   "expo": {
     "name": "ShinraFixture 2026",
     "slug": "shinrafixture-2026",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/branding/SCFixture1.png",
     "userInterfaceStyle": "automatic",
@@ -28,7 +28,7 @@
         "backgroundColor": "#001489"
       },
       "package": "com.shinra.fixture2026",
-      "versionCode": 2,
+      "versionCode": 3,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE",
