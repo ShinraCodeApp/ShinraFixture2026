@@ -285,8 +285,8 @@ export function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: appColors.text }]}>Tabla de Posiciones</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('FixtureTab')}>
-              <Text style={[styles.seeAll, { color: colors.primary }]}>Completa</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Stats')}>
+              <Text style={[styles.seeAll, { color: colors.primary }]}>Ver ranking #WC</Text>
             </TouchableOpacity>
           </View>
           <GroupStandingsWidget group="A" />

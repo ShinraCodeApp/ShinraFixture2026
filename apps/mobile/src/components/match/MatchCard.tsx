@@ -85,7 +85,7 @@ export function MatchCard({ match, onPress, showPrediction = false, compact = fa
         {/* Stage / Group header */}
         <View style={[styles.header, { borderBottomColor: appColors.border }]}>
           <Text style={[styles.stageText, { color: appColors.textSecondary }]}>
-            {match.stage === 'GROUP' ? `Grupo ${match.group}` : match.stage.replace(/_/g, ' ')}
+            {match.stage === 'GROUP' ? (match.group ? `Grupo ${match.group}` : 'Fase de Grupos') : match.stage.replace(/_/g, ' ')}
           </Text>
           <MatchStatusBadge status={match.status} minute={match.minute} compact />
         </View>

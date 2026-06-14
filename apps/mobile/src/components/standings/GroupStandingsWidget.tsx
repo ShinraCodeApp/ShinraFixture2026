@@ -11,27 +11,32 @@ export function GroupStandingsWidget({ group }: { group: string }) {
   const { appColors } = useAppTheme();
   const navigation = useNavigation<any>();
 
-  const { data: allTeams } = useQuery({
-    queryKey: ['teams'],
-    queryFn: async () => (await apiService.get('/teams')).data.data ?? [],
-    staleTime: 10 * 60_000,
+  const { data: wcStandings } = useQuery({
+    queryKey: ['wc-standings'],
+    queryFn: async () => (await apiService.get('/stats/wc-standings')).data.data ?? [],
+    staleTime: 3 * 60_000,
   });
 
-  const teams = (allTeams ?? []).filter((t: any) => t.group === group).slice(0, 4);
+  const groupData = (wcStandings ?? []).find((g: any) => g.group === group);
+  const entries = groupData?.entries?.slice(0, 4) ?? [];
+
+  if (entries.length === 0) return null;
 
   return (
     <View style={[styles.container, { backgroundColor: appColors.surface }]}>
       <Text style={[styles.groupTitle, { color: appColors.text }]}>Grupo {group}</Text>
-      {teams.map((team: any, i: number) => (
+      {entries.map((entry: any, i: number) => (
         <TouchableOpacity
-          key={team.id}
+          key={entry.team?.id ?? i}
           style={[styles.row, { borderBottomColor: appColors.border }]}
-          onPress={() => navigation.navigate('TeamDetail', { teamId: team.id })}
+          onPress={() => navigation.navigate('TeamDetail', { teamId: entry.team?.id })}
         >
           <Text style={[styles.pos, { color: i < 2 ? colors.primary : appColors.textSecondary }]}>{i + 1}</Text>
-          <TeamLogo uri={team.flagUrl} size={20} code={team.code} />
-          <Text style={[styles.teamName, { color: appColors.text }]} numberOfLines={1}>{team.name}</Text>
-          <Text style={[styles.pts, { color: appColors.text }]}>0 pts</Text>
+          <TeamLogo uri={entry.team?.logo} size={20} code={entry.team?.code} />
+          <Text style={[styles.teamName, { color: appColors.text }]} numberOfLines={1}>
+            {entry.team?.shortName ?? entry.team?.name}
+          </Text>
+          <Text style={[styles.pts, { color: appColors.text }]}>{entry.pts} pts</Text>
         </TouchableOpacity>
       ))}
     </View>

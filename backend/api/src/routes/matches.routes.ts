@@ -294,7 +294,8 @@ matchRoutes.post('/espn-sync', async (req, res) => {
 
       const stateStr = comp.status?.type?.state ?? event.status?.type?.state ?? 'pre';
       const status = mapESPNStatus(stateStr);
-      const minute = status === 'LIVE' ? Math.round(comp.status?.clock ?? event.status?.clock ?? 0) : null;
+      const clockSeconds = comp.status?.clock ?? event.status?.clock ?? 0;
+      const minute = status === 'LIVE' ? Math.min(150, Math.round(clockSeconds / 60)) : null;
       const homeScore = status !== 'SCHEDULED' ? (parseInt(homeComp.score ?? '0') || 0) : null;
       const awayScore = status !== 'SCHEDULED' ? (parseInt(awayComp.score ?? '0') || 0) : null;
 

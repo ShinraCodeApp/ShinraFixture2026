@@ -10,7 +10,7 @@ interface MatchStatusBadgeProps {
 
 export function MatchStatusBadge({ status, minute, compact = false }: MatchStatusBadgeProps) {
   const config = {
-    LIVE: { bg: colors.live, text: minute ? `${minute}'` : 'EN VIVO', textColor: 'white' },
+    LIVE: { bg: colors.live, text: minute ? (minute > 90 ? `90+${minute - 90}'` : `${minute}'`) : 'EN VIVO', textColor: 'white' },
     HALF_TIME: { bg: '#F59E0B', text: 'DESC', textColor: 'white' },
     FINISHED: { bg: '#6B7280', text: 'FIN', textColor: 'white' },
     SCHEDULED: { bg: 'transparent', text: 'PROG', textColor: '#6B7280', border: '#D1D5DB' },

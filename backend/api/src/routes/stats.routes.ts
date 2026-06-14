@@ -33,7 +33,7 @@ statsRoutes.get('/wc-standings', async (_req, res) => {
   // Compute standings from our DB (all 72 group matches with scores)
   try {
     const matches = await prisma.match.findMany({
-      where: { stage: 'GROUP', status: { in: ['FINISHED'] } },
+      where: { stage: 'GROUP', status: { in: ['FINISHED'] }, tournament: { type: 'WORLD_CUP' } },
       include: {
         homeTeam: { select: { id: true, name: true, shortName: true, code: true, shieldUrl: true, flagUrl: true } },
         awayTeam: { select: { id: true, name: true, shortName: true, code: true, shieldUrl: true, flagUrl: true } },
@@ -88,7 +88,7 @@ statsRoutes.get('/wc-standings', async (_req, res) => {
     // If no finished matches yet, return scheduled teams per group so UI shows the bracket
     if (standings.length === 0) {
       const allGroupMatches = await prisma.match.findMany({
-        where: { stage: 'GROUP' },
+        where: { stage: 'GROUP', tournament: { type: 'WORLD_CUP' } },
         include: {
           homeTeam: { select: { id: true, name: true, shortName: true, code: true, shieldUrl: true, flagUrl: true } },
           awayTeam: { select: { id: true, name: true, shortName: true, code: true, shieldUrl: true, flagUrl: true } },

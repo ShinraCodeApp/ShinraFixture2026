@@ -41,7 +41,11 @@ export function LiveMatchCard({ match, onPress }: LiveMatchCardProps) {
         <View style={styles.liveRow}>
           <Animated.View style={[styles.liveDot, { opacity: pulseAnim }]} />
           <Text style={styles.liveText}>
-            {match.status === 'HALF_TIME' ? 'DESCANSO' : `${match.minute ?? 0}'`}
+            {match.status === 'HALF_TIME'
+            ? 'DESCANSO'
+            : match.minute != null
+              ? (match.minute > 90 ? `90+${match.minute - 90}'` : `${match.minute}'`)
+              : "0'"}
           </Text>
         </View>
 
