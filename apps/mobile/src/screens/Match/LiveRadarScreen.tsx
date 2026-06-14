@@ -101,8 +101,8 @@ function FootballPitch({
 
   const getEventPos = (ev: any, idx: number): { x: number; y: number } => {
     const isHome = ev.teamId === homeTeamId;
-    // Show goal markers on the SCORING TEAM's side: home=LEFT, away=RIGHT
-    const baseX = isHome ? pw * 0.14 : pw * 0.86;
+    // Goal markers in center of team's half (home=left half, away=right half)
+    const baseX = isHome ? pw * 0.30 : pw * 0.70;
     const spread = (idx % 3) * 9;
     switch (ev.type) {
       case 'GOAL': case 'OWN_GOAL': case 'PENALTY_SCORED':
@@ -459,7 +459,7 @@ export function LiveRadarScreen() {
     ballMoveRef.current?.stop();
     Animated.sequence([
       Animated.parallel([
-        Animated.timing(ballX, { toValue: isHome ? PITCH_W * 0.08 : PITCH_W * 0.92 - 8, duration: 500, useNativeDriver: false }),
+        Animated.timing(ballX, { toValue: isHome ? PITCH_W * 0.92 - 8 : PITCH_W * 0.03, duration: 500, useNativeDriver: false }),
         Animated.timing(ballY, { toValue: PITCH_H / 2 - 8, duration: 500, useNativeDriver: false }),
       ]),
     ]).start();
