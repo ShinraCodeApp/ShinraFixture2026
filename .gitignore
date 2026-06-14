@@ -6,12 +6,13 @@ node_modules/
 .pnp.*
 
 # ── Environment ───────────────────────────────────────
-.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-*.env
+*.env.secret
+# apps/mobile/.env is committed intentionally (EXPO_PUBLIC_* vars are not secrets)
+.env
 
 # ── Build outputs ─────────────────────────────────────
 dist/
