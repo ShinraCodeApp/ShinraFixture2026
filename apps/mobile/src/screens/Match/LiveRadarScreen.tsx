@@ -73,7 +73,7 @@ const EVENT_ICONS: Record<string, { icon: string; color: string; label: string }
 };
 
 function FootballPitch({
-  events, homeTeamId, homePlayers, awayPlayers, homeCode, awayCode,
+  events, homeTeamId, homePlayers, awayPlayers, homeCode, awayCode, allStats,
 }: {
   events: any[];
   homeTeamId?: string;
@@ -81,9 +81,15 @@ function FootballPitch({
   awayPlayers: any[];
   homeCode?: string;
   awayCode?: string;
+  allStats?: any;
 }) {
   const homeCol = teamColor(homeCode, '#1D4ED8');
   const awayCol = teamColor(awayCode, '#DC2626');
+
+  // Possession zones — how much of the pitch each team "owns"
+  const homePoss = allStats?.homePossession ?? 50;
+  const homeZoneW = (homePoss / 100) * 0.7; // max 70% of pitch width
+  const awayZoneW = ((100 - homePoss) / 100) * 0.7;
   const pw = PITCH_W;
   const ph = PITCH_H;
   const goalH = ph * 0.22;
@@ -113,6 +119,26 @@ function FootballPitch({
       {Array.from({ length: 8 }).map((_, i) => (
         <Rect key={i} x={i * (pw / 8)} y={0} width={pw / 16} height={ph} fill="rgba(255,255,255,0.025)" />
       ))}
+      {/* Pressure zones — home (left→right) and away (right→left) */}
+      <Rect x={pw*0.03} y={ph*0.04} width={pw * homeZoneW * 0.94} height={ph*0.92}
+        fill={homeCol} opacity={0.08} rx={4} />
+      <Rect x={pw*0.97 - pw * awayZoneW * 0.94} y={ph*0.04} width={pw * awayZoneW * 0.94} height={ph*0.92}
+        fill={awayCol} opacity={0.08} rx={4} />
+
+      {/* Shot on target markers near goals */}
+      {Array.from({ length: Math.min(allStats?.homeShotsOnTarget ?? 0, 8) }).map((_, i) => (
+        <Circle key={`hs${i}`}
+          cx={pw * 0.93 + (i % 2) * 6}
+          cy={ph * 0.3 + i * (ph * 0.055)}
+          r={4} fill={homeCol} opacity={0.75} stroke="white" strokeWidth={1} />
+      ))}
+      {Array.from({ length: Math.min(allStats?.awayShotsOnTarget ?? 0, 8) }).map((_, i) => (
+        <Circle key={`as${i}`}
+          cx={pw * 0.07 - (i % 2) * 6}
+          cy={ph * 0.3 + i * (ph * 0.055)}
+          r={4} fill={awayCol} opacity={0.75} stroke="white" strokeWidth={1} />
+      ))}
+
       {/* Boundary */}
       <Rect x={pw*0.03} y={ph*0.04} width={pw*0.94} height={ph*0.92} fill="none" stroke="rgba(255,255,255,0.65)" strokeWidth={1.5} rx={2} />
       {/* Halfway line */}
@@ -258,6 +284,47 @@ export function LiveRadarScreen() {
     refetchInterval: 30_000,
   });
 
+  const { data: espnStats, refetch: refetchEspn } = useQuery({
+    queryKey: ['espn-stats', matchId],
+    queryFn: async () => {
+      const res = await apiService.get(`/matches/${matchId}/espn-stats`);
+      const teams: any[] = res.data.data?.teamStats ?? [];
+      const home = teams.find((t: any) => t.isHome);
+      const away = teams.find((t: any) => !t.isHome);
+      const pick = (t: any, name: string) => {
+        const s = t?.stats?.find((x: any) => x.name === name);
+        return s ? parseFloat(s.value) || 0 : null;
+      };
+      return home && away ? {
+        homePossession: pick(home, 'possessionPct'),
+        awayPossession: pick(away, 'possessionPct'),
+        homeShots: pick(home, 'totalShots'),
+        awayShots: pick(away, 'totalShots'),
+        homeShotsOnTarget: pick(home, 'shotsOnTarget'),
+        awayShotsOnTarget: pick(away, 'shotsOnTarget'),
+        homeCorners: pick(home, 'wonCorners'),
+        awayCorners: pick(away, 'wonCorners'),
+        homeFouls: pick(home, 'foulsCommitted'),
+        awayFouls: pick(away, 'foulsCommitted'),
+        homeYellowCards: pick(home, 'yellowCards'),
+        awayYellowCards: pick(away, 'yellowCards'),
+        homePasses: pick(home, 'totalPasses'),
+        awayPasses: pick(away, 'totalPasses'),
+        homePassPct: pick(home, 'passPct'),
+        awayPassPct: pick(away, 'passPct'),
+        homeTackles: pick(home, 'effectiveTackles'),
+        awayTackles: pick(away, 'effectiveTackles'),
+        homeSaves: pick(home, 'saves'),
+        awaySaves: pick(away, 'saves'),
+        homeOffsides: pick(home, 'offsides'),
+        awayOffsides: pick(away, 'offsides'),
+      } : null;
+    },
+    staleTime: 0,
+    refetchInterval: 30_000,
+    retry: false,
+  });
+
   const { data: homeSquad } = useQuery({
     queryKey: ['espn-squad', match?.homeTeamId],
     queryFn: async () => (await apiService.get(`/teams/${match!.homeTeamId}/espn-squad`)).data.data,
@@ -291,7 +358,8 @@ export function LiveRadarScreen() {
 
   // Merge DB events + live events
   const allEvents = [...(events ?? []), ...liveEvents.filter(le => !(events ?? []).find((e: any) => e.id === le.id))];
-  const allStats = liveStats ?? stats;
+  // ESPN stats take priority over DB stats
+  const allStats = liveStats ?? espnStats ?? stats;
 
   // Pulse animation for LIVE indicator
   useEffect(() => {
@@ -392,13 +460,14 @@ export function LiveRadarScreen() {
     ]).start();
   }, [goalCount]);
 
-  // Refetch events/stats from DB every 60s — server cron handles ESPN sync
+  // Refetch events/stats from DB + ESPN every 30s
   useEffect(() => {
     if (!match) return;
     const interval = setInterval(() => {
       refetchEvents();
       refetchStats();
-    }, 60_000);
+      refetchEspn();
+    }, 30_000);
     return () => clearInterval(interval);
   }, [match?.id]);
 
@@ -503,6 +572,7 @@ export function LiveRadarScreen() {
                 awayPlayers={awayPlayers}
                 homeCode={home?.code}
                 awayCode={away?.code}
+                allStats={allStats}
               />
               <Animated.View
                 style={[styles.ball, { left: ballX, top: ballY }]}
@@ -536,6 +606,21 @@ export function LiveRadarScreen() {
               )}
               {allStats.homeXG != null && (
                 <StatBar label="xG" home={allStats.homeXG} away={allStats.awayXG ?? 0} homeColor={teamColor(home?.code)} awayColor={teamColor(away?.code, '#EF4444')} />
+              )}
+              {allStats.homePasses != null && (
+                <StatBar label="Pases" home={allStats.homePasses} away={allStats.awayPasses ?? 0} homeColor={teamColor(home?.code)} awayColor={teamColor(away?.code, '#EF4444')} />
+              )}
+              {allStats.homePassPct != null && (
+                <StatBar label="Precisión pases %" home={allStats.homePassPct} away={allStats.awayPassPct ?? 0} homeColor={teamColor(home?.code)} awayColor={teamColor(away?.code, '#EF4444')} />
+              )}
+              {allStats.homeTackles != null && (
+                <StatBar label="Tackles" home={allStats.homeTackles} away={allStats.awayTackles ?? 0} homeColor={teamColor(home?.code)} awayColor={teamColor(away?.code, '#EF4444')} />
+              )}
+              {allStats.homeSaves != null && (
+                <StatBar label="Atajadas" home={allStats.homeSaves} away={allStats.awaySaves ?? 0} homeColor={teamColor(home?.code)} awayColor={teamColor(away?.code, '#EF4444')} />
+              )}
+              {allStats.homeOffsides != null && (
+                <StatBar label="Fueras de juego" home={allStats.homeOffsides} away={allStats.awayOffsides ?? 0} homeColor={teamColor(home?.code)} awayColor={teamColor(away?.code, '#EF4444')} />
               )}
             </View>
           )}
