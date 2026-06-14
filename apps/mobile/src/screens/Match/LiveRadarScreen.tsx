@@ -261,6 +261,8 @@ export function LiveRadarScreen() {
   const [liveStats, setLiveStats] = useState<any>(null);
   const [connected, setConnected] = useState(false);
   const [showCard, setShowCard] = useState<{ type: 'YELLOW' | 'RED'; teamName: string; playerName?: string } | null>(null);
+  const [showGoal, setShowGoal] = useState<{ teamName: string; playerName?: string } | null>(null);
+  const [showFoul, setShowFoul] = useState<{ teamName: string; playerName?: string } | null>(null);
   const socketRef = useRef<any>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const ballX = useRef(new Animated.Value(PITCH_W / 2 - 8)).current;
@@ -268,6 +270,10 @@ export function LiveRadarScreen() {
   const ballMoveRef = useRef<any>(null);
   const cardScaleAnim = useRef(new Animated.Value(0)).current;
   const cardOpacityAnim = useRef(new Animated.Value(0)).current;
+  const goalScaleAnim = useRef(new Animated.Value(0)).current;
+  const goalOpacityAnim = useRef(new Animated.Value(0)).current;
+  const foulScaleAnim = useRef(new Animated.Value(0)).current;
+  const foulOpacityAnim = useRef(new Animated.Value(0)).current;
 
   const { data: match, isLoading } = useQuery({
     queryKey: ['match', matchId],
@@ -485,6 +491,46 @@ export function LiveRadarScreen() {
       Animated.timing(cardOpacityAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
     ]).start(() => setShowCard(null));
   }, [cardEventCount]);
+
+  // GOAL animation overlay
+  const goalEventCount = allEvents?.filter((e: any) => ['GOAL','PENALTY_SCORED','OWN_GOAL'].includes(e.type)).length ?? 0;
+  useEffect(() => {
+    if (goalEventCount === 0) return;
+    const goals = (allEvents ?? []).filter((e: any) => ['GOAL','PENALTY_SCORED','OWN_GOAL'].includes(e.type));
+    const last = goals[goals.length - 1];
+    if (!last || !match) return;
+    const teamName = last.teamId === match.homeTeamId
+      ? (match.homeTeam?.shortName ?? match.homeTeam?.code ?? 'Local')
+      : (match.awayTeam?.shortName ?? match.awayTeam?.code ?? 'Visitante');
+    setShowGoal({ teamName, playerName: last.description });
+    goalScaleAnim.setValue(0);
+    goalOpacityAnim.setValue(1);
+    Animated.sequence([
+      Animated.spring(goalScaleAnim, { toValue: 1, tension: 120, friction: 5, useNativeDriver: true }),
+      Animated.delay(2500),
+      Animated.timing(goalOpacityAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
+    ]).start(() => setShowGoal(null));
+  }, [goalEventCount]);
+
+  // FOUL animation overlay (yellow/red card)
+  const foulEventCount = allEvents?.filter((e: any) => ['YELLOW_CARD','RED_CARD','SECOND_YELLOW'].includes(e.type)).length ?? 0;
+  useEffect(() => {
+    if (foulEventCount === 0) return;
+    const fouls = (allEvents ?? []).filter((e: any) => ['YELLOW_CARD','RED_CARD','SECOND_YELLOW'].includes(e.type));
+    const last = fouls[fouls.length - 1];
+    if (!last || !match) return;
+    const teamName = last.teamId === match.homeTeamId
+      ? (match.homeTeam?.shortName ?? match.homeTeam?.code ?? 'Local')
+      : (match.awayTeam?.shortName ?? match.awayTeam?.code ?? 'Visitante');
+    setShowFoul({ teamName, playerName: last.description });
+    foulScaleAnim.setValue(0);
+    foulOpacityAnim.setValue(1);
+    Animated.sequence([
+      Animated.spring(foulScaleAnim, { toValue: 1, tension: 150, friction: 7, useNativeDriver: true }),
+      Animated.delay(1800),
+      Animated.timing(foulOpacityAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+    ]).start(() => setShowFoul(null));
+  }, [foulEventCount]);
 
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = async () => {
@@ -740,6 +786,30 @@ export function LiveRadarScreen() {
           </Animated.View>
         </Animated.View>
       )}
+
+      {/* GOOOOOL animation overlay */}
+      {showGoal && (
+        <Animated.View style={[styles.cardOverlay, styles.goalOverlay, { opacity: goalOpacityAnim }]} pointerEvents="none">
+          <Animated.View style={{ transform: [{ scale: goalScaleAnim }], alignItems: 'center' }}>
+            <Text style={styles.goalEmoji}>⚽</Text>
+            <Text style={styles.goalText}>GOOOOOL!!!</Text>
+            <Text style={styles.goalTeam}>{showGoal.teamName}</Text>
+            {showGoal.playerName ? <Text style={styles.goalPlayer} numberOfLines={1}>{showGoal.playerName}</Text> : null}
+          </Animated.View>
+        </Animated.View>
+      )}
+
+      {/* FALTA! animation overlay */}
+      {showFoul && (
+        <Animated.View style={[styles.cardOverlay, styles.foulOverlay, { opacity: foulOpacityAnim }]} pointerEvents="none">
+          <Animated.View style={{ transform: [{ scale: foulScaleAnim }], alignItems: 'center' }}>
+            <Text style={styles.foulEmoji}>🚨</Text>
+            <Text style={styles.foulText}>¡FALTA!</Text>
+            <Text style={styles.goalTeam}>{showFoul.teamName}</Text>
+            {showFoul.playerName ? <Text style={styles.goalPlayer} numberOfLines={1}>{showFoul.playerName}</Text> : null}
+          </Animated.View>
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -837,5 +907,37 @@ const styles = StyleSheet.create({
   cardOverlayType: {
     color: 'rgba(255,255,255,0.55)', fontSize: 12, marginTop: 10,
     fontFamily: typography.fontFamily.semiBold, letterSpacing: 1,
+  },
+  goalOverlay: {
+    backgroundColor: 'rgba(0,0,0,0.72)',
+  },
+  goalEmoji: {
+    fontSize: 72, marginBottom: 8,
+  },
+  goalText: {
+    color: '#10B981', fontSize: 42,
+    fontFamily: typography.fontFamily.bold, textAlign: 'center',
+    textShadowColor: '#065F46', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8,
+    letterSpacing: 2,
+  },
+  goalTeam: {
+    color: 'white', fontSize: 22,
+    fontFamily: typography.fontFamily.bold, textAlign: 'center', marginTop: 10,
+  },
+  goalPlayer: {
+    color: 'rgba(255,255,255,0.7)', fontSize: 15,
+    fontFamily: typography.fontFamily.medium, textAlign: 'center', marginTop: 4,
+  },
+  foulOverlay: {
+    backgroundColor: 'rgba(30,0,0,0.70)',
+  },
+  foulEmoji: {
+    fontSize: 56, marginBottom: 8,
+  },
+  foulText: {
+    color: '#F59E0B', fontSize: 38,
+    fontFamily: typography.fontFamily.bold, textAlign: 'center',
+    textShadowColor: '#78350F', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8,
+    letterSpacing: 3,
   },
 });
