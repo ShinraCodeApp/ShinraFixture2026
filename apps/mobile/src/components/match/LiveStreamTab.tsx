@@ -12,7 +12,7 @@ const SOURCES = [
   { label: 'TyC Sports', url: 'https://www.tycsports.com/en-vivo.html' },
   { label: 'ESPN+', url: 'https://www.espn.com.ar/deportes/' },
   { label: 'Canal 13', url: 'https://www.eltrecetv.com.ar/en-vivo', browserOnly: true },
-  { label: 'TV Pública', url: 'https://www.tvpublica.com.ar/tvpublica/player' },
+  { label: 'TV Pública', url: 'https://www.tvpublica.com.ar/' },
   { label: 'Pluto TV', url: 'https://pluto.tv/latam/live-tv/66997d18a1b69e00082ee85f?lang=es' },
 ];
 

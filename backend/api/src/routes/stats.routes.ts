@@ -43,7 +43,8 @@ statsRoutes.get('/wc-standings', async (_req, res) => {
     const groupMap: Record<string, Record<string, any>> = {};
 
     for (const m of finishedMatches) {
-      const group = m.group ?? 'X';
+      if (!m.group) continue; // skip matches with no group assigned (duplicate/orphan)
+      const group = m.group;
       if (!groupMap[group]) groupMap[group] = {};
       const hGoals = m.homeScore ?? 0;
       const aGoals = m.awayScore ?? 0;
@@ -75,7 +76,8 @@ statsRoutes.get('/wc-standings', async (_req, res) => {
       orderBy: { matchDate: 'asc' },
     });
     for (const m of allGroupMatches) {
-      const g = m.group ?? 'X';
+      if (!m.group) continue; // skip null-group matches
+      const g = m.group;
       if (!groupMap[g]) groupMap[g] = {};
       for (const [tId, t] of [[m.homeTeamId, m.homeTeam], [m.awayTeamId, m.awayTeam]] as [string, any][]) {
         if (!groupMap[g][tId]) {
