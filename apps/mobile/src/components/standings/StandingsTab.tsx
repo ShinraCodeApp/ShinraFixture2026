@@ -163,6 +163,15 @@ export function StandingsTab({ tournamentId, tournamentType, onGroupPress }: Sta
       {/* Selector de grupos — oculto en tabla única */}
       {!isSingleTable && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.groups}>
+          {/* Botón ranking #WC — solo Mundial */}
+          {TWELVE_GROUP_TYPES.has(tType) && (
+            <TouchableOpacity
+              style={[styles.groupBtn, styles.rankingBtn]}
+              onPress={() => navigation.navigate('HomeTab' as any, { screen: 'Stats' } as any)}
+            >
+              <Text style={[styles.groupBtnText, { color: colors.accent, fontSize: 9 }]}>#WC</Text>
+            </TouchableOpacity>
+          )}
           {availableGroups.map((g) => (
             <TouchableOpacity
               key={g}
@@ -290,6 +299,9 @@ const styles = StyleSheet.create({
   groupBtn: {
     width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
+  },
+  rankingBtn: {
+    borderColor: 'rgba(255,209,0,0.5)', backgroundColor: 'rgba(255,209,0,0.08)',
   },
   groupBtnText: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.bold },
   legend: {
