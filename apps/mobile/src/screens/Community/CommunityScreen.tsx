@@ -26,7 +26,7 @@ export function CommunityScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomColor: appColors.border }]}>
         <Text style={[styles.title, { color: appColors.text }]}>Comunidad</Text>
-        <TouchableOpacity style={styles.newPostBtn} onPress={() => {}}>
+        <TouchableOpacity style={styles.newPostBtn} onPress={() => navigation.navigate('NewPost')}>
           <Ionicons name="add" size={20} color="white" />
         </TouchableOpacity>
       </View>
@@ -60,7 +60,11 @@ export function CommunityScreen() {
           </View>
         }
         renderItem={({ item }: { item: any }) => (
-          <TouchableOpacity style={[styles.post, { backgroundColor: appColors.surface }]}>
+          <TouchableOpacity
+            style={[styles.post, { backgroundColor: appColors.surface }]}
+            onPress={() => navigation.navigate('PostDetail', { postId: item.id })}
+            activeOpacity={0.75}
+          >
             <View style={styles.postHeader}>
               <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
                 <Text style={styles.avatarText}>{item.user?.displayName?.[0] ?? 'U'}</Text>
@@ -75,6 +79,12 @@ export function CommunityScreen() {
                 <Text style={[styles.catTagText, { color: colors.primary }]}>{item.category}</Text>
               </View>
             </View>
+            {item.isPinned && (
+              <View style={styles.pinnedRow}>
+                <Ionicons name="pin" size={11} color={colors.primary} />
+                <Text style={[styles.pinnedText, { color: colors.primary }]}>Fijado</Text>
+              </View>
+            )}
             <Text style={[styles.postTitle, { color: appColors.text }]} numberOfLines={2}>{item.title}</Text>
             <Text style={[styles.postContent, { color: appColors.textSecondary }]} numberOfLines={2}>{item.content}</Text>
             <View style={styles.postFooter}>
@@ -85,6 +95,10 @@ export function CommunityScreen() {
               <View style={styles.stat}>
                 <Ionicons name="eye-outline" size={14} color={appColors.textSecondary} />
                 <Text style={[styles.statText, { color: appColors.textSecondary }]}>{item.viewsCount}</Text>
+              </View>
+              <View style={[styles.stat, { marginLeft: 'auto' as any }]}>
+                <Ionicons name="heart-outline" size={14} color={appColors.textSecondary} />
+                <Text style={[styles.statText, { color: appColors.textSecondary }]}>{item.likesCount ?? 0}</Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -127,4 +141,6 @@ const styles = StyleSheet.create({
   postFooter: { flexDirection: 'row', gap: spacing.base, paddingTop: spacing.xs },
   stat: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   statText: { fontSize: typography.fontSize.xs },
+  pinnedRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  pinnedText: { fontSize: 10, fontFamily: typography.fontFamily.medium },
 });

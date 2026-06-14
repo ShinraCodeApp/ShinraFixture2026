@@ -34,6 +34,9 @@ import { LocalLeaguesScreen } from '../screens/LocalLeague/LocalLeaguesScreen';
 import { LocalLeagueDetailScreen } from '../screens/LocalLeague/LocalLeagueDetailScreen';
 import { EditLocalTeamScreen } from '../screens/LocalLeague/EditLocalTeamScreen';
 import { BracketScreen } from '../screens/Bracket/BracketScreen';
+import { AchievementsScreen } from '../screens/Profile/AchievementsScreen';
+import { NewPostScreen } from '../screens/Community/NewPostScreen';
+import { PostDetailScreen } from '../screens/Community/PostDetailScreen';
 
 export type MainTabParamList = {
   HomeTab: undefined;
@@ -55,6 +58,9 @@ function HomeStack() {
       <Stack.Screen name="Stats" component={StatsScreen} />
       <Stack.Screen name="Simulator" component={SimulatorScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="Community" component={CommunityScreen} />
+      <Stack.Screen name="NewPost" component={NewPostScreen} />
+      <Stack.Screen name="PostDetail" component={PostDetailScreen} />
     </Stack.Navigator>
   );
 }
@@ -103,6 +109,7 @@ function ProfileStack() {
       <Stack.Screen name="Friends" component={FriendsScreen} />
       <Stack.Screen name="FavoriteTeams" component={FavoriteTeamsScreen} />
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+      <Stack.Screen name="Achievements" component={AchievementsScreen} />
     </Stack.Navigator>
   );
 }

@@ -57,17 +57,26 @@ export function NotificationsScreen() {
   const notifications: any[] = data?.items ?? [];
   const unread: number = data?.unread ?? 0;
 
+  const handlePress = useCallback((item: any) => {
+    if (!item.isRead) markReadMutation.mutate(item.id);
+    const matchId = item.data?.matchId;
+    if (matchId && ['MATCH_START', 'GOAL', 'MATCH_END'].includes(item.type)) {
+      navigation.navigate('MatchesTab', { screen: 'MatchDetail', params: { matchId } });
+    }
+  }, [markReadMutation, navigation]);
+
   const renderItem = useCallback(({ item }: { item: any }) => {
     const iconData = NOTIF_ICONS[item.type] ?? NOTIF_ICONS.SYSTEM;
+    const hasAction = item.data?.matchId && ['MATCH_START', 'GOAL', 'MATCH_END'].includes(item.type);
     return (
       <TouchableOpacity
         style={[
           styles.item,
-          { backgroundColor: item.isRead ? appColors.surface : appColors.surface + 'FF' },
+          { backgroundColor: appColors.surface },
           !item.isRead && styles.itemUnread,
         ]}
-        onPress={() => !item.isRead && markReadMutation.mutate(item.id)}
-        activeOpacity={0.7}
+        onPress={() => handlePress(item)}
+        activeOpacity={0.75}
       >
         <View style={[styles.iconWrap, { backgroundColor: iconData.color + '20' }]}>
           <MaterialCommunityIcons name={iconData.name} size={20} color={iconData.color} />
@@ -77,14 +86,17 @@ export function NotificationsScreen() {
           <Text style={[styles.itemBody, { color: appColors.textSecondary }]} numberOfLines={2}>
             {item.body}
           </Text>
-          <Text style={[styles.itemTime, { color: appColors.textSecondary }]}>
-            {timeAgo(item.createdAt)}
-          </Text>
+          <View style={styles.itemMeta}>
+            <Text style={[styles.itemTime, { color: appColors.textSecondary }]}>{timeAgo(item.createdAt)}</Text>
+            {hasAction && (
+              <Text style={[styles.tapHint, { color: colors.primary }]}>Ver partido →</Text>
+            )}
+          </View>
         </View>
         {!item.isRead && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
       </TouchableOpacity>
     );
-  }, [appColors, markReadMutation]);
+  }, [appColors, handlePress]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>
@@ -165,6 +177,8 @@ const styles = StyleSheet.create({
   itemContent: { flex: 1, gap: 2 },
   itemTitle: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold },
   itemBody: { fontSize: typography.fontSize.xs, lineHeight: 16 },
+  itemMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 },
   itemTime: { fontSize: 10 },
+  tapHint: { fontSize: 10, fontFamily: typography.fontFamily.medium },
   unreadDot: { width: 8, height: 8, borderRadius: 4 },
 });

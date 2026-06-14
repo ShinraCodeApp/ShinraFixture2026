@@ -292,6 +292,24 @@ export function HomeScreen() {
           <GroupStandingsWidget group="A" />
         </View>
 
+        {/* ── Quick Actions ────────────────────────── */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: appColors.text }]}>Accesos rápidos</Text>
+          <View style={styles.quickActions}>
+            {[
+              { icon: 'forum', label: 'Comunidad', color: '#10B981', onPress: () => navigation.navigate('Community') },
+              { icon: 'soccer-field', label: 'Simulador', color: '#8B5CF6', onPress: () => navigation.navigate('Simulator') },
+              { icon: 'trophy', label: 'Mis logros', color: '#F59E0B', onPress: () => navigation.navigate('ProfileTab', { screen: 'Achievements' }) },
+              { icon: 'account-group', label: 'Amigos', color: '#3B82F6', onPress: () => navigation.navigate('ProfileTab', { screen: 'Friends' }) },
+            ].map((a) => (
+              <TouchableOpacity key={a.label} style={[styles.quickBtn, { backgroundColor: a.color + '15' }]} onPress={a.onPress}>
+                <MaterialCommunityIcons name={a.icon as any} size={22} color={a.color} />
+                <Text style={[styles.quickLabel, { color: appColors.text }]}>{a.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
         {/* ── Featured News ────────────────────────── */}
         <View style={[styles.section, styles.lastSection]}>
           <View style={styles.sectionHeader}>
@@ -361,5 +379,11 @@ const styles = StyleSheet.create({
   liveIndicator: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.live },
   horizontalList: { gap: spacing.sm, paddingRight: spacing.screen },
+  quickActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
+  quickBtn: {
+    flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'center',
+    gap: spacing.sm, padding: spacing.base, borderRadius: borderRadius.lg,
+  },
+  quickLabel: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.medium },
   matchSkeleton: { height: 80, borderRadius: borderRadius.md, marginBottom: spacing.sm },
 });
