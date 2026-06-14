@@ -353,7 +353,8 @@ matchRoutes.post('/espn-sync', async (req, res) => {
         const eventType = mapESPNEventType(detail.type?.text ?? '');
         if (!eventType) continue;
 
-        const detailMinute = Math.round(detail.clock?.value ?? 0);
+        // ESPN clock.value is in seconds — convert to minutes
+        const detailMinute = Math.round((detail.clock?.value ?? 0) / 60);
         const detailTeamEspnId = detail.team?.id ? String(detail.team.id) : null;
         const detailTeamId = detailTeamEspnId
           ? (detailTeamEspnId === String(homeComp.team?.id) ? homeTeam.id : awayTeam.id)
@@ -975,6 +976,14 @@ matchRoutes.post('/:id/live-event', async (req, res) => {
   const io = (global as any).io;
   io?.to(`match:${id}`).emit('match:event', { ...event, playerName });
   io?.to('global:live').emit('global:match-event', { matchId: id, type, minute: Number(minute), teamId });
+
+  if (type === 'GOAL' || type === 'OWN_GOAL' || type === 'PENALTY_SCORED') {
+    NotificationService.notifyGoal(id, teamId ?? '', Number(minute), description ?? playerName).catch(() => {});
+  } else if (type === 'RED_CARD' || type === 'SECOND_YELLOW') {
+    NotificationService.notifyCard(id, teamId ?? '', true, Number(minute), description ?? playerName).catch(() => {});
+  } else if (type === 'YELLOW_CARD') {
+    NotificationService.notifyCard(id, teamId ?? '', false, Number(minute), description ?? playerName).catch(() => {});
+  }
 
   res.json({ success: true, data: event });
 });

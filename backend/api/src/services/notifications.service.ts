@@ -90,13 +90,20 @@ export class NotificationService {
     if (!match) return;
 
     const scoringTeam = scoringTeamId === match.homeTeamId ? match.homeTeam.name : match.awayTeam.name;
+    const fmtMin = minute > 90 ? `90+${minute - 90}` : String(minute);
     const score = `${match.homeScore ?? 0}-${match.awayScore ?? 0}`;
-    const interestedUsers = await this.getUsersInterestedInMatch(matchId, [match.homeTeamId, match.awayTeamId]);
 
-    await this.sendPush(interestedUsers, {
+    // Broadcast to ALL users with notifications enabled
+    const users = await prisma.user.findMany({
+      where: { notificationsEnabled: true },
+      select: { id: true },
+    });
+    const userIds = users.map((u) => u.id);
+
+    await this.sendPush(userIds, {
       type: NotificationType.GOAL,
-      title: `🥅 ¡GOL de ${scoringTeam}! (${minute}')`,
-      body: `${match.homeTeam.name} ${score} ${match.awayTeam.name}${scorerName ? ` — ${scorerName}` : ''}`,
+      title: `⚽ ¡GOL de ${scoringTeam}! (${fmtMin}')`,
+      body: `${match.homeTeam.name} ${score} ${match.awayTeam.name}${scorerName ? ` · ${scorerName}` : ''}`,
       data: { matchId, minute: String(minute) },
     });
   }
