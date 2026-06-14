@@ -61,7 +61,7 @@ export function FixtureScreen() {
                 style={[styles.bracketBtn, { backgroundColor: '#FFD700' + '22', borderColor: '#FFD700' }]}
                 onPress={() => navigation.navigate('HomeTab' as any, { screen: 'Stats' } as any)}
               >
-                <Text style={[styles.bracketTxt, { color: '#FFD700' }]}>#WC</Text>
+                <Text style={[styles.bracketTxt, { color: '#FFD700' }]}>Ranking WC</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.bracketBtn, { backgroundColor: colors.primary + '22', borderColor: colors.primary }]}
