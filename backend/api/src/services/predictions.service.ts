@@ -4,6 +4,7 @@ import { prisma } from '../config/database';
 import { CacheService } from '../config/redis';
 import { ApiError } from '../utils/ApiError';
 import { AchievementService } from './achievement.service';
+import { NotificationService } from './notifications.service';
 
 const cache = new CacheService();
 
@@ -208,6 +209,8 @@ export class PredictionService {
           },
         }),
       ]);
+
+      NotificationService.notifyPredictionResult(pred.userId, matchId, points).catch(() => {});
     }
 
     // Invalidate ranking cache

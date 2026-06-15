@@ -176,12 +176,32 @@ export function HomeScreen() {
               </View>
             </View>
 
-            {/* Countdown */}
-            {!isWorldCupStarted && (
+            {/* Countdown: pre-WC → WC start date; durante WC → próximo partido */}
+            {!isWorldCupStarted ? (
               <View style={styles.countdownContainer}>
                 <Text style={styles.countdownLabel}>El Mundial comienza en</Text>
                 <CountdownTimer targetDate={WC_START_DATE} />
               </View>
+            ) : upcomingMatches.length > 0 && (
+              <TouchableOpacity
+                style={styles.nextMatchBanner}
+                onPress={() => navigation.navigate('MatchDetail', { matchId: upcomingMatches[0].id })}
+                activeOpacity={0.85}
+              >
+                <View style={styles.nextMatchTeams}>
+                  <Text style={styles.nextMatchCode}>{upcomingMatches[0].homeTeam?.code ?? '?'}</Text>
+                  <View style={styles.nextMatchCenter}>
+                    <Text style={styles.nextMatchVs}>vs</Text>
+                    <CountdownTimer targetDate={new Date(upcomingMatches[0].matchDate)} />
+                  </View>
+                  <Text style={styles.nextMatchCode}>{upcomingMatches[0].awayTeam?.code ?? '?'}</Text>
+                </View>
+                <Text style={styles.nextMatchLabel}>
+                  {upcomingMatches[0].stage === 'GROUP'
+                    ? `Próximo · Grupo ${upcomingMatches[0].group ?? ''}`
+                    : `Próximo · ${(upcomingMatches[0].stage ?? '').replace(/_/g, ' ')}`}
+                </Text>
+              </TouchableOpacity>
             )}
 
             {/* Quick Stats */}
@@ -387,6 +407,38 @@ const styles = StyleSheet.create({
   avatarText: { color: 'white', fontSize: typography.fontSize.md, fontFamily: typography.fontFamily.bold },
   countdownContainer: { alignItems: 'center', marginBottom: spacing.lg },
   countdownLabel: { color: 'rgba(255,255,255,0.8)', fontSize: typography.fontSize.sm, marginBottom: spacing.xs },
+  nextMatchBanner: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.base,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+  nextMatchTeams: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  nextMatchCode: {
+    color: 'white',
+    fontSize: typography.fontSize.lg,
+    fontFamily: typography.fontFamily.black,
+    width: 44,
+    textAlign: 'center',
+  },
+  nextMatchCenter: { flex: 1, alignItems: 'center', gap: 2 },
+  nextMatchVs: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontFamily: typography.fontFamily.medium },
+  nextMatchLabel: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 10,
+    fontFamily: typography.fontFamily.medium,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   statsRow: {
     flexDirection: 'row',
     backgroundColor: 'rgba(255,255,255,0.1)',

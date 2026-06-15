@@ -261,6 +261,7 @@ export function MatchDetailScreen() {
           {activeTab === 'info' && (
             <View>
               <EventTimeline events={match.events ?? []} homeTeamId={match.homeTeamId} />
+              <SocialPredictions matchId={matchId} homeTeam={match.homeTeam} awayTeam={match.awayTeam} />
               {(localAiAnalysis ?? match.aiAnalysis) && (
                 <AIAnalysisCard analysis={localAiAnalysis ?? match.aiAnalysis!} matchId={matchId} />
               )}
