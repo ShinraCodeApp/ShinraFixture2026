@@ -22,6 +22,7 @@ import { StatsScreen } from '../screens/Stats/StatsScreen';
 import { NewsScreen } from '../screens/News/NewsScreen';
 import { QuinielaScreen } from '../screens/Quiniela/QuinielaScreen';
 import { QuinielaDetailScreen } from '../screens/Quiniela/QuinielaDetailScreen';
+import { QuinielaInviteScreen } from '../screens/Quiniela/QuinielaInviteScreen';
 import { MatchesScreen } from '../screens/Matches/MatchesScreen';
 import { GroupDetailScreen } from '../screens/Fixture/GroupDetailScreen';
 import { AppGuideScreen } from '../screens/Profile/AppGuideScreen';
@@ -103,6 +104,7 @@ function PredictionsStack() {
       <Stack.Screen name="Predictions" component={PredictionsScreen} />
       <Stack.Screen name="Quiniela" component={QuinielaScreen} />
       <Stack.Screen name="QuinielaDetail" component={QuinielaDetailScreen} />
+      <Stack.Screen name="QuinielaInvite" component={QuinielaInviteScreen} />
       <Stack.Screen name="PublicProfile" component={PublicProfileScreen} />
     </Stack.Navigator>
   );

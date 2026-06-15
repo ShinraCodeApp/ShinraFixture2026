@@ -13,6 +13,15 @@ export class QuinielaController {
     res.status(201).json({ success: true, data: group });
   }
 
+  static async invitePreview(req: Request, res: Response): Promise<void> {
+    const preview = await QuinielaService.getPreviewByCode(req.params.code);
+    if (!preview) {
+      res.status(404).json({ success: false, error: 'Código inválido o grupo inactivo' });
+      return;
+    }
+    res.json({ success: true, data: preview });
+  }
+
   static async join(req: Request, res: Response): Promise<void> {
     const group = await QuinielaService.join(req.user!.id, req.body.inviteCode);
     res.json({ success: true, data: group });

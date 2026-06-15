@@ -75,6 +75,29 @@ export class QuinielaService {
     });
   }
 
+  static async getPreviewByCode(inviteCode: string) {
+    const group = await prisma.quinielaGroup.findUnique({
+      where: { inviteCode },
+      select: {
+        id: true,
+        name: true,
+        prizeDescription: true,
+        maxMembers: true,
+        isActive: true,
+        _count: { select: { members: true } },
+      },
+    });
+    if (!group || !group.isActive) return null;
+    return {
+      id: group.id,
+      name: group.name,
+      prizeDescription: group.prizeDescription,
+      maxMembers: group.maxMembers,
+      memberCount: group._count.members,
+      isFull: group._count.members >= group.maxMembers,
+    };
+  }
+
   static async join(userId: string, inviteCode: string) {
     const group = await prisma.quinielaGroup.findUnique({
       where: { inviteCode },

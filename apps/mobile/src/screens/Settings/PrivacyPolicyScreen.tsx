@@ -1,12 +1,14 @@
 import React from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../hooks/useAppTheme';
-import { spacing, typography, borderRadius } from '../../theme';
+import { spacing, typography, borderRadius, colors } from '../../theme';
+
+const PRIVACY_URL = 'https://shinracode.github.io/ShinraFixture2026/privacy';
 
 interface SectionProps {
   title: string;
@@ -49,6 +51,18 @@ export function PrivacyPolicyScreen() {
         <Text style={[styles.lastUpdated, { color: appColors.textSecondary }]}>
           Última actualización: junio de 2026
         </Text>
+
+        <TouchableOpacity
+          style={[styles.onlineBanner, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '44' }]}
+          onPress={() => Linking.openURL(PRIVACY_URL)}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="globe-outline" size={16} color={colors.primary} />
+          <Text style={[styles.onlineBannerText, { color: colors.primary }]}>
+            Ver versión actualizada online
+          </Text>
+          <Ionicons name="open-outline" size={14} color={colors.primary} />
+        </TouchableOpacity>
 
         <Text style={[styles.intro, { color: appColors.text }]}>
           ShinraCode ("nosotros", "nuestro") opera la aplicación móvil ShinraFixture 2026. Esta página
@@ -124,7 +138,16 @@ const styles = StyleSheet.create({
   lastUpdated: {
     fontSize: typography.fontSize.xs,
     fontFamily: typography.fontFamily.regular,
+    marginBottom: spacing.sm,
+  },
+  onlineBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    borderWidth: 1, borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.md, paddingVertical: 10,
     marginBottom: spacing.base,
+  },
+  onlineBannerText: {
+    flex: 1, fontSize: 13, fontFamily: typography.fontFamily.medium,
   },
   intro: {
     fontSize: typography.fontSize.sm,

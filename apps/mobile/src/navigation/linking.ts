@@ -25,6 +25,7 @@ export const linking: LinkingOptions<any> = {
               Predictions: 'predictions',
               Quiniela: 'quiniela',
               QuinielaDetail: 'quiniela/:groupId',
+              QuinielaInvite: 'quiniela/join/:code',
             },
           },
           CommunityTab: 'community',

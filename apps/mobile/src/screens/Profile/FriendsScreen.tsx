@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { apiService } from '../../services/api';
 import { colors, spacing, typography, borderRadius } from '../../theme';
+import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
 
 type Tab = 'amigos' | 'solicitudes' | 'buscar';
 
@@ -184,7 +185,17 @@ export function FriendsScreen() {
           refreshControl={<RefreshControl refreshing={loadingFriends} onRefresh={refetchFriends} tintColor={colors.primary} />}
         >
           {loadingFriends ? (
-            <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
+            <View style={{ gap: spacing.sm, paddingTop: spacing.sm }}>
+              {[0, 1, 2].map(i => (
+                <View key={i} style={[styles.card, { backgroundColor: appColors.surface }]}>
+                  <LoadingSkeleton width={44} height={44} style={{ borderRadius: 22 }} />
+                  <View style={{ flex: 1, gap: 6 }}>
+                    <LoadingSkeleton width="55%" height={14} />
+                    <LoadingSkeleton width="35%" height={11} />
+                  </View>
+                </View>
+              ))}
+            </View>
           ) : friends.length === 0 ? (
             <EmptyState icon="account-group" text="Todavía no tenés amigos en la app" sub='Buscá por username en la pestaña "Buscar"' />
           ) : (
@@ -214,7 +225,17 @@ export function FriendsScreen() {
           refreshControl={<RefreshControl refreshing={loadingReqs} onRefresh={refetchReqs} tintColor={colors.primary} />}
         >
           {loadingReqs ? (
-            <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
+            <View style={{ gap: spacing.sm, paddingTop: spacing.sm }}>
+              {[0, 1].map(i => (
+                <View key={i} style={[styles.card, { backgroundColor: appColors.surface }]}>
+                  <LoadingSkeleton width={44} height={44} style={{ borderRadius: 22 }} />
+                  <View style={{ flex: 1, gap: 6 }}>
+                    <LoadingSkeleton width="50%" height={14} />
+                    <LoadingSkeleton width="30%" height={11} />
+                  </View>
+                </View>
+              ))}
+            </View>
           ) : requests.length === 0 ? (
             <EmptyState icon="bell-outline" text="No hay solicitudes pendientes" />
           ) : (
@@ -267,7 +288,17 @@ export function FriendsScreen() {
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list}>
             {searching ? (
-              <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
+              <View style={{ gap: spacing.sm }}>
+                {[0, 1, 2].map(i => (
+                  <View key={i} style={[styles.card, { backgroundColor: appColors.surface }]}>
+                    <LoadingSkeleton width={44} height={44} style={{ borderRadius: 22 }} />
+                    <View style={{ flex: 1, gap: 6 }}>
+                      <LoadingSkeleton width="60%" height={14} />
+                      <LoadingSkeleton width="40%" height={11} />
+                    </View>
+                  </View>
+                ))}
+              </View>
             ) : query.length < 2 ? (
               <EmptyState icon="magnify" text="Escribí al menos 2 caracteres para buscar" />
             ) : searchResults.length === 0 ? (

@@ -3,6 +3,10 @@ import { QuinielaController } from '../controllers/quiniela.controller';
 import { authenticate } from '../middleware/auth';
 
 export const quinielaRoutes = Router();
+
+// Public — no auth required (used by deep link invite preview)
+quinielaRoutes.get('/invite-info/:code', QuinielaController.invitePreview);
+
 quinielaRoutes.use(authenticate);
 
 quinielaRoutes.get('/', QuinielaController.myGroups);

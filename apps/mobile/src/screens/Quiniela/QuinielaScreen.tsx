@@ -10,6 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 import { apiService } from '../../services/api';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { colors, spacing, typography, borderRadius } from '../../theme';
+import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
 
 const PRESET_PRIZES = [
   { label: '🥩 Asado', value: 'Asado' },
@@ -77,8 +78,10 @@ export function QuinielaScreen() {
   };
 
   const handleShare = async (code: string, name: string, prize?: string) => {
+    const link = `https://shinrafixture.com/quiniela/join/${code}`;
     await Share.share({
-      message: `¡Únete a mi quiniela "${name}" en ShinraFixture 2026!\nCódigo: ${code}${prize ? `\nPremio: ${prize}` : ''}`,
+      message: `¡Únete a mi quiniela "${name}" en ShinraFixture 2026!\n${link}${prize ? `\nPremio: ${prize}` : ''}`,
+      url: link,
     });
   };
 
@@ -96,10 +99,21 @@ export function QuinielaScreen() {
         </View>
       </View>
 
+      {isLoading && !data && (
+        <View style={styles.skeletonList}>
+          {[0, 1, 2].map(i => (
+            <View key={i} style={[styles.skeletonCard, { backgroundColor: appColors.surface }]}>
+              <LoadingSkeleton width="60%" height={18} style={{ marginBottom: 8 }} />
+              <LoadingSkeleton width="40%" height={13} />
+            </View>
+          ))}
+        </View>
+      )}
+
       <FlatList
         data={data ?? []}
         keyExtractor={(g: any) => g.id}
-        refreshing={isLoading}
+        refreshing={false}
         onRefresh={refetch}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
@@ -347,6 +361,8 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: spacing.sm },
   actionBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.primary },
   list: { padding: spacing.base, gap: spacing.sm, paddingBottom: 80 },
+  skeletonList: { padding: spacing.base, gap: spacing.sm },
+  skeletonCard: { borderRadius: borderRadius.lg, padding: spacing.base },
   empty: { alignItems: 'center', paddingTop: 60, gap: spacing.base },
   emptyTitle: { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold },
   emptySub: { fontSize: typography.fontSize.sm },
