@@ -194,6 +194,8 @@ model User {
   sentFriendships   Friendship[]      @relation("SentFriendships")
   receivedFriendships Friendship[]    @relation("ReceivedFriendships")
   bracketPicks      BracketPick[]
+  duelsAsChallenger MatchDuel[]  @relation("DuelChallenger")
+  duelsAsOpponent   MatchDuel[]  @relation("DuelOpponent")
 
   @@index([email])
   @@index([username])
@@ -444,6 +446,7 @@ model Match {
   predictions     Prediction[]
   comments        Comment[]
   playerStats     PlayerMatchStats[]
+  duels           MatchDuel[]
 
   @@index([tournamentId])
   @@index([homeTeamId])
@@ -1001,6 +1004,40 @@ model LocalMatch {
 
   @@index([leagueId])
   @@index([round])
+}
+
+// ══════════════════════════════════════════════════════
+// MATCH DUEL (1v1)
+// ══════════════════════════════════════════════════════
+
+enum DuelStatus {
+  PENDING    // challenger sent, waiting for opponent
+  ACCEPTED   // both made their picks
+  RESOLVED   // match finished, winner determined
+  DECLINED   // opponent rejected
+  EXPIRED    // opponent never accepted
+}
+
+model MatchDuel {
+  id            String      @id @default(uuid())
+  matchId       String
+  match         Match       @relation(fields: [matchId], references: [id])
+  challengerId  String
+  challenger    User        @relation("DuelChallenger", fields: [challengerId], references: [id])
+  opponentId    String
+  opponent      User        @relation("DuelOpponent", fields: [opponentId], references: [id])
+  // Picks: stored as "homeScore-awayScore" e.g. "2-1"
+  challengerPick String?
+  opponentPick   String?
+  status         DuelStatus  @default(PENDING)
+  winnerId       String?     // null = draw
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([challengerId])
+  @@index([opponentId])
+  @@index([matchId])
+  @@index([status])
 }
 
 // ══════════════════════════════════════════════════════

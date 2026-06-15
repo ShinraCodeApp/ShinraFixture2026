@@ -23,6 +23,7 @@ import { ProbabilityBars } from '../../components/match/ProbabilityBars';
 import { PredictionInput } from '../../components/predictions/PredictionInput';
 import { SocialPredictions } from '../../components/predictions/SocialPredictions';
 import { FriendPredictions } from '../../components/predictions/FriendPredictions';
+import { DuelSection } from '../../components/predictions/DuelSection';
 import { CommentSection } from '../../components/community/CommentSection';
 import { AIAnalysisCard } from '../../components/ai/AIAnalysisCard';
 import { LiveStreamTab } from '../../components/match/LiveStreamTab';
@@ -311,6 +312,12 @@ export function MatchDetailScreen() {
           )}
           {activeTab === 'predict' && (
             <>
+              <DuelSection
+                matchId={matchId}
+                matchStatus={match.status}
+                homeTeam={match.homeTeam}
+                awayTeam={match.awayTeam}
+              />
               <FriendPredictions matchId={matchId} />
               <SocialPredictions matchId={matchId} homeTeam={match.homeTeam} awayTeam={match.awayTeam} />
             </>

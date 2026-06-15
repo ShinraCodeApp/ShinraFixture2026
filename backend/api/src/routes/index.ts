@@ -16,6 +16,7 @@ import { paymentRoutes } from './payments.routes';
 import { tournamentRoutes } from './tournaments.routes';
 import { friendRoutes } from './friends.routes';
 import { localLeagueRoutes } from './local-leagues.routes';
+import { duelRoutes } from './duels.routes';
 
 export const router = Router();
 
@@ -36,6 +37,7 @@ router.use('/payments', paymentRoutes);
 router.use('/tournaments', tournamentRoutes);
 router.use('/friends', friendRoutes);
 router.use('/local-leagues', localLeagueRoutes);
+router.use('/duels', duelRoutes);
 
 router.get('/', (_req, res) => {
   res.json({

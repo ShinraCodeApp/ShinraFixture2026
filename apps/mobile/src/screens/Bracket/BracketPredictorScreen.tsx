@@ -69,9 +69,20 @@ export function BracketPredictorScreen() {
     staleTime: 30_000,
   });
 
+  const { data: bracketRanking = [] } = useQuery({
+    queryKey: ['bracket-ranking', wcTournament?.id],
+    queryFn: async () => {
+      const r = await apiService.get(`/predictions/bracket-ranking?tournamentId=${wcTournament.id}`);
+      return r.data.data ?? [];
+    },
+    enabled: !!wcTournament,
+    staleTime: 60_000,
+  });
+
   const [picks, setPicks] = useState<BracketPicks>(EMPTY_PICKS);
   const [activeRound, setActiveRound] = useState<keyof BracketPicks>('champion');
   const [initialized, setInitialized] = useState(false);
+  const [showRanking, setShowRanking] = useState(false);
 
   // Sync saved picks when loaded
   React.useEffect(() => {
@@ -154,6 +165,48 @@ export function BracketPredictorScreen() {
             : <Text style={styles.saveBtnText}>Guardar</Text>}
         </TouchableOpacity>
       </LinearGradient>
+
+      {/* My points + ranking toggle */}
+      {savedPick && (
+        <TouchableOpacity
+          style={[styles.myPicksBanner, { backgroundColor: appColors.surface, borderBottomColor: appColors.border }]}
+          onPress={() => setShowRanking(!showRanking)}
+          activeOpacity={0.8}
+        >
+          <MaterialCommunityIcons name="crown" size={18} color="#FFD700" />
+          <Text style={[styles.myPicksPts, { color: appColors.text }]}>
+            {savedPick.points ?? 0} pts del bracket
+          </Text>
+          {savedPick.isResolved && (
+            <View style={styles.resolvedBadge}>
+              <Text style={styles.resolvedBadgeText}>Resuelto ✓</Text>
+            </View>
+          )}
+          <MaterialCommunityIcons
+            name={showRanking ? 'chevron-up' : 'trophy-outline'}
+            size={16} color={colors.primary}
+            style={{ marginLeft: 'auto' }}
+          />
+        </TouchableOpacity>
+      )}
+
+      {/* Bracket ranking modal-ish */}
+      {showRanking && (bracketRanking as any[]).length > 0 && (
+        <View style={[styles.rankingPanel, { backgroundColor: appColors.surface, borderBottomColor: appColors.border }]}>
+          <Text style={[styles.rankingTitle, { color: appColors.text }]}>Ranking del Bracket</Text>
+          {(bracketRanking as any[]).slice(0, 10).map((entry: any, i: number) => (
+            <View key={entry.id} style={styles.rankingRow}>
+              <Text style={[styles.rankingPos, { color: i < 3 ? '#FFD700' : appColors.textSecondary }]}>
+                {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+              </Text>
+              <Text style={[styles.rankingName, { color: appColors.text }]} numberOfLines={1}>
+                {entry.user?.displayName ?? entry.user?.username}
+              </Text>
+              <Text style={[styles.rankingPts, { color: colors.primary }]}>{entry.points} pts</Text>
+            </View>
+          ))}
+        </View>
+      )}
 
       {/* Points info */}
       <View style={[styles.pointsRow, { backgroundColor: appColors.surface, borderBottomColor: appColors.border }]}>
@@ -254,6 +307,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.base, paddingVertical: spacing.xs,
   },
   saveBtnText: { color: 'white', fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.bold },
+
+  myPicksBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    paddingHorizontal: spacing.screen, paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  myPicksPts: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold },
+  resolvedBadge: {
+    backgroundColor: '#4CAF50' + '25', borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.xs, paddingVertical: 2,
+  },
+  resolvedBadgeText: { color: '#4CAF50', fontSize: 10, fontFamily: typography.fontFamily.semiBold },
+  rankingPanel: {
+    paddingHorizontal: spacing.screen, paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth, gap: spacing.xs,
+  },
+  rankingTitle: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.bold, marginBottom: 4 },
+  rankingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 2 },
+  rankingPos: { width: 28, fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.bold },
+  rankingName: { flex: 1, fontSize: typography.fontSize.sm },
+  rankingPts: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.bold },
 
   pointsRow: {
     flexDirection: 'row', paddingVertical: spacing.xs,

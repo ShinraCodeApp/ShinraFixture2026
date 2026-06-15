@@ -6,6 +6,7 @@ import { authenticate, optionalAuth } from '../middleware/auth';
 import { prisma } from '../config/database';
 import { NotificationService } from '../services/notifications.service';
 import { PredictionService } from '../services/predictions.service';
+import { resolveDuelsForMatch } from './duels.routes';
 
 export const matchRoutes = Router();
 
@@ -345,6 +346,7 @@ matchRoutes.post('/espn-sync', async (req, res) => {
         if (prevStatus !== 'FINISHED' && status === 'FINISHED') {
           NotificationService.notifyMatchEnd(match.id).catch(() => {});
           PredictionService.resolveMatchPredictions(match.id).catch(() => {});
+          resolveDuelsForMatch(match.id).catch(() => {});
         }
       }
 

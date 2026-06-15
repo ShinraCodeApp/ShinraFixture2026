@@ -7,6 +7,7 @@ import { logger } from '../utils/logger';
 import { SportsApiService } from '../services/sportsApi.service';
 import { PredictionService } from '../services/predictions.service';
 import { NotificationService } from '../services/notifications.service';
+import { BracketScoringService } from '../services/bracketScoring.service';
 import { AIService } from '../services/ai.service';
 
 const cache = new CacheService();
@@ -70,6 +71,13 @@ export function startCronJobs(): void {
   // ── Update group standings ────────────────────────────
   cron.schedule('*/5 * * * *', async () => {
     await updateGroupStandings();
+  });
+
+  // ── Score bracket picks (every 10 min during knockout stage) ─────────────
+  cron.schedule('*/10 * * * *', async () => {
+    await BracketScoringService.scoreAllActiveTournaments().catch((e) =>
+      logger.warn('Bracket scoring cron failed:', e)
+    );
   });
 
   // ── Clean expired refresh tokens (daily) ─────────────

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { PredictionController } from '../controllers/predictions.controller';
 import { authenticate } from '../middleware/auth';
 import { prisma } from '../config/database';
+import { BracketScoringService } from '../services/bracketScoring.service';
 
 export const predictionRoutes = Router();
 
@@ -59,6 +60,38 @@ predictionRoutes.get('/g-bracket', async (req: any, res) => {
       update: { picks },
     });
     res.json({ success: true, data: pick });
+  } catch (e: any) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Bracket leaderboard for a tournament
+predictionRoutes.get('/bracket-ranking', async (req: any, res) => {
+  try {
+    const { tournamentId } = req.query;
+    if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
+    const picks = await prisma.bracketPick.findMany({
+      where: { tournamentId: String(tournamentId) },
+      include: { user: { select: { id: true, displayName: true, username: true, avatar: true } } },
+      orderBy: { points: 'desc' },
+      take: 50,
+    });
+    res.json({ success: true, data: picks.map((p, i) => ({ ...p, rank: i + 1 })) });
+  } catch (e: any) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Admin trigger for bracket scoring
+predictionRoutes.get('/g-score-bracket', async (req: any, res) => {
+  try {
+    const { tournamentId } = req.query;
+    if (tournamentId) {
+      const result = await BracketScoringService.scoreTournament(String(tournamentId));
+      return res.json({ success: true, data: result });
+    }
+    await BracketScoringService.scoreAllActiveTournaments();
+    res.json({ success: true, data: { message: 'All active tournaments scored' } });
   } catch (e: any) {
     res.status(500).json({ success: false, error: e.message });
   }
