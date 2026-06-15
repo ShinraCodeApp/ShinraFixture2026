@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   FlatList, RefreshControl,
@@ -27,7 +27,11 @@ export function PredictionsScreen() {
   const route = useRoute<any>();
   const { appColors } = useAppTheme();
   const { user } = useSelector((state: RootState) => state.auth);
-  const [activeTab, setActiveTab] = useState<Tab>('predict');
+  const [activeTab, setActiveTab] = useState<Tab>((route.params?.tab as Tab) ?? 'predict');
+
+  useEffect(() => {
+    if (route.params?.tab) setActiveTab(route.params.tab as Tab);
+  }, [route.params?.tab]);
 
   const dispatch = useDispatch();
   const globalTournamentId = useSelector((state: RootState) => state.tournament.selectedId);

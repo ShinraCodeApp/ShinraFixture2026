@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 
@@ -60,6 +61,7 @@ export function MatchCard({ match, onPress, showPrediction = false, compact = fa
 
   const predictionStatus = match.userPrediction?.status;
   const hasPrediction = !!match.userPrediction;
+  const predictionClosed = !isScheduled || new Date(match.matchDate) <= new Date();
 
   const borderColor = predictionStatus === 'WON'
     ? colors.success
@@ -190,6 +192,22 @@ export function MatchCard({ match, onPress, showPrediction = false, compact = fa
             )}
           </View>
         )}
+
+        {/* Closed — no prediction made */}
+        {showPrediction && !hasPrediction && predictionClosed && (
+          <View style={[styles.predictionRow, styles.closedRow, { borderTopColor: appColors.border }]}>
+            <MaterialCommunityIcons name="lock-outline" size={12} color={appColors.textSecondary} />
+            <Text style={[styles.predLabel, { color: appColors.textSecondary }]}>Sin pronóstico · cerrado</Text>
+          </View>
+        )}
+
+        {/* Open — no prediction yet */}
+        {showPrediction && !hasPrediction && !predictionClosed && (
+          <View style={[styles.predictionRow, { borderTopColor: appColors.border }]}>
+            <MaterialCommunityIcons name="lightning-bolt-outline" size={12} color={colors.primary} />
+            <Text style={[styles.predLabel, { color: colors.primary }]}>Pronosticá este partido</Text>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -237,6 +255,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.base, paddingVertical: spacing.xs,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
+  closedRow: { opacity: 0.6 },
   predLabel: { fontSize: typography.fontSize.xs },
   predScore: { flex: 1, fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.bold },
   pointsBadge: { paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: borderRadius.full },
