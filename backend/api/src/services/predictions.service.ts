@@ -72,6 +72,9 @@ export class PredictionService {
     if (match.status === MatchStatus.FINISHED) {
       throw ApiError.badRequest('El partido ya finalizó, no se pueden hacer pronósticos');
     }
+    if (match.status !== MatchStatus.SCHEDULED || dayjs(match.matchDate).isBefore(dayjs())) {
+      throw ApiError.badRequest('El pronóstico está cerrado — el partido ya comenzó');
+    }
 
     const prediction = await prisma.prediction.upsert({
       where: { userId_matchId: { userId, matchId: dto.matchId } },

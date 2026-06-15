@@ -24,6 +24,7 @@ import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
 import { FeaturedNews } from '../../components/news/FeaturedNews';
 import { GroupStandingsWidget } from '../../components/standings/GroupStandingsWidget';
 import { QuickPredictionCard } from '../../components/predictions/QuickPredictionCard';
+import { TopPredictorsWidget } from '../../components/predictions/TopPredictorsWidget';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const WC_START_DATE = new Date('2026-06-11T16:00:00Z');
@@ -293,15 +294,25 @@ export function HomeScreen() {
           </View>
         )}
 
+        {/* ── Top Predictores ──────────────────────── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: appColors.text }]}>🏆 Top Predictores</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('PredictionsTab', { screen: 'Predictions', params: { tab: 'ranking' } })}>
+              <Text style={[styles.seeAll, { color: colors.primary }]}>Ver todos</Text>
+            </TouchableOpacity>
+          </View>
+          <TopPredictorsWidget
+            onSeeAll={() => navigation.navigate('PredictionsTab', { screen: 'Predictions', params: { tab: 'ranking' } })}
+          />
+        </View>
+
         {/* ── Group Standings Widget ───────────────── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: appColors.text }]}>Tabla de Posiciones</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Stats')}>
-              <Text style={[styles.seeAll, { color: colors.primary }]}>Ver ranking #WC</Text>
-            </TouchableOpacity>
           </View>
-          <GroupStandingsWidget group="A" />
+          <GroupStandingsWidget initialGroup="A" />
         </View>
 
         {/* ── Quick Actions ────────────────────────── */}
