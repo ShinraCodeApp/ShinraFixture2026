@@ -76,12 +76,23 @@ export function PersonalStatsScreen() {
     staleTime: 60_000,
   });
 
-  const { data: bracketPick } = useQuery({
-    queryKey: ['bracket-pick-any'],
+  const { data: wcTournament } = useQuery({
+    queryKey: ['tournaments-wc'],
     queryFn: async () => {
-      const r = await apiService.get('/predictions/bracket?tournamentId=wc2026');
+      const r = await apiService.get('/tournaments');
+      const all: any[] = r.data.data ?? [];
+      return all.find((t: any) => t.type === 'WORLD_CUP') ?? null;
+    },
+    staleTime: 10 * 60_000,
+  });
+
+  const { data: bracketPick } = useQuery({
+    queryKey: ['bracket-pick-any', wcTournament?.id],
+    queryFn: async () => {
+      const r = await apiService.get(`/predictions/bracket?tournamentId=${wcTournament!.id}`);
       return r.data.data;
     },
+    enabled: !!wcTournament,
     staleTime: 60_000,
   });
 

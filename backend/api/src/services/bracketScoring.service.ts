@@ -109,14 +109,11 @@ export class BracketScoringService {
       if (pts > 0 || allDone || partialDone) {
         await prisma.bracketPick.update({
           where: { id: pick.id },
-          data: {
-            points: pts,
-            isResolved: allDone,
-          },
+          data: { points: pts, isResolved: allDone },
         });
 
-        // Add to user's prediction points if resolved
-        if (allDone && pts > 0) {
+        // Increment user points only once: when resolving AND pick hadn't been resolved yet
+        if (allDone && !pick.isResolved && pts > 0) {
           await prisma.user.update({
             where: { id: pick.userId },
             data: { predictionPoints: { increment: pts } },

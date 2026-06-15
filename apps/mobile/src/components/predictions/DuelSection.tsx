@@ -7,6 +7,8 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { showMessage } from 'react-native-flash-message';
 
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { apiService } from '../../services/api';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme';
@@ -33,6 +35,7 @@ const scoreTagStyles = StyleSheet.create({
 export function DuelSection({ matchId, matchStatus, homeTeam, awayTeam }: DuelSectionProps) {
   const { appColors } = useAppTheme();
   const queryClient = useQueryClient();
+  const { user } = useSelector((state: RootState) => state.auth);
   const isScheduled = matchStatus === 'SCHEDULED';
 
   // My active duels for this match
@@ -220,9 +223,8 @@ export function DuelSection({ matchId, matchStatus, homeTeam, awayTeam }: DuelSe
         </View>
       ) : (
         matchDuels.map((duel: any) => {
-          const amChallenger = duel.challengerId === duel.challenger?.id; // simplify: always show both
-          const opponent = duel.challenger; // we'll show both sides
-          const isMyChallenge = duel.challengerPick !== null && duel.challengerPick !== undefined;
+          const amChallenger = duel.challengerId === user?.id;
+          const amOpponent   = duel.opponentId   === user?.id;
           const statusColor = duel.status === 'PENDING' ? '#F59E0B' : duel.status === 'ACCEPTED' ? '#10B981' : '#6B7280';
 
           return (
@@ -250,8 +252,8 @@ export function DuelSection({ matchId, matchStatus, homeTeam, awayTeam }: DuelSe
                   : <Text style={S.pickLabel}>Pendiente</Text>}
               </View>
 
-              {/* Accept/Decline buttons if I'm the opponent and status is PENDING */}
-              {duel.status === 'PENDING' && (
+              {/* Only opponent sees Accept/Decline on PENDING duels */}
+              {duel.status === 'PENDING' && amOpponent && (
                 <View style={S.actionRow}>
                   <TouchableOpacity style={S.acceptBtn} onPress={() => handleAccept(duel)}>
                     <Text style={S.actionText}>Aceptar y apostar</Text>
@@ -260,6 +262,13 @@ export function DuelSection({ matchId, matchStatus, homeTeam, awayTeam }: DuelSe
                     <Text style={[S.actionText, { color: appColors.text }]}>Rechazar</Text>
                   </TouchableOpacity>
                 </View>
+              )}
+
+              {/* Challenger sees waiting message */}
+              {duel.status === 'PENDING' && amChallenger && (
+                <Text style={[S.pickLabel, { marginTop: 6, fontStyle: 'italic' }]}>
+                  Esperando respuesta de {duel.opponent?.displayName ?? duel.opponent?.username}…
+                </Text>
               )}
             </View>
           );

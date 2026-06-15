@@ -210,10 +210,11 @@ export class PredictionService {
         }),
       ]);
 
-      NotificationService.notifyPredictionResult(pred.userId, matchId, points, {
-        homeScore: pred.homeScore,
-        awayScore: pred.awayScore,
-      }).catch(() => {});
+      NotificationService.notifyPredictionResult(pred.userId, matchId, points,
+        pred.homeScore != null && pred.awayScore != null
+          ? { homeScore: pred.homeScore, awayScore: pred.awayScore }
+          : undefined,
+      ).catch(() => {});
     }
 
     // Invalidate ranking cache

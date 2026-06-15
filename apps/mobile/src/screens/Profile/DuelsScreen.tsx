@@ -10,6 +10,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { showMessage } from 'react-native-flash-message';
 
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { apiService } from '../../services/api';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme';
@@ -143,6 +145,7 @@ export function DuelsScreen() {
   const navigation = useNavigation<any>();
   const { appColors } = useAppTheme();
   const queryClient = useQueryClient();
+  const { user } = useSelector((state: RootState) => state.auth);
   const [tab, setTab] = useState<DuelTab>('pending');
   const [acceptDuel, setAcceptDuel] = useState<any>(null);
   const [acceptHome, setAcceptHome] = useState('');
@@ -183,9 +186,8 @@ export function DuelsScreen() {
   const pending = (activeDuels as any[]).filter((d: any) => d.status === 'PENDING');
   const active  = (activeDuels as any[]).filter((d: any) => d.status === 'ACCEPTED');
 
-  const wins   = (historyDuels as any[]).filter((d: any) => d.status === 'RESOLVED' && d.winnerId != null).length;
-  const losses = (historyDuels as any[]).filter((d: any) => d.status === 'RESOLVED' && d.winnerId != null).length;
-  // (simplified — real W/L needs userId from auth)
+  const wins   = (historyDuels as any[]).filter((d: any) => d.status === 'RESOLVED' && d.winnerId === user?.id).length;
+  const losses = (historyDuels as any[]).filter((d: any) => d.status === 'RESOLVED' && d.winnerId !== null && d.winnerId !== user?.id).length;
 
   const isLoading = loadingActive || (tab === 'history' && loadingHistory);
   const onRefresh = () => { refetchActive(); if (tab === 'history') refetchHistory(); };
@@ -264,6 +266,7 @@ export function DuelsScreen() {
             <DuelCard
               key={duel.id}
               duel={duel}
+              userId={user?.id}
               onAccept={setAcceptDuel}
               onDecline={(id) => declineMutation.mutate(id)}
             />
