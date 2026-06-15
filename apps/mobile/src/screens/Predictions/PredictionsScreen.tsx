@@ -202,7 +202,14 @@ export function PredictionsScreen() {
               ? <View style={{ padding: spacing.base }}>{Array.from({ length: 5 }).map((_, i) => <LoadingSkeleton key={i} style={styles.skeleton} />)}</View>
               : null
           }
-          renderItem={({ item, index }) => <RankingCard entry={item} position={index + 1} currentUserId={user?.id} />}
+          renderItem={({ item, index }) => (
+            <RankingCard
+              entry={item}
+              position={index + 1}
+              currentUserId={user?.id}
+              onPress={() => navigation.navigate('PublicProfile', { userId: item.id })}
+            />
+          )}
         />
       )}
     </SafeAreaView>

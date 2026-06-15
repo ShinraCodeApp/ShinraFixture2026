@@ -45,6 +45,7 @@ export function MatchesScreen() {
   const sectionListRef = useRef<SectionList<any>>(null);
   const scrolledToToday = useRef(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<string>('todos');
   const today = dayjs().format('YYYY-MM-DD');
 
   const toggleSection = useCallback((dateKey: string) => {
@@ -105,8 +106,25 @@ export function MatchesScreen() {
   const displayName = (team: any) =>
     language === 'en' ? (team?.shortName || team?.name) : team?.name;
 
+  const STATUS_FILTERS = [
+    { key: 'todos', label: 'Todos' },
+    { key: 'live', label: '🔴 En vivo' },
+    { key: 'today', label: '📅 Hoy' },
+    { key: 'scheduled', label: 'Programados' },
+    { key: 'finished', label: 'Finalizados' },
+  ];
+
+  const filteredMatches = (allMatches as any[]).filter((m) => {
+    if (statusFilter === 'todos') return true;
+    if (statusFilter === 'live') return m.status === 'LIVE' || m.status === 'HALF_TIME';
+    if (statusFilter === 'today') return dayjs(m.matchDate).isSame(dayjs(), 'day');
+    if (statusFilter === 'scheduled') return m.status === 'SCHEDULED';
+    if (statusFilter === 'finished') return m.status === 'FINISHED';
+    return true;
+  });
+
   const allSections = Object.entries(
-    (allMatches as any[]).reduce<Record<string, any[]>>((acc, m) => {
+    filteredMatches.reduce<Record<string, any[]>>((acc, m) => {
       const key = dayjs(m.matchDate).format('YYYY-MM-DD');
       if (!acc[key]) acc[key] = [];
       acc[key].push(m);
@@ -186,6 +204,30 @@ export function MatchesScreen() {
           />
         </View>
       )}
+
+      {/* Status filter pills */}
+      <View style={[styles.filterBar, { borderBottomColor: appColors.border }]}>
+        <FlatList
+          horizontal
+          data={STATUS_FILTERS}
+          keyExtractor={(f) => f.key}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.pillList}
+          renderItem={({ item }) => {
+            const isActive = statusFilter === item.key;
+            return (
+              <TouchableOpacity
+                style={[styles.pill, { backgroundColor: isActive ? colors.primary : appColors.surfaceSecondary }]}
+                onPress={() => setStatusFilter(item.key)}
+              >
+                <Text style={[styles.pillText, { color: isActive ? 'white' : appColors.textSecondary }]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          }}
+        />
+      </View>
 
       {/* Matches grouped by day */}
       <SectionList
@@ -317,6 +359,7 @@ const styles = StyleSheet.create({
   title: { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold },
   syncBtn: { padding: 4 },
   tournamentBar: { borderBottomWidth: StyleSheet.hairlineWidth },
+  filterBar: { borderBottomWidth: StyleSheet.hairlineWidth },
   pillList: { paddingHorizontal: spacing.screen, paddingVertical: spacing.xs, gap: spacing.xs },
   pill: { paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: borderRadius.full },
   pillText: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.semiBold },

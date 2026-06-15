@@ -36,6 +36,7 @@ import { EditLocalTeamScreen } from '../screens/LocalLeague/EditLocalTeamScreen'
 import { BracketScreen } from '../screens/Bracket/BracketScreen';
 import { AchievementsScreen } from '../screens/Profile/AchievementsScreen';
 import { PersonalStatsScreen } from '../screens/Profile/PersonalStatsScreen';
+import { PublicProfileScreen } from '../screens/Profile/PublicProfileScreen';
 import { NewPostScreen } from '../screens/Community/NewPostScreen';
 import { PostDetailScreen } from '../screens/Community/PostDetailScreen';
 
@@ -97,6 +98,7 @@ function PredictionsStack() {
       <Stack.Screen name="Predictions" component={PredictionsScreen} />
       <Stack.Screen name="Quiniela" component={QuinielaScreen} />
       <Stack.Screen name="QuinielaDetail" component={QuinielaDetailScreen} />
+      <Stack.Screen name="PublicProfile" component={PublicProfileScreen} />
     </Stack.Navigator>
   );
 }
@@ -112,6 +114,7 @@ function ProfileStack() {
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       <Stack.Screen name="Achievements" component={AchievementsScreen} />
       <Stack.Screen name="PersonalStats" component={PersonalStatsScreen} />
+      <Stack.Screen name="PublicProfile" component={PublicProfileScreen} />
     </Stack.Navigator>
   );
 }

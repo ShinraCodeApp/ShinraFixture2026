@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { colors, spacing, typography, borderRadius } from '../../theme';
@@ -10,13 +10,17 @@ interface RankingEntry {
   level: number; country?: string; rank: number;
 }
 
-export function RankingCard({ entry, position, currentUserId }: { entry: RankingEntry; position: number; currentUserId?: string }) {
+export function RankingCard({ entry, position, currentUserId, onPress }: { entry: RankingEntry; position: number; currentUserId?: string; onPress?: () => void }) {
   const { appColors } = useAppTheme();
   const isMe = entry.id === currentUserId;
   const medalColor = position === 1 ? '#FFD700' : position === 2 ? '#C0C0C0' : position === 3 ? '#CD7F32' : null;
 
   return (
-    <View style={[styles.card, { backgroundColor: appColors.surface }, isMe && { borderWidth: 1.5, borderColor: colors.primary }]}>
+    <TouchableOpacity
+      activeOpacity={onPress ? 0.75 : 1}
+      onPress={onPress}
+      style={[styles.card, { backgroundColor: appColors.surface }, isMe && { borderWidth: 1.5, borderColor: colors.primary }]}
+    >
       <View style={styles.rankBox}>
         {medalColor ? (
           <MaterialCommunityIcons name="medal" size={20} color={medalColor} />
@@ -44,7 +48,7 @@ export function RankingCard({ entry, position, currentUserId }: { entry: Ranking
         <Text style={[styles.pts, { color: isMe ? colors.primary : appColors.text }]}>{entry.predictionPoints}</Text>
         <Text style={[styles.ptsLabel, { color: appColors.textSecondary }]}>pts</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 

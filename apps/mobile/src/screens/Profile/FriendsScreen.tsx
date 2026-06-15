@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Image, Alert,
+  TextInput, ActivityIndicator, Image, Alert, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -89,13 +89,13 @@ export function FriendsScreen() {
   const [pendingId, setPendingId] = useState<string | null>(null);
 
   // Friends list
-  const { data: friends = [], isLoading: loadingFriends } = useQuery<any[]>({
+  const { data: friends = [], isLoading: loadingFriends, refetch: refetchFriends } = useQuery<any[]>({
     queryKey: ['friends'],
     queryFn: async () => (await apiService.get('/friends')).data.data,
   });
 
   // Pending requests (received)
-  const { data: requests = [], isLoading: loadingReqs } = useQuery<any[]>({
+  const { data: requests = [], isLoading: loadingReqs, refetch: refetchReqs } = useQuery<any[]>({
     queryKey: ['friend-requests'],
     queryFn: async () => (await apiService.get('/friends/requests')).data.data,
   });
@@ -178,7 +178,11 @@ export function FriendsScreen() {
 
       {/* Content */}
       {tab === 'amigos' && (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.list}
+          refreshControl={<RefreshControl refreshing={loadingFriends} onRefresh={refetchFriends} tintColor={colors.primary} />}
+        >
           {loadingFriends ? (
             <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
           ) : friends.length === 0 ? (
@@ -204,7 +208,11 @@ export function FriendsScreen() {
       )}
 
       {tab === 'solicitudes' && (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.list}
+          refreshControl={<RefreshControl refreshing={loadingReqs} onRefresh={refetchReqs} tintColor={colors.primary} />}
+        >
           {loadingReqs ? (
             <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
           ) : requests.length === 0 ? (

@@ -5,6 +5,7 @@ import { MatchController } from '../controllers/matches.controller';
 import { authenticate, optionalAuth } from '../middleware/auth';
 import { prisma } from '../config/database';
 import { NotificationService } from '../services/notifications.service';
+import { PredictionService } from '../services/predictions.service';
 
 export const matchRoutes = Router();
 
@@ -330,6 +331,7 @@ matchRoutes.post('/espn-sync', async (req, res) => {
           },
         });
       } else {
+        const prevStatus = match.status;
         match = await prisma.match.update({
           where: { id: match.id },
           data: {
@@ -340,6 +342,10 @@ matchRoutes.post('/espn-sync', async (req, res) => {
             ...(match.externalId == null && { externalId: event.id }),
           },
         });
+        if (prevStatus !== 'FINISHED' && status === 'FINISHED') {
+          NotificationService.notifyMatchEnd(match.id).catch(() => {});
+          PredictionService.resolveMatchPredictions(match.id).catch(() => {});
+        }
       }
 
       if (status === 'LIVE') {
@@ -868,6 +874,43 @@ matchRoutes.get('/:id/lineups', MatchController.getLineups);
 matchRoutes.get('/:id/h2h', MatchController.getHeadToHead);
 matchRoutes.get('/:id/comments', optionalAuth, MatchController.getComments);
 matchRoutes.post('/:id/comments', authenticate, MatchController.addComment);
+
+// Friend predictions for a match
+matchRoutes.get('/:id/friend-predictions', authenticate, async (req, res) => {
+  try {
+    const { id: matchId } = req.params;
+    const userId = (req as any).user.id;
+
+    const friendships = await prisma.friendship.findMany({
+      where: { OR: [{ fromUserId: userId }, { toUserId: userId }], status: 'ACCEPTED' },
+      select: { fromUserId: true, toUserId: true },
+    });
+
+    const friendIds = friendships.map((f) =>
+      f.fromUserId === userId ? f.toUserId : f.fromUserId
+    );
+
+    if (!friendIds.length) return res.json({ success: true, data: [] });
+
+    const predictions = await prisma.prediction.findMany({
+      where: { matchId, userId: { in: friendIds } },
+      include: { user: { select: { id: true, displayName: true, username: true, avatar: true } } },
+    });
+
+    res.json({ success: true, data: predictions.map((p) => ({
+      userId: p.userId,
+      displayName: p.user.displayName,
+      username: p.user.username,
+      avatar: p.user.avatar,
+      homeScore: p.homeScore,
+      awayScore: p.awayScore,
+      status: p.status,
+      pointsEarned: p.pointsEarned,
+    })) });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // Prediction stats — aggregate community predictions for this match
 matchRoutes.get('/:id/prediction-stats', async (req, res) => {

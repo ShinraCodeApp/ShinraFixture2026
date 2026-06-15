@@ -22,6 +22,7 @@ import { MatchLineups } from '../../components/match/MatchLineups';
 import { ProbabilityBars } from '../../components/match/ProbabilityBars';
 import { PredictionInput } from '../../components/predictions/PredictionInput';
 import { SocialPredictions } from '../../components/predictions/SocialPredictions';
+import { FriendPredictions } from '../../components/predictions/FriendPredictions';
 import { CommentSection } from '../../components/community/CommentSection';
 import { AIAnalysisCard } from '../../components/ai/AIAnalysisCard';
 import { LiveStreamTab } from '../../components/match/LiveStreamTab';
@@ -309,7 +310,10 @@ export function MatchDetailScreen() {
             </View>
           )}
           {activeTab === 'predict' && (
-            <SocialPredictions matchId={matchId} homeTeam={match.homeTeam} awayTeam={match.awayTeam} />
+            <>
+              <FriendPredictions matchId={matchId} />
+              <SocialPredictions matchId={matchId} homeTeam={match.homeTeam} awayTeam={match.awayTeam} />
+            </>
           )}
           {activeTab === 'comments' && <CommentSection matchId={matchId} />}
         </ScrollView>

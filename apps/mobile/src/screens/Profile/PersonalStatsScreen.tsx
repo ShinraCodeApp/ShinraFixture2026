@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -54,7 +54,7 @@ export function PersonalStatsScreen() {
   const { appColors } = useAppTheme();
   const { user } = useSelector((state: RootState) => state.auth);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ['my-predictions-stats'],
     queryFn: async () => {
       const r = await apiService.get('/predictions?limit=200');
@@ -121,7 +121,10 @@ export function PersonalStatsScreen() {
           ))}
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scroll}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={colors.primary} />}
+        >
           {/* ── Summary Cards ──────────────────────── */}
           <View style={styles.summaryGrid}>
             {[
