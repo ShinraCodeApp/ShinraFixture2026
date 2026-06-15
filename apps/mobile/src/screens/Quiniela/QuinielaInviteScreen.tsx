@@ -18,7 +18,7 @@ import { colors, spacing, typography, borderRadius } from '../../theme';
 import { track } from '../../utils/analytics';
 
 export const PENDING_INVITE_KEY = 'pendingQuinielaCode';
-export const INVITE_BASE_URL = 'https://shinracode.github.io/ShinraFixture2026/quiniela/join/?code=';
+export const INVITE_BASE_URL = 'https://shinrafixture2026.netlify.app/quiniela/join/?code=';
 
 export function QuinielaInviteScreen() {
   const navigation = useNavigation<any>();

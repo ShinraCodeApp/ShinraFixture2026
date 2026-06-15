@@ -78,7 +78,7 @@ export function QuinielaScreen() {
   };
 
   const handleShare = async (code: string, name: string, prize?: string) => {
-    const link = `https://shinracode.github.io/ShinraFixture2026/quiniela/join/?code=${code}`;
+    const link = `https://shinrafixture2026.netlify.app/quiniela/join/?code=${code}`;
     await Share.share({
       message: `¡Únete a mi quiniela "${name}" en ShinraFixture 2026!\n${link}${prize ? `\nPremio: ${prize}` : ''}`,
       url: link,

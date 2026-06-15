@@ -4,7 +4,7 @@ export const linking: LinkingOptions<any> = {
   prefixes: [
     'shinrafixture://',
     'https://shinrafixture.com',
-    'https://shinracode.github.io',
+    'https://shinrafixture2026.netlify.app',
   ],
   config: {
     screens: {
