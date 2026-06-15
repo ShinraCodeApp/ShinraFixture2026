@@ -85,6 +85,10 @@ export function MatchesScreen() {
     },
     staleTime: 2 * 60_000,
     enabled: !!activeTournamentId,
+    refetchInterval: (query) => {
+      const items = (query.state.data as any[]) ?? [];
+      return items.some((m) => m.status === 'LIVE' || m.status === 'HALF_TIME') ? 30_000 : false;
+    },
   });
 
   const syncMutation = useMutation({
@@ -106,12 +110,21 @@ export function MatchesScreen() {
   const displayName = (team: any) =>
     language === 'en' ? (team?.shortName || team?.name) : team?.name;
 
+  const liveCount = (allMatches as any[]).filter(
+    (m) => m.status === 'LIVE' || m.status === 'HALF_TIME',
+  ).length;
+
+  // Auto-jump to live filter when matches load and there are live games
+  useEffect(() => {
+    if (liveCount > 0 && statusFilter === 'todos') setStatusFilter('live');
+  }, [liveCount > 0]);
+
   const STATUS_FILTERS = [
-    { key: 'todos', label: 'Todos' },
-    { key: 'live', label: '🔴 En vivo' },
-    { key: 'today', label: '📅 Hoy' },
-    { key: 'scheduled', label: 'Programados' },
-    { key: 'finished', label: 'Finalizados' },
+    { key: 'todos', label: 'Todos', count: 0 },
+    { key: 'live', label: '🔴 En vivo', count: liveCount },
+    { key: 'today', label: '📅 Hoy', count: 0 },
+    { key: 'scheduled', label: 'Programados', count: 0 },
+    { key: 'finished', label: 'Finalizados', count: 0 },
   ];
 
   const filteredMatches = (allMatches as any[]).filter((m) => {
@@ -223,6 +236,11 @@ export function MatchesScreen() {
                 <Text style={[styles.pillText, { color: isActive ? 'white' : appColors.textSecondary }]}>
                   {item.label}
                 </Text>
+                {item.count > 0 && (
+                  <View style={[styles.liveBadge, { backgroundColor: isActive ? 'rgba(255,255,255,0.3)' : colors.live }]}>
+                    <Text style={styles.liveBadgeText}>{item.count}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             );
           }}
@@ -361,8 +379,14 @@ const styles = StyleSheet.create({
   tournamentBar: { borderBottomWidth: StyleSheet.hairlineWidth },
   filterBar: { borderBottomWidth: StyleSheet.hairlineWidth },
   pillList: { paddingHorizontal: spacing.screen, paddingVertical: spacing.xs, gap: spacing.xs },
-  pill: { paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: borderRadius.full },
+  pill: { paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: borderRadius.full, flexDirection: 'row', alignItems: 'center', gap: 4 },
   pillText: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.semiBold },
+  liveBadge: {
+    minWidth: 18, height: 18, borderRadius: 9,
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  liveBadgeText: { color: 'white', fontSize: 10, fontFamily: typography.fontFamily.bold },
   listContent: { paddingBottom: 100 },
   dayHeader: { paddingHorizontal: spacing.screen, paddingVertical: spacing.xs, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   dayText: { fontSize: 11, fontFamily: typography.fontFamily.medium, textTransform: 'uppercase', letterSpacing: 0.5, flex: 1 },

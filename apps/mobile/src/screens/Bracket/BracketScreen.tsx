@@ -5,9 +5,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppTheme } from '../../hooks/useAppTheme';
-import { colors, spacing, typography } from '../../theme';
+import { colors, spacing, typography, borderRadius } from '../../theme';
 import { apiService } from '../../services/api';
 
 // ── Layout ─────────────────────────────────────────────────────────────
@@ -388,10 +388,17 @@ export function BracketScreen() {
           <TouchableOpacity onPress={() => nav.goBack()} style={s.backBtn}>
             <Ionicons name="arrow-back" size={22} color={appColors.text} />
           </TouchableOpacity>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={[s.title, { color: appColors.text }]}>Llaves del Mundial</Text>
             <Text style={[s.sub, { color: appColors.textSecondary }]}>Copa Mundial 2026 · Fase eliminatoria</Text>
           </View>
+          <TouchableOpacity
+            onPress={() => nav.navigate('BracketPredictor')}
+            style={s.predictBtn}
+          >
+            <MaterialCommunityIcons name="lightning-bolt" size={14} color="white" />
+            <Text style={s.predictBtnText}>Predecir</Text>
+          </TouchableOpacity>
         </View>
 
         {loading ? (
@@ -573,6 +580,12 @@ const s = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: { padding: 4 },
+  predictBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: colors.primary, borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.sm, paddingVertical: 6,
+  },
+  predictBtnText: { color: 'white', fontSize: 11, fontFamily: typography.fontFamily.bold },
   title: { fontSize: typography.fontSize.lg, fontFamily: typography.fontFamily.bold },
   sub: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.regular },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },

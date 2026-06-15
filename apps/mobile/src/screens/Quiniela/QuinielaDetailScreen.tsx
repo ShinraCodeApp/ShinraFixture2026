@@ -107,6 +107,25 @@ export function QuinielaDetailScreen() {
     });
   };
 
+  const handleShareRanking = async () => {
+    if (!group || !standings.length) return;
+    const MEDALS = ['🥇', '🥈', '🥉'];
+    const top5 = (standings as any[]).slice(0, 5);
+    const lines = top5.map((s: any, i: number) => {
+      const medal = MEDALS[i] ?? `${i + 1}.`;
+      return `${medal} ${s.user?.displayName ?? s.user?.username} — ${s.totalPoints} pts`;
+    });
+    const msg = [
+      `🏆 Quiniela "${group.name}" — Top ${top5.length}`,
+      '',
+      ...lines,
+      '',
+      `${group.prizeDescription ? `Premio: ${group.prizeDescription}\n` : ''}¡Sumate! Código: ${group.inviteCode}`,
+      '📲 ShinraFixture 2026',
+    ].join('\n');
+    await Share.share({ message: msg });
+  };
+
   const displayName = (team: any) =>
     language === 'en' ? (team?.shortName || team?.name) : team?.name;
 
@@ -133,9 +152,16 @@ export function QuinielaDetailScreen() {
             {group._count?.members ?? group.members?.length ?? 0} participantes · Código: {group.inviteCode}
           </Text>
         </View>
-        <TouchableOpacity onPress={handleShare} style={styles.shareBtn}>
-          <Ionicons name="share-social-outline" size={20} color={colors.primary} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          {activeTab === 'standings' && standings.length > 0 && (
+            <TouchableOpacity onPress={handleShareRanking} style={styles.shareBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <MaterialCommunityIcons name="trophy-outline" size={20} color={colors.primary} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={handleShare} style={styles.shareBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="share-social-outline" size={20} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Prize banner */}
@@ -467,6 +493,7 @@ const styles = StyleSheet.create({
   headerCenter: { flex: 1 },
   title: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold },
   subtitle: { fontSize: 11, fontFamily: typography.fontFamily.regular },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   shareBtn: { padding: 4 },
   prizeBanner: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,

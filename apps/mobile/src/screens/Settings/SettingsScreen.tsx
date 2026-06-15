@@ -252,6 +252,16 @@ export function SettingsScreen() {
               thumbColor="white"
             />
           </View>
+          {notificationsEnabled && (
+            <>
+              <View style={[styles.separator, { backgroundColor: appColors.border }]} />
+              <TouchableOpacity style={styles.row} onPress={() => (navigation as any).navigate('NotificationSettings')}>
+                <MaterialCommunityIcons name="tune-vertical" size={20} color={appColors.textSecondary} />
+                <Text style={[styles.rowLabel, { color: appColors.text }]}>Configurar tipos</Text>
+                <Ionicons name="chevron-forward" size={16} color={appColors.textSecondary} />
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* ── Compartir APK ───────────────────── */}
@@ -585,6 +595,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     fontFamily: typography.fontFamily.medium,
   },
+  separator: { height: StyleSheet.hairlineWidth, marginHorizontal: spacing.base },
   rowValue: {
     fontSize: typography.fontSize.sm,
     fontFamily: typography.fontFamily.regular,

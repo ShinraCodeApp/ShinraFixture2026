@@ -34,11 +34,13 @@ import { LocalLeaguesScreen } from '../screens/LocalLeague/LocalLeaguesScreen';
 import { LocalLeagueDetailScreen } from '../screens/LocalLeague/LocalLeagueDetailScreen';
 import { EditLocalTeamScreen } from '../screens/LocalLeague/EditLocalTeamScreen';
 import { BracketScreen } from '../screens/Bracket/BracketScreen';
+import { BracketPredictorScreen } from '../screens/Bracket/BracketPredictorScreen';
 import { AchievementsScreen } from '../screens/Profile/AchievementsScreen';
 import { PersonalStatsScreen } from '../screens/Profile/PersonalStatsScreen';
 import { PublicProfileScreen } from '../screens/Profile/PublicProfileScreen';
 import { NewPostScreen } from '../screens/Community/NewPostScreen';
 import { PostDetailScreen } from '../screens/Community/PostDetailScreen';
+import { NotificationSettingsScreen } from '../screens/Settings/NotificationSettingsScreen';
 
 export type MainTabParamList = {
   HomeTab: undefined;
@@ -77,6 +79,7 @@ function FixtureStack() {
       <Stack.Screen name="Teams" component={TeamsScreen} />
       <Stack.Screen name="TeamDetail" component={TeamDetailScreen} />
       <Stack.Screen name="Bracket" component={BracketScreen} />
+      <Stack.Screen name="BracketPredictor" component={BracketPredictorScreen} />
     </Stack.Navigator>
   );
 }
@@ -115,6 +118,7 @@ function ProfileStack() {
       <Stack.Screen name="Achievements" component={AchievementsScreen} />
       <Stack.Screen name="PersonalStats" component={PersonalStatsScreen} />
       <Stack.Screen name="PublicProfile" component={PublicProfileScreen} />
+      <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
     </Stack.Navigator>
   );
 }

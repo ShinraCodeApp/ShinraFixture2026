@@ -7,6 +7,7 @@ import { AppDispatch } from '../store';
 import { apiService } from '../services/api';
 import { logger } from '../utils/logger';
 import { navigate } from '../navigation/navigationRef';
+import { getNotifPrefs, shouldShowForType } from '../utils/notifPrefs';
 
 export function useNotifications() {
   const dispatch = useDispatch<AppDispatch>();
@@ -16,11 +17,12 @@ export function useNotifications() {
   useEffect(() => {
     try {
       Notifications.setNotificationHandler({
-        handleNotification: async () => ({
-          shouldShowAlert: true,
-          shouldPlaySound: true,
-          shouldSetBadge: true,
-        }),
+        handleNotification: async (notification) => {
+          const type = notification.request.content.data?.type as string | undefined;
+          const prefs = await getNotifPrefs();
+          const show = shouldShowForType(type, prefs);
+          return { shouldShowAlert: show, shouldPlaySound: show, shouldSetBadge: true };
+        },
       });
     } catch (e) {
       logger.warn('setNotificationHandler failed:', e);
