@@ -1,10 +1,34 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Share } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 import { TeamLogo } from '../common/TeamLogo';
 import dayjs from 'dayjs';
+
+async function sharePrediction(match: any, homeScore: number, awayScore: number, status: string, pointsEarned: number) {
+  const resultLine = status === 'WON'
+    ? `✅ ¡Acerté! +${pointsEarned} pts`
+    : status === 'LOST'
+      ? `❌ No acerté esta vez`
+      : '⏳ Partido pendiente';
+
+  const realScore = match.homeScore != null
+    ? `\nResultado real: ${match.homeScore}-${match.awayScore}`
+    : '';
+
+  const msg =
+    `🏆 Copa Mundial 2026\n` +
+    `⚽ ${match.homeTeam.code} vs ${match.awayTeam.code}\n` +
+    `⚡ Mi pronóstico: ${homeScore}-${awayScore}` +
+    `${realScore}\n` +
+    `${resultLine}\n\n` +
+    `¿El tuyo? Bajate ShinraFixture 🌍`;
+
+  try {
+    await Share.share({ message: msg });
+  } catch {}
+}
 
 export function PredictionHistoryCard({ prediction }: { prediction: any }) {
   const { appColors } = useAppTheme();
@@ -20,11 +44,19 @@ export function PredictionHistoryCard({ prediction }: { prediction: any }) {
         <Text style={[styles.date, { color: appColors.textSecondary }]}>
           {dayjs(match.matchDate).format('D MMM YYYY')}
         </Text>
-        <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
-          <MaterialCommunityIcons name={statusIcon as any} size={12} color={statusColor} />
-          <Text style={[styles.statusText, { color: statusColor }]}>
-            {status === 'WON' ? `+${pointsEarned} pts` : status === 'LOST' ? '0 pts' : 'Pendiente'}
-          </Text>
+        <View style={styles.headerRight}>
+          <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
+            <MaterialCommunityIcons name={statusIcon as any} size={12} color={statusColor} />
+            <Text style={[styles.statusText, { color: statusColor }]}>
+              {status === 'WON' ? `+${pointsEarned} pts` : status === 'LOST' ? '0 pts' : 'Pendiente'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => sharePrediction(match, homeScore, awayScore, status, pointsEarned)}
+            hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+          >
+            <MaterialCommunityIcons name="share-variant-outline" size={16} color={appColors.textSecondary} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -57,6 +89,7 @@ export function PredictionHistoryCard({ prediction }: { prediction: any }) {
 const styles = StyleSheet.create({
   card: { borderRadius: borderRadius.lg, padding: spacing.base, gap: spacing.sm },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   date: { fontSize: typography.fontSize.xs },
   statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: borderRadius.full },
   statusText: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.bold },

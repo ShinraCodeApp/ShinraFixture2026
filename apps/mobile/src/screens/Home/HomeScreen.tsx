@@ -18,6 +18,7 @@ import { apiService } from '../../services/api';
 import { colors, spacing, borderRadius, typography } from '../../theme';
 import { MatchCard } from '../../components/match/MatchCard';
 import { LiveMatchCard } from '../../components/match/LiveMatchCard';
+import { LiveMatchBanner } from '../../components/match/LiveMatchBanner';
 import { CountdownTimer } from '../../components/common/CountdownTimer';
 import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
 import { FeaturedNews } from '../../components/news/FeaturedNews';
@@ -218,24 +219,35 @@ export function HomeScreen() {
         {/* ── Live Matches ─────────────────────────── */}
         {liveMatches.length > 0 && (
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.liveIndicator}>
-                <View style={styles.liveDot} />
-                <Text style={[styles.sectionTitle, { color: colors.live }]}>EN VIVO</Text>
-              </View>
-              <TouchableOpacity onPress={() => navigation.navigate('FixtureTab')}>
-                <Text style={[styles.seeAll, { color: colors.primary }]}>Ver todos</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
-              {liveMatches.map((match) => (
-                <LiveMatchCard
-                  key={match.id}
-                  match={match}
-                  onPress={() => navigation.navigate('MatchDetail', { matchId: match.id })}
-                />
-              ))}
-            </ScrollView>
+            {/* Featured banner for the first live match */}
+            <LiveMatchBanner
+              match={liveMatches[0]}
+              extraCount={liveMatches.length - 1}
+              onPress={() => navigation.navigate('MatchesTab', {
+                screen: 'LiveRadar',
+                params: { matchId: liveMatches[0].id },
+              })}
+              onSeeAll={() => navigation.navigate('MatchesTab')}
+            />
+            {/* Additional live matches in a horizontal strip */}
+            {liveMatches.length > 1 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={[styles.horizontalList, { marginTop: 8 }]}
+              >
+                {liveMatches.slice(1).map((match) => (
+                  <LiveMatchCard
+                    key={match.id}
+                    match={match}
+                    onPress={() => navigation.navigate('MatchesTab', {
+                      screen: 'LiveRadar',
+                      params: { matchId: match.id },
+                    })}
+                  />
+                ))}
+              </ScrollView>
+            )}
           </View>
         )}
 

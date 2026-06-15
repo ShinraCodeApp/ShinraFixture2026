@@ -11,33 +11,29 @@ import { colors, spacing, typography } from '../../theme';
 import { apiService } from '../../services/api';
 
 // ── Layout ─────────────────────────────────────────────────────────────
-const SH = 82;     // slot height per R32 match
-const CW = 98;     // card width
-const CH = 60;     // card height
-const GW = 20;     // gap between rounds (connector space)
-const CS = CW + GW; // column step = 118
-const BH = 8 * SH; // bracket height = 656
+const SH = 82;
+const CW = 98;
+const CH = 60;
+const GW = 20;
+const CS = CW + GW;
+const BH = 8 * SH;
 
-// Left half x-positions
 const LR32 = 0;
 const LR16 = CS;
 const LQF  = CS * 2;
 const LSF  = CS * 3;
 
-// Final (center)
-const FX = LSF + CW + GW; // left edge of Final card
+const FX = LSF + CW + GW;
 
-// Right half x-positions (mirror, going away from center)
 const RSF  = FX + CW + GW;
 const RQF  = RSF + CS;
 const RR16 = RSF + CS * 2;
 const RR32 = RSF + CS * 3;
 
-const TW = RR32 + CW + 16; // total bracket width
+const TW = RR32 + CW + 16;
 
-// y-center of a match given round (0=R32…3=SF) and match index
 function yC(round: number, idx: number): number {
-  const k = 1 << round; // 1,2,4,8
+  const k = 1 << round;
   return k * SH * idx + (k * SH) / 2;
 }
 
@@ -46,6 +42,24 @@ interface TeamInfo { name: string; code: string; logo: string }
 interface Slot { type: 'g1' | 'g2' | 'g3'; group?: string; pools?: string[] }
 interface BMatch { id: string; home: Slot; away: Slot }
 type GroupMap = Record<string, { team: TeamInfo }[]>;
+
+// DB match from API
+interface DbMatch {
+  id: string;
+  homeTeam?: { name: string; code: string; flagUrl?: string } | null;
+  awayTeam?: { name: string; code: string; flagUrl?: string } | null;
+  homeScore?: number | null;
+  awayScore?: number | null;
+  status?: string;
+}
+
+interface KnockoutMap {
+  r32: DbMatch[];
+  r16: DbMatch[];
+  qf:  DbMatch[];
+  sf:  DbMatch[];
+  fin: DbMatch[];
+}
 
 // ── WC 2026 bracket definition ─────────────────────────────────────────
 const L_R32: BMatch[] = [
@@ -100,64 +114,142 @@ function TeamRow({ slot, gmap, appColors }: { slot: Slot; gmap: GroupMap; appCol
   );
 }
 
+// R32 card — tappable when we have a DB match ID
 function MatchCard({
-  match, gmap, x, slotIdx, colX, appColors, lineColor,
+  match, gmap, x, slotIdx, appColors, lineColor, dbMatch, nav,
 }: {
-  match: BMatch; gmap: GroupMap; x: number; slotIdx: number; colX: number;
-  appColors: any; lineColor: string;
+  match: BMatch; gmap: GroupMap; x: number; slotIdx: number;
+  appColors: any; lineColor: string; dbMatch?: DbMatch; nav: any;
 }) {
   const cy = yC(0, slotIdx);
   const cardY = cy - CH / 2;
+  const finished = dbMatch?.status === 'FINISHED';
+
   return (
-    <View style={[s.card, {
-      left: x, top: cardY, width: CW, height: CH,
-      backgroundColor: appColors.surface,
-      borderColor: appColors.border,
-    }]}>
-      <Text style={[s.matchId, { color: appColors.textSecondary }]}>{match.id}</Text>
+    <TouchableOpacity
+      disabled={!dbMatch?.id}
+      onPress={() => dbMatch?.id && nav.navigate('MatchDetail', { matchId: dbMatch.id })}
+      activeOpacity={0.75}
+      style={[s.card, {
+        position: 'absolute',
+        left: x, top: cardY, width: CW, height: CH,
+        backgroundColor: appColors.surface,
+        borderColor: finished ? colors.success + '60' : appColors.border,
+      }]}
+    >
+      {finished && (
+        <Text style={[s.matchId, { color: colors.success }]}>
+          {dbMatch!.homeScore}-{dbMatch!.awayScore} ✓
+        </Text>
+      )}
+      {!finished && (
+        <Text style={[s.matchId, { color: appColors.textSecondary }]}>{match.id}</Text>
+      )}
       <TeamRow slot={match.home} gmap={gmap} appColors={appColors} />
       <View style={[s.divider, { backgroundColor: appColors.border }]} />
       <TeamRow slot={match.away} gmap={gmap} appColors={appColors} />
-    </View>
+    </TouchableOpacity>
   );
 }
 
-function AdvCard({
-  round, idx, x, label, appColors,
+// Knockout card for R16+ — shows real teams when available
+function KnockoutCard({
+  round, idx, x, dbMatch, label, appColors, nav,
 }: {
-  round: number; idx: number; x: number; label: string; appColors: any;
+  round: number; idx: number; x: number;
+  dbMatch?: DbMatch; label: string; appColors: any; nav: any;
 }) {
   const cy = yC(round, idx);
   const cardY = cy - CH / 2;
+  const home = dbMatch?.homeTeam;
+  const away = dbMatch?.awayTeam;
+  const hasTeams = !!(home && away);
+  const hasScore = dbMatch?.homeScore != null;
+  const finished = dbMatch?.status === 'FINISHED';
+
   return (
-    <View style={[s.card, s.advCard, {
-      left: x, top: cardY, width: CW, height: CH,
-      backgroundColor: appColors.surfaceSecondary,
-      borderColor: appColors.border,
-    }]}>
-      <Text style={[s.advLabel, { color: appColors.textSecondary }]}>{label}</Text>
-    </View>
+    <TouchableOpacity
+      disabled={!dbMatch?.id}
+      onPress={() => dbMatch?.id && nav.navigate('MatchDetail', { matchId: dbMatch.id })}
+      activeOpacity={0.75}
+      style={[s.card, !hasTeams && s.advCard, {
+        position: 'absolute',
+        left: x, top: cardY, width: CW, height: CH,
+        backgroundColor: hasTeams ? appColors.surface : appColors.surfaceSecondary,
+        borderColor: finished ? colors.success + '60' : appColors.border,
+      }]}
+    >
+      {hasTeams ? (
+        <>
+          {hasScore && (
+            <Text style={[s.matchId, { color: finished ? colors.success : colors.primary }]}>
+              {dbMatch!.homeScore}-{dbMatch!.awayScore}{finished ? ' ✓' : ''}
+            </Text>
+          )}
+          <View style={s.teamRow}>
+            {home!.flagUrl
+              ? <Image source={{ uri: home!.flagUrl }} style={s.logo} resizeMode="contain" />
+              : <View style={[s.logoBox, { backgroundColor: appColors.surfaceSecondary }]} />}
+            <Text style={[s.codeTxt, { color: appColors.text }]} numberOfLines={1}>{home!.code}</Text>
+          </View>
+          <View style={[s.divider, { backgroundColor: appColors.border }]} />
+          <View style={s.teamRow}>
+            {away!.flagUrl
+              ? <Image source={{ uri: away!.flagUrl }} style={s.logo} resizeMode="contain" />
+              : <View style={[s.logoBox, { backgroundColor: appColors.surfaceSecondary }]} />}
+            <Text style={[s.codeTxt, { color: appColors.text }]} numberOfLines={1}>{away!.code}</Text>
+          </View>
+        </>
+      ) : (
+        <Text style={[s.advLabel, { color: appColors.textSecondary }]}>{label}</Text>
+      )}
+    </TouchableOpacity>
   );
 }
 
-function FinalCard({ appColors }: { appColors: any }) {
+// Final card
+function FinalCard({ appColors, dbMatch, nav }: { appColors: any; dbMatch?: DbMatch; nav: any }) {
   const cy = yC(3, 0);
   const cardY = cy - CH / 2 - 10;
+  const home = dbMatch?.homeTeam;
+  const away = dbMatch?.awayTeam;
+  const hasTeams = !!(home && away);
+  const finished = dbMatch?.status === 'FINISHED';
+
   return (
-    <View style={[s.card, s.finalCard, {
-      left: FX, top: cardY, width: CW, height: CH + 20,
-      backgroundColor: '#1a1200',
-      borderColor: colors.primary,
-    }]}>
+    <TouchableOpacity
+      disabled={!dbMatch?.id}
+      onPress={() => dbMatch?.id && nav.navigate('MatchDetail', { matchId: dbMatch.id })}
+      activeOpacity={0.85}
+      style={[s.card, s.finalCard, {
+        position: 'absolute',
+        left: FX, top: cardY, width: CW, height: CH + 20,
+        backgroundColor: '#1a1200',
+        borderColor: finished ? colors.success : colors.primary,
+      }]}
+    >
       <Text style={[s.finalLabel, { color: colors.primary }]}>FINAL</Text>
-      <Text style={[s.finalSub, { color: '#888' }]}>26 Jul</Text>
-      <View style={[s.divider, { backgroundColor: '#333' }]} />
-      <Text style={[s.finalSub, { color: '#888' }]}>Nueva Jersey</Text>
-    </View>
+      {hasTeams ? (
+        <>
+          <Text style={[s.finalSub, { color: 'white' }]}>{home!.code} vs {away!.code}</Text>
+          {dbMatch?.homeScore != null && (
+            <Text style={[s.finalSub, { color: colors.primary }]}>
+              {dbMatch.homeScore}-{dbMatch.awayScore}
+            </Text>
+          )}
+        </>
+      ) : (
+        <>
+          <Text style={[s.finalSub, { color: '#888' }]}>26 Jul</Text>
+          <View style={[s.divider, { backgroundColor: '#333' }]} />
+          <Text style={[s.finalSub, { color: '#888' }]}>Nueva Jersey</Text>
+        </>
+      )}
+    </TouchableOpacity>
   );
 }
 
-// Line helpers (absolutely positioned)
+// Line helpers
 function HL({ x, y, w, c }: { x: number; y: number; w: number; c: string }) {
   return <View style={{ position: 'absolute', left: x, top: y - 0.5, width: w, height: 1, backgroundColor: c }} />;
 }
@@ -165,7 +257,6 @@ function VL({ x, y, h, c }: { x: number; y: number; h: number; c: string }) {
   return <View style={{ position: 'absolute', left: x - 0.5, top: y, width: 1, height: h, backgroundColor: c }} />;
 }
 
-// Left-side connectors: from colX going RIGHT to nextColX
 function LeftConns({ fromX, numPairs, fromRound, lc }: { fromX: number; numPairs: number; fromRound: number; lc: string }) {
   const elems: React.ReactElement[] = [];
   for (let i = 0; i < numPairs; i++) {
@@ -184,7 +275,6 @@ function LeftConns({ fromX, numPairs, fromRound, lc }: { fromX: number; numPairs
   return <>{elems}</>;
 }
 
-// Right-side connectors: from colX going LEFT toward prevColX
 function RightConns({ fromX, prevX, numPairs, fromRound, lc }: { fromX: number; prevX: number; numPairs: number; fromRound: number; lc: string }) {
   const elems: React.ReactElement[] = [];
   for (let i = 0; i < numPairs; i++) {
@@ -203,7 +293,6 @@ function RightConns({ fromX, prevX, numPairs, fromRound, lc }: { fromX: number; 
   return <>{elems}</>;
 }
 
-// Round header labels
 const ROUND_COLS = [
   { label: 'R32',   x: LR32 },
   { label: 'R16',   x: LR16 },
@@ -221,13 +310,23 @@ export function BracketScreen() {
   const nav = useNavigation<any>();
   const { appColors } = useAppTheme();
   const [gmap, setGmap] = useState<GroupMap>({});
+  const [ko, setKo] = useState<KnockoutMap>({ r32: [], r16: [], qf: [], sf: [], fin: [] });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchStandings = useCallback(async () => {
+  const fetchAll = useCallback(async () => {
     try {
-      const res = await apiService.get('/stats/wc-standings');
-      const arr: any[] = res.data.data ?? [];
+      const [standingsRes, r32Res, r16Res, qfRes, sfRes, finRes] = await Promise.all([
+        apiService.get('/stats/wc-standings'),
+        apiService.get('/matches/stage/ROUND_OF_32').catch(() => ({ data: { data: [] } })),
+        apiService.get('/matches/stage/ROUND_OF_16').catch(() => ({ data: { data: [] } })),
+        apiService.get('/matches/stage/QUARTER_FINAL').catch(() => ({ data: { data: [] } })),
+        apiService.get('/matches/stage/SEMI_FINAL').catch(() => ({ data: { data: [] } })),
+        apiService.get('/matches/stage/FINAL').catch(() => ({ data: { data: [] } })),
+      ]);
+
+      // Build group map from standings
+      const arr: any[] = standingsRes.data.data ?? [];
       const map: GroupMap = {};
       for (const g of arr) {
         map[g.group] = (g.entries ?? []).map((e: any) => ({
@@ -239,21 +338,46 @@ export function BracketScreen() {
         }));
       }
       setGmap(map);
-    } catch (e) {
-      // silently fail, placeholders show
+
+      setKo({
+        r32: r32Res.data.data ?? [],
+        r16: r16Res.data.data ?? [],
+        qf:  qfRes.data.data ?? [],
+        sf:  sfRes.data.data ?? [],
+        fin: finRes.data.data ?? [],
+      });
+    } catch {
+      // placeholders show on error
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, []);
 
-  useEffect(() => { fetchStandings(); }, []);
+  useEffect(() => { fetchAll(); }, []);
 
-  const onRefresh = () => { setRefreshing(true); fetchStandings(); };
+  const onRefresh = () => { setRefreshing(true); fetchAll(); };
 
-  const lc = appColors.border; // line color
+  const lc = appColors.border;
   const HEADER_H = 36;
-  const totalH = BH + HEADER_H + 32; // 32 top+bottom pad
+  const totalH = BH + HEADER_H + 32;
+
+  // Match knockout matches to bracket positions by array index (ordered by matchDate)
+  // Left half: positions 0-7 for R32, Right half: positions 8-15
+  const getR32 = (isLeft: boolean, i: number) =>
+    isLeft ? ko.r32[i] : ko.r32[8 + i];
+
+  // R16: left 0-3, right 4-7
+  const getR16 = (isLeft: boolean, i: number) =>
+    isLeft ? ko.r16[i] : ko.r16[4 + i];
+
+  // QF: left 0-1, right 2-3
+  const getQF = (isLeft: boolean, i: number) =>
+    isLeft ? ko.qf[i] : ko.qf[2 + i];
+
+  // SF: left 0, right 1
+  const getSF = (isLeft: boolean) =>
+    isLeft ? ko.sf[0] : ko.sf[1];
 
   return (
     <View style={[s.screen, { backgroundColor: appColors.background }]}>
@@ -288,7 +412,7 @@ export function BracketScreen() {
               <View style={[s.hint, { backgroundColor: appColors.surfaceSecondary }]}>
                 <Ionicons name="swap-horizontal-outline" size={12} color={appColors.textSecondary} />
                 <Text style={[s.hintTxt, { color: appColors.textSecondary }]}>
-                  Deslizá para ver el bracket completo
+                  Deslizá para ver el bracket completo · Tocá un partido para ver detalles
                 </Text>
               </View>
 
@@ -304,54 +428,122 @@ export function BracketScreen() {
 
                 {/* Connector lines */}
                 <View style={{ position: 'absolute', left: 0, top: HEADER_H }}>
-                  {/* Left half connectors */}
                   <LeftConns fromX={LR32} numPairs={4} fromRound={0} lc={lc} />
                   <LeftConns fromX={LR16} numPairs={2} fromRound={1} lc={lc} />
                   <LeftConns fromX={LQF}  numPairs={1} fromRound={2} lc={lc} />
-                  {/* LSF → Final */}
                   <HL x={LSF + CW} y={yC(3, 0)} w={GW} c={lc} />
 
-                  {/* Right half connectors */}
                   <RightConns fromX={RR32} prevX={RR16} numPairs={4} fromRound={0} lc={lc} />
                   <RightConns fromX={RR16} prevX={RQF}  numPairs={2} fromRound={1} lc={lc} />
                   <RightConns fromX={RQF}  prevX={RSF}  numPairs={1} fromRound={2} lc={lc} />
-                  {/* RSF → Final */}
                   <HL x={FX + CW} y={yC(3, 0)} w={GW} c={lc} />
                 </View>
 
-                {/* Match cards offset by HEADER_H */}
+                {/* Match cards */}
                 <View style={{ position: 'absolute', left: 0, top: HEADER_H }}>
 
                   {/* Left R32 */}
                   {L_R32.map((m, i) => (
-                    <MatchCard key={m.id} match={m} gmap={gmap} x={LR32} slotIdx={i} colX={LR32} appColors={appColors} lineColor={lc} />
+                    <MatchCard
+                      key={m.id}
+                      match={m}
+                      gmap={gmap}
+                      x={LR32}
+                      slotIdx={i}
+                      appColors={appColors}
+                      lineColor={lc}
+                      dbMatch={getR32(true, i)}
+                      nav={nav}
+                    />
                   ))}
 
                   {/* Right R32 */}
                   {R_R32.map((m, i) => (
-                    <MatchCard key={m.id} match={m} gmap={gmap} x={RR32} slotIdx={i} colX={RR32} appColors={appColors} lineColor={lc} />
+                    <MatchCard
+                      key={m.id}
+                      match={m}
+                      gmap={gmap}
+                      x={RR32}
+                      slotIdx={i}
+                      appColors={appColors}
+                      lineColor={lc}
+                      dbMatch={getR32(false, i)}
+                      nav={nav}
+                    />
                   ))}
 
-                  {/* Left advanced rounds (placeholder cards) */}
-                  {[0,1,2,3].map(i => (
-                    <AdvCard key={`lr16-${i}`} round={1} idx={i} x={LR16} label={`W${49+i*2}/W${50+i*2}`} appColors={appColors} />
+                  {/* Left R16 */}
+                  {[0, 1, 2, 3].map(i => (
+                    <KnockoutCard
+                      key={`lr16-${i}`}
+                      round={1} idx={i} x={LR16}
+                      dbMatch={getR16(true, i)}
+                      label={`W${49 + i * 2}/W${50 + i * 2}`}
+                      appColors={appColors}
+                      nav={nav}
+                    />
                   ))}
-                  {[0,1].map(i => (
-                    <AdvCard key={`lqf-${i}`} round={2} idx={i} x={LQF} label={`W R16-L${i*2+1}/L${i*2+2}`} appColors={appColors} />
-                  ))}
-                  <AdvCard round={3} idx={0} x={LSF} label="W QF-L" appColors={appColors} />
 
-                  {/* Right advanced rounds (placeholder cards) */}
-                  {[0,1,2,3].map(i => (
-                    <AdvCard key={`rr16-${i}`} round={1} idx={i} x={RR16} label={`W${57+i*2}/W${58+i*2}`} appColors={appColors} />
+                  {/* Left QF */}
+                  {[0, 1].map(i => (
+                    <KnockoutCard
+                      key={`lqf-${i}`}
+                      round={2} idx={i} x={LQF}
+                      dbMatch={getQF(true, i)}
+                      label={`W R16-L${i * 2 + 1}/L${i * 2 + 2}`}
+                      appColors={appColors}
+                      nav={nav}
+                    />
                   ))}
-                  {[0,1].map(i => (
-                    <AdvCard key={`rqf-${i}`} round={2} idx={i} x={RQF} label={`W R16-R${i*2+1}/R${i*2+2}`} appColors={appColors} />
+
+                  {/* Left SF */}
+                  <KnockoutCard
+                    round={3} idx={0} x={LSF}
+                    dbMatch={getSF(true)}
+                    label="W QF-L"
+                    appColors={appColors}
+                    nav={nav}
+                  />
+
+                  {/* Right R16 */}
+                  {[0, 1, 2, 3].map(i => (
+                    <KnockoutCard
+                      key={`rr16-${i}`}
+                      round={1} idx={i} x={RR16}
+                      dbMatch={getR16(false, i)}
+                      label={`W${57 + i * 2}/W${58 + i * 2}`}
+                      appColors={appColors}
+                      nav={nav}
+                    />
                   ))}
-                  <AdvCard round={3} idx={0} x={RSF} label="W QF-R" appColors={appColors} />
+
+                  {/* Right QF */}
+                  {[0, 1].map(i => (
+                    <KnockoutCard
+                      key={`rqf-${i}`}
+                      round={2} idx={i} x={RQF}
+                      dbMatch={getQF(false, i)}
+                      label={`W R16-R${i * 2 + 1}/R${i * 2 + 2}`}
+                      appColors={appColors}
+                      nav={nav}
+                    />
+                  ))}
+
+                  {/* Right SF */}
+                  <KnockoutCard
+                    round={3} idx={0} x={RSF}
+                    dbMatch={getSF(false)}
+                    label="W QF-R"
+                    appColors={appColors}
+                    nav={nav}
+                  />
 
                   {/* Final */}
-                  <FinalCard appColors={appColors} />
+                  <FinalCard
+                    appColors={appColors}
+                    dbMatch={ko.fin[0]}
+                    nav={nav}
+                  />
                 </View>
               </View>
 
@@ -361,7 +553,7 @@ export function BracketScreen() {
                   * 3° → Mejor tercero clasificado de los grupos indicados
                 </Text>
                 <Text style={[s.legendTxt, { color: appColors.textSecondary }]}>
-                  Los equipos se actualizan automáticamente según el fixture
+                  Los equipos se actualizan automáticamente según el fixture · ✓ Resultado final
                 </Text>
               </View>
             </ScrollView>
