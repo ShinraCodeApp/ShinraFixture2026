@@ -150,20 +150,34 @@ export class NotificationService {
     });
   }
 
-  static async notifyPredictionResult(userId: string, matchId: string, pointsEarned: number): Promise<void> {
+  static async notifyPredictionResult(
+    userId: string,
+    matchId: string,
+    pointsEarned: number,
+    userPick?: { homeScore: number; awayScore: number },
+  ): Promise<void> {
     const match = await prisma.match.findUnique({
       where: { id: matchId },
       include: {
-        homeTeam: { select: { name: true } },
-        awayTeam: { select: { name: true } },
+        homeTeam: { select: { name: true, code: true } },
+        awayTeam: { select: { name: true, code: true } },
       },
     });
     if (!match) return;
 
+    const actual = match.homeScore != null ? `${match.homeScore}-${match.awayScore}` : '?-?';
+    const pick = userPick != null ? `${userPick.homeScore}-${userPick.awayScore}` : null;
+
+    const emoji = pointsEarned >= 5 ? '🎯' : pointsEarned > 0 ? '✅' : '😔';
+    const title = pointsEarned > 0 ? `${emoji} +${pointsEarned} pts · ${match.homeTeam.code} vs ${match.awayTeam.code}` : `${emoji} Sin puntos · ${match.homeTeam.code} vs ${match.awayTeam.code}`;
+    const body = pick
+      ? `Real: ${actual} · Tu pronóstico: ${pick}`
+      : `Resultado: ${actual}`;
+
     await this.sendPush([userId], {
       type: NotificationType.PREDICTION_RESULT,
-      title: pointsEarned > 0 ? `🎯 +${pointsEarned} puntos` : '😔 Sin puntos',
-      body: `Resultado de tu pronóstico: ${match.homeTeam.name} vs ${match.awayTeam.name}`,
+      title,
+      body,
       data: { matchId, points: String(pointsEarned) },
     });
   }

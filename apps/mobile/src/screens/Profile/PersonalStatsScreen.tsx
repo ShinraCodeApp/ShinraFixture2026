@@ -70,6 +70,21 @@ export function PersonalStatsScreen() {
     },
   });
 
+  const { data: duelHistory = [] } = useQuery({
+    queryKey: ['duels-history'],
+    queryFn: async () => (await apiService.get('/duels/history')).data.data ?? [],
+    staleTime: 60_000,
+  });
+
+  const { data: bracketPick } = useQuery({
+    queryKey: ['bracket-pick-any'],
+    queryFn: async () => {
+      const r = await apiService.get('/predictions/bracket?tournamentId=wc2026');
+      return r.data.data;
+    },
+    staleTime: 60_000,
+  });
+
   const items: PredictionItem[] = useMemo(() => data?.items ?? [], [data]);
 
   const stats = useMemo(() => {
@@ -221,6 +236,53 @@ export function PersonalStatsScreen() {
                     <Text style={[styles.legendLabel, { color: appColors.textSecondary }]}>{l.label}</Text>
                   </View>
                 ))}
+              </View>
+            </View>
+          )}
+
+          {/* ── Duelos 1v1 ───────────────────────────── */}
+          {(duelHistory as any[]).length > 0 && (() => {
+            const resolved = (duelHistory as any[]).filter((d: any) => d.status === 'RESOLVED');
+            const wins  = resolved.filter((d: any) => d.winnerId === user?.id).length;
+            const losses = resolved.filter((d: any) => d.winnerId !== null && d.winnerId !== user?.id).length;
+            const ties   = resolved.filter((d: any) => d.winnerId === null).length;
+            return (
+              <View style={[styles.section, { backgroundColor: appColors.surface }, shadows.sm]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm }}>
+                  <Text style={[styles.sectionTitle, { color: appColors.text }]}>⚔️ Duelos 1v1</Text>
+                  <TouchableOpacity onPress={() => navigation.navigate('Duels')}>
+                    <Text style={{ color: colors.primary, fontSize: 12 }}>Ver todos →</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                  {[
+                    { label: 'Victorias', value: wins,   color: '#10B981', icon: 'trophy' },
+                    { label: 'Derrotas',  value: losses, color: '#EF4444', icon: 'close-circle' },
+                    { label: 'Empates',   value: ties,   color: '#F59E0B', icon: 'handshake' },
+                  ].map((s) => (
+                    <View key={s.label} style={[styles.summaryCard, { backgroundColor: appColors.background, flex: 1 }]}>
+                      <MaterialCommunityIcons name={s.icon as any} size={20} color={s.color} />
+                      <Text style={[styles.summaryValue, { color: appColors.text }]}>{s.value}</Text>
+                      <Text style={[styles.summaryLabel, { color: appColors.textSecondary }]}>{s.label}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            );
+          })()}
+
+          {/* ── Bracket Predictor ─────────────────────── */}
+          {bracketPick && (
+            <View style={[styles.section, { backgroundColor: appColors.surface }, shadows.sm]}>
+              <Text style={[styles.sectionTitle, { color: appColors.text }]}>🏆 Bracket Predictor</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.base, marginTop: spacing.sm }}>
+                <MaterialCommunityIcons name="crown" size={32} color="#FFD700" />
+                <View>
+                  <Text style={[styles.summaryValue, { color: appColors.text }]}>{bracketPick.points ?? 0} pts</Text>
+                  <Text style={[styles.summaryLabel, { color: appColors.textSecondary }]}>
+                    {bracketPick.isResolved ? 'Bracket resuelto ✓' : 'Bracket en progreso'}
+                  </Text>
+                </View>
               </View>
             </View>
           )}

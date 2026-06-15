@@ -115,6 +115,14 @@ export function HomeScreen() {
     refetchInterval: 90_000,
   });
   const unreadCount: number = notifData?.unread ?? 0;
+
+  const { data: activeDuels = [] } = useQuery({
+    queryKey: ['duels-active'],
+    queryFn: async () => (await apiService.get('/duels')).data.data ?? [],
+    staleTime: 60_000,
+    refetchInterval: 90_000,
+  });
+  const pendingDuels = (activeDuels as any[]).filter((d: any) => d.status === 'PENDING');
   const scrollRef = useRef<ScrollView>(null);
 
   const currentYear = new Date().getFullYear();
@@ -322,6 +330,28 @@ export function HomeScreen() {
           </View>
         )}
 
+        {/* ── Duelos pendientes ────────────────────── */}
+        {pendingDuels.length > 0 && (
+          <TouchableOpacity
+            style={[styles.duelAlert, { backgroundColor: '#F59E0B' + '18', borderColor: '#F59E0B' }]}
+            onPress={() => navigation.navigate('ProfileTab', { screen: 'Duels' })}
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons name="sword-cross" size={22} color="#F59E0B" />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.duelAlertTitle, { color: '#F59E0B' }]}>
+                {pendingDuels.length === 1
+                  ? '¡Tienes 1 duelo pendiente!'
+                  : `¡Tienes ${pendingDuels.length} duelos pendientes!`}
+              </Text>
+              <Text style={[styles.duelAlertSub, { color: '#F59E0B' + 'CC' }]}>
+                {pendingDuels[0]?.challenger?.displayName} te desafió · Tap para responder
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#F59E0B" />
+          </TouchableOpacity>
+        )}
+
         {/* ── Top Predictores ──────────────────────── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -469,4 +499,11 @@ const styles = StyleSheet.create({
   },
   quickLabel: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.medium },
   matchSkeleton: { height: 80, borderRadius: borderRadius.md, marginBottom: spacing.sm },
+  duelAlert: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    marginHorizontal: spacing.screen, marginTop: spacing.base,
+    padding: spacing.base, borderRadius: borderRadius.lg, borderWidth: 1,
+  },
+  duelAlertTitle: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.bold },
+  duelAlertSub: { fontSize: 11, fontFamily: typography.fontFamily.regular },
 });

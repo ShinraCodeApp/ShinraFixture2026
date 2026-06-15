@@ -41,6 +41,7 @@ import { PublicProfileScreen } from '../screens/Profile/PublicProfileScreen';
 import { NewPostScreen } from '../screens/Community/NewPostScreen';
 import { PostDetailScreen } from '../screens/Community/PostDetailScreen';
 import { NotificationSettingsScreen } from '../screens/Settings/NotificationSettingsScreen';
+import { DuelsScreen } from '../screens/Profile/DuelsScreen';
 
 export type MainTabParamList = {
   HomeTab: undefined;
@@ -119,6 +120,7 @@ function ProfileStack() {
       <Stack.Screen name="PersonalStats" component={PersonalStatsScreen} />
       <Stack.Screen name="PublicProfile" component={PublicProfileScreen} />
       <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
+      <Stack.Screen name="Duels" component={DuelsScreen} />
     </Stack.Navigator>
   );
 }
