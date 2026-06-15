@@ -631,6 +631,40 @@ export function LiveRadarScreen() {
             </View>
           </View>
 
+          {/* Manual animation buttons */}
+          <View style={styles.animBtnRow}>
+            <TouchableOpacity
+              style={styles.animBtnGoal}
+              onPress={() => {
+                setShowGoal({ teamName: '⚽ GOL', playerName: undefined });
+                goalScaleAnim.setValue(0);
+                goalOpacityAnim.setValue(1);
+                Animated.sequence([
+                  Animated.spring(goalScaleAnim, { toValue: 1, tension: 120, friction: 5, useNativeDriver: true }),
+                  Animated.delay(2500),
+                  Animated.timing(goalOpacityAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
+                ]).start(() => setShowGoal(null));
+              }}
+            >
+              <Text style={styles.animBtnText}>⚽  GOOOOL</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.animBtnFoul}
+              onPress={() => {
+                setShowFoul({ teamName: 'FALTA', playerName: undefined });
+                foulScaleAnim.setValue(0);
+                foulOpacityAnim.setValue(1);
+                Animated.sequence([
+                  Animated.spring(foulScaleAnim, { toValue: 1, tension: 150, friction: 7, useNativeDriver: true }),
+                  Animated.delay(1800),
+                  Animated.timing(foulOpacityAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+                ]).start(() => setShowFoul(null));
+              }}
+            >
+              <Text style={styles.animBtnText}>🚨  FALTA</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Goal counts visual — home goals LEFT, away goals RIGHT */}
           <View style={styles.goalRow}>
             <View style={styles.goalColHome}>
@@ -838,6 +872,18 @@ const styles = StyleSheet.create({
   minuteTag: { backgroundColor: '#EF4444', borderRadius: borderRadius.full, paddingHorizontal: 8, paddingVertical: 2, marginTop: 4 },
   minuteText: { color: 'white', fontSize: 11, fontFamily: typography.fontFamily.bold },
 
+  animBtnRow: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.base, marginTop: spacing.sm },
+  animBtnGoal: {
+    flex: 1, paddingVertical: 10, borderRadius: borderRadius.lg,
+    backgroundColor: '#064e3b', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: '#10B981',
+  },
+  animBtnFoul: {
+    flex: 1, paddingVertical: 10, borderRadius: borderRadius.lg,
+    backgroundColor: '#451a03', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: '#F59E0B',
+  },
+  animBtnText: { color: 'white', fontFamily: typography.fontFamily.bold, fontSize: 13, letterSpacing: 1 },
   goalRow: { flexDirection: 'row', paddingHorizontal: spacing.base, marginTop: spacing.sm, gap: 8 },
   goalColHome: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 4, justifyContent: 'flex-start' },
   goalColAway: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 4, justifyContent: 'flex-end' },
