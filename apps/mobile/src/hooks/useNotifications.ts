@@ -6,7 +6,7 @@ import { useDispatch } from 'react-redux';
 import { AppDispatch } from '../store';
 import { apiService } from '../services/api';
 import { logger } from '../utils/logger';
-import { navigate } from '../navigation/navigationRef';
+import { navigationRef } from '../navigation/navigationRef';
 import { getNotifPrefs, shouldShowForType } from '../utils/notifPrefs';
 
 export function useNotifications() {
@@ -27,6 +27,7 @@ export function useNotifications() {
     } catch (e) {
       logger.warn('setNotificationHandler failed:', e);
     }
+
     registerForPushNotificationsAsync().then(async (token) => {
       if (token) {
         try {
@@ -40,12 +41,27 @@ export function useNotifications() {
       }
     });
 
-    // Handle foreground notifications
+    // Cold start: app was killed, user tapped the notification
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response?.notification.request.content.data) {
+        // Wait for navigator to be ready before navigating
+        const tryNavigate = () => {
+          if (navigationRef.isReady()) {
+            handleNotificationNavigation(response.notification.request.content.data);
+          } else {
+            setTimeout(tryNavigate, 150);
+          }
+        };
+        setTimeout(tryNavigate, 300);
+      }
+    }).catch(() => {});
+
+    // Foreground notification received
     notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
       logger.debug('Notification received:', notification.request.content.title);
     });
 
-    // Handle notification taps
+    // Background / tap: app was in background, user tapped
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data;
       handleNotificationNavigation(data);
@@ -72,11 +88,20 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
   if (finalStatus !== 'granted') return null;
 
   if (Platform.OS === 'android') {
+    // Main channel for live match events
     await Notifications.setNotificationChannelAsync('shinra-matches', {
       name: 'Partidos en vivo',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#00C851',
+      sound: 'default',
+    });
+    // Separate channel for duels (lower priority)
+    await Notifications.setNotificationChannelAsync('shinra-duels', {
+      name: 'Duelos',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 150, 150],
+      lightColor: '#FFD700',
       sound: 'default',
     });
   }
@@ -92,10 +117,44 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
 }
 
 function handleNotificationNavigation(data: any) {
-  if (!data) return;
-  if (data.matchId) {
-    navigate('MatchDetail', { matchId: data.matchId });
-  } else if (data.type === 'QUINIELA' && data.groupId) {
-    navigate('QuinielaDetail', { groupId: data.groupId });
+  if (!data || !navigationRef.isReady()) return;
+
+  const type = data.type as string | undefined;
+
+  // Duel notifications → Mis Duelos screen (in ProfileTab)
+  if (data.duelId) {
+    navigationRef.navigate('ProfileTab' as never, {
+      screen: 'Duels',
+    } as never);
+    return;
+  }
+
+  // Match-related notifications → MatchDetail
+  if (data.matchId && (
+    type === 'MATCH_START' ||
+    type === 'GOAL' ||
+    type === 'MATCH_END' ||
+    type === 'PREDICTION_RESULT' ||
+    !type  // fallback for any match notification
+  )) {
+    navigationRef.navigate('MatchesTab' as never, {
+      screen: 'MatchDetail',
+      params: { matchId: data.matchId },
+    } as never);
+    return;
+  }
+
+  // Quiniela notifications → QuinielaDetail
+  if (data.groupId) {
+    navigationRef.navigate('PredictionsTab' as never, {
+      screen: 'QuinielaDetail',
+      params: { groupId: data.groupId },
+    } as never);
+    return;
+  }
+
+  // Generic SYSTEM notification → Home
+  if (type === 'SYSTEM') {
+    navigationRef.navigate('HomeTab' as never);
   }
 }
