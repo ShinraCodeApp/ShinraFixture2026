@@ -1062,6 +1062,23 @@ model BracketPick {
 }
 
 // ══════════════════════════════════════════════════════
+// ANALYTICS
+// ══════════════════════════════════════════════════════
+
+model AppEvent {
+  id          String   @id @default(uuid())
+  userId      String?
+  event       String
+  properties  Json     @default("{}")
+  platform    String   @default("unknown")
+  occurredAt  DateTime @default(now())
+
+  @@index([event])
+  @@index([userId])
+  @@index([occurredAt])
+}
+
+// ══════════════════════════════════════════════════════
 // APP CONFIG
 // ══════════════════════════════════════════════════════
 

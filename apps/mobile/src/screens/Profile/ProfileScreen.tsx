@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, Switch, Alert, Animated, Linking,
+  Image, Switch, Alert, Animated, Linking, Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -15,6 +15,7 @@ import { logout } from '../../store/slices/authSlice';
 import { setProfilePhoto } from '../../store/slices/settingsSlice';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme';
+import { track } from '../../utils/analytics';
 
 const XP_PER_LEVEL = [0, 100, 250, 500, 1000, 2500, 5000, 10000, 20000, 50000];
 
@@ -126,7 +127,17 @@ export function ProfileScreen() {
     { icon: 'trophy', label: 'Mis logros', onPress: () => navigation.navigate('Achievements') },
     { icon: 'chart-bar', label: 'Mis estadísticas', onPress: () => navigation.navigate('PersonalStats') },
     { icon: 'sword-cross', label: 'Mis duelos', onPress: () => navigation.navigate('Duels') },
+    { icon: 'account-search', label: 'Buscar usuarios', onPress: () => navigation.navigate('UserSearch') },
     { icon: 'history', label: 'Historial de predicciones', onPress: () => navigation.navigate('PredictionsTab') },
+    {
+      icon: 'share-variant', label: 'Compartir la app', onPress: async () => {
+        track('share_app');
+        await Share.share({
+          message: '⚽ Seguí el Mundial 2026 con ShinraFixture — predicciones, duelos y más!\nhttps://play.google.com/store/apps/details?id=com.shinra.fixture2026',
+          title: 'ShinraFixture 2026',
+        });
+      },
+    },
     { icon: 'account-group', label: 'Mis quinielas', onPress: () => navigation.navigate('Quiniela') },
     { icon: 'star', label: 'Premium', onPress: () => navigation.navigate('Premium'), highlight: !user?.isPremium },
     { icon: 'bell', label: 'Notificaciones', toggle: true, value: notificationsOn, onToggle: setNotificationsOn },

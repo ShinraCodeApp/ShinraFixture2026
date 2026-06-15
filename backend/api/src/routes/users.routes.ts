@@ -7,6 +7,28 @@ function queryToBody(req: any, _res: any, next: any) { req.body = req.query; nex
 export const userRoutes = Router();
 
 userRoutes.get('/leaderboard', UserController.leaderboard);
+userRoutes.get('/search', optionalAuth, async (req: any, res) => {
+  const { q = '' } = req.query;
+  const term = String(q).trim();
+  if (term.length < 2) return res.json({ success: true, data: [] });
+  try {
+    const { prisma } = await import('../config/database');
+    const users = await prisma.user.findMany({
+      where: {
+        OR: [
+          { username: { contains: term, mode: 'insensitive' } },
+          { displayName: { contains: term, mode: 'insensitive' } },
+        ],
+        isActive: true,
+      },
+      select: { id: true, username: true, displayName: true, avatar: true, predictionPoints: true },
+      take: 20,
+    });
+    res.json({ success: true, data: users });
+  } catch (e: any) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
 userRoutes.get('/:id', optionalAuth, UserController.getPublicProfile);
 userRoutes.get('/:id/predictions', UserController.getPublicPredictions);
 userRoutes.get('/:id/achievements', UserController.getAchievements);

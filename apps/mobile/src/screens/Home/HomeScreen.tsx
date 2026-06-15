@@ -11,6 +11,8 @@ import { useQuery } from '@tanstack/react-query';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useMatches } from '../../hooks/useMatches';
+import { useRatingPrompt } from '../../hooks/useRatingPrompt';
+import { track } from '../../utils/analytics';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
 import { selectTournament } from '../../store/slices/tournamentSlice';
@@ -107,6 +109,7 @@ export function HomeScreen() {
   const { profilePhotoUri } = useSelector((state: RootState) => state.settings);
   const dispatch = useDispatch();
   const { liveMatches, todayMatches, upcomingMatches, isLoading, refetch } = useMatches();
+  useRatingPrompt();
 
   const { data: notifData } = useQuery({
     queryKey: ['notifications'],
