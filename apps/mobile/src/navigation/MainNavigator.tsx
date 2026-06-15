@@ -35,6 +35,7 @@ import { LocalLeagueDetailScreen } from '../screens/LocalLeague/LocalLeagueDetai
 import { EditLocalTeamScreen } from '../screens/LocalLeague/EditLocalTeamScreen';
 import { BracketScreen } from '../screens/Bracket/BracketScreen';
 import { AchievementsScreen } from '../screens/Profile/AchievementsScreen';
+import { PersonalStatsScreen } from '../screens/Profile/PersonalStatsScreen';
 import { NewPostScreen } from '../screens/Community/NewPostScreen';
 import { PostDetailScreen } from '../screens/Community/PostDetailScreen';
 
@@ -110,6 +111,7 @@ function ProfileStack() {
       <Stack.Screen name="FavoriteTeams" component={FavoriteTeamsScreen} />
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       <Stack.Screen name="Achievements" component={AchievementsScreen} />
+      <Stack.Screen name="PersonalStats" component={PersonalStatsScreen} />
     </Stack.Navigator>
   );
 }

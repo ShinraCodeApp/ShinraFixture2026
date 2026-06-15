@@ -495,6 +495,17 @@ matchRoutes.get('/today', MatchController.getToday);
 matchRoutes.get('/upcoming', MatchController.getUpcoming);
 matchRoutes.get('/stage/:stage', MatchController.getByStage);
 matchRoutes.get('/group/:group', MatchController.getByGroup);
+// ─── Pre-match notification (call via cron ~every 5 min) ─────────────────────
+matchRoutes.get('/g-prematch-notify', async (req, res) => {
+  try {
+    const minutesBefore = Number(req.query.minutes ?? 15);
+    const result = await NotificationService.notifyPreMatch(minutesBefore);
+    res.json({ success: true, data: result });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 matchRoutes.get('/g-fix-match-dates', async (_req, res) => {
   const results: Record<string, number> = {};
 

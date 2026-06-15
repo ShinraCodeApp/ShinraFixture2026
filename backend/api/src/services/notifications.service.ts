@@ -168,6 +168,41 @@ export class NotificationService {
     });
   }
 
+  static async notifyPreMatch(minutesBefore = 15): Promise<{ notified: number; matches: string[] }> {
+    const now = new Date();
+    const windowStart = new Date(now.getTime() + (minutesBefore - 3) * 60_000);
+    const windowEnd = new Date(now.getTime() + (minutesBefore + 3) * 60_000);
+
+    const matches = await prisma.match.findMany({
+      where: {
+        status: 'SCHEDULED',
+        matchDate: { gte: windowStart, lte: windowEnd },
+      },
+      include: {
+        homeTeam: { select: { id: true, name: true, code: true } },
+        awayTeam: { select: { id: true, name: true, code: true } },
+      },
+    });
+
+    const notifiedMatchIds: string[] = [];
+
+    for (const match of matches) {
+      const interestedUsers = await this.getUsersInterestedInMatch(match.id, [match.homeTeamId, match.awayTeamId].filter(Boolean) as string[]);
+      if (!interestedUsers.length) continue;
+
+      await this.sendPush(interestedUsers, {
+        type: NotificationType.MATCH_START,
+        title: `⏰ Arranca en ${minutesBefore} min`,
+        body: `${match.homeTeam.name} vs ${match.awayTeam.name} — ¡hacé tu pronóstico!`,
+        data: { matchId: match.id },
+      });
+
+      notifiedMatchIds.push(match.id);
+    }
+
+    return { notified: notifiedMatchIds.length, matches: notifiedMatchIds };
+  }
+
   static async sendBroadcast(
     title: string,
     body: string,

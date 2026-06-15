@@ -124,6 +124,7 @@ export function ProfileScreen() {
     { icon: 'heart', label: 'Equipos favoritos', onPress: () => navigation.navigate('FavoriteTeams') },
     { icon: 'account-group', label: 'Mis amigos', onPress: () => navigation.navigate('Friends') },
     { icon: 'trophy', label: 'Mis logros', onPress: () => navigation.navigate('Achievements') },
+    { icon: 'chart-bar', label: 'Mis estadísticas', onPress: () => navigation.navigate('PersonalStats') },
     { icon: 'history', label: 'Historial de predicciones', onPress: () => navigation.navigate('PredictionsTab') },
     { icon: 'account-group', label: 'Mis quinielas', onPress: () => navigation.navigate('Quiniela') },
     { icon: 'star', label: 'Premium', onPress: () => navigation.navigate('Premium'), highlight: !user?.isPremium },
