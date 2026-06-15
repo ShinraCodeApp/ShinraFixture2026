@@ -55,11 +55,20 @@ class ErrorBoundary extends Component<
   render() {
     if (this.state.error) {
       const err = this.state.error as Error;
+      const isDev = __DEV__;
       return (
         <ScrollView style={eb.bg} contentContainerStyle={eb.content}>
-          <Text style={eb.title}>🔴 Error de inicio</Text>
-          <Text style={eb.msg}>{err.message}</Text>
-          <Text style={eb.stack}>{err.stack}</Text>
+          <Text style={eb.emoji}>⚽</Text>
+          <Text style={eb.title}>Algo salió mal</Text>
+          <Text style={eb.msg}>
+            La app encontró un error inesperado. Por favor cerrá y volvé a abrirla.
+          </Text>
+          {isDev && (
+            <>
+              <Text style={eb.devLabel}>{err.message}</Text>
+              <Text style={eb.stack}>{err.stack}</Text>
+            </>
+          )}
         </ScrollView>
       );
     }
@@ -139,8 +148,10 @@ export default function App() {
 
 const eb = StyleSheet.create({
   bg: { flex: 1, backgroundColor: '#0F172A' },
-  content: { padding: 24, paddingTop: 60 },
-  title: { color: '#EF4444', fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
-  msg: { color: '#F87171', fontSize: 14, marginBottom: 12, fontWeight: '600' },
-  stack: { color: '#94A3B8', fontSize: 10, lineHeight: 16 },
+  content: { padding: 24, paddingTop: 80, alignItems: 'center' },
+  emoji: { fontSize: 56, marginBottom: 16 },
+  title: { color: '#F1F5F9', fontSize: 22, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' },
+  msg: { color: '#94A3B8', fontSize: 15, marginBottom: 24, textAlign: 'center', lineHeight: 22 },
+  devLabel: { color: '#EF4444', fontSize: 13, fontWeight: '600', marginBottom: 8, alignSelf: 'flex-start' },
+  stack: { color: '#475569', fontSize: 10, lineHeight: 16, alignSelf: 'flex-start' },
 });

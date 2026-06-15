@@ -14,14 +14,26 @@ export const linking: LinkingOptions<any> = {
               TeamDetail: 'team/:teamId',
             },
           },
+          MatchesTab: {
+            screens: {
+              Matches: 'matches',
+              MatchDetail: 'matches/match/:matchId',
+            },
+          },
           PredictionsTab: {
             screens: {
               Predictions: 'predictions',
-              Quiniela: 'quiniela/:groupId?',
+              Quiniela: 'quiniela',
+              QuinielaDetail: 'quiniela/:groupId',
             },
           },
           CommunityTab: 'community',
-          ProfileTab: 'profile',
+          ProfileTab: {
+            screens: {
+              Profile: 'profile',
+              Duels: 'profile/duels',
+            },
+          },
         },
       },
       Auth: {
