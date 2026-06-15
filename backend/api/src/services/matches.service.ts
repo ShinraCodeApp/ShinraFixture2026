@@ -163,9 +163,10 @@ export class MatchService {
     return matches;
   }
 
-  static async getByStage(stage: string, tournamentId?: string) {
+  static async getByStage(stage: string, tournamentId?: string, tournamentType?: string) {
     const where: Prisma.MatchWhereInput = { stage: stage as MatchStage };
     if (tournamentId) where.tournamentId = tournamentId;
+    if (tournamentType) where.tournament = { type: tournamentType as any };
 
     return prisma.match.findMany({
       where,

@@ -36,7 +36,11 @@ export class MatchController {
   }
 
   static async getByStage(req: Request, res: Response): Promise<void> {
-    const matches = await MatchService.getByStage(req.params.stage, req.query.tournamentId as string);
+    const matches = await MatchService.getByStage(
+      req.params.stage,
+      req.query.tournamentId as string | undefined,
+      req.query.tournamentType as string | undefined,
+    );
     res.json({ success: true, data: matches });
   }
 

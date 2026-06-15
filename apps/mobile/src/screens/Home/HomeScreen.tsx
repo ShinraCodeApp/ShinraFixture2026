@@ -107,6 +107,14 @@ export function HomeScreen() {
   const { profilePhotoUri } = useSelector((state: RootState) => state.settings);
   const dispatch = useDispatch();
   const { liveMatches, todayMatches, upcomingMatches, isLoading, refetch } = useMatches();
+
+  const { data: notifData } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: async () => (await apiService.get('/notifications')).data.data,
+    staleTime: 60_000,
+    refetchInterval: 90_000,
+  });
+  const unreadCount: number = notifData?.unread ?? 0;
   const scrollRef = useRef<ScrollView>(null);
 
   const currentYear = new Date().getFullYear();
@@ -151,7 +159,7 @@ export function HomeScreen() {
               <View style={styles.heroActions}>
                 <TouchableOpacity style={styles.notifButton} onPress={() => navigation.navigate('Notifications')}>
                   <Ionicons name="notifications-outline" size={24} color="white" />
-                  <View style={styles.notifBadge} />
+                  {unreadCount > 0 && <View style={styles.notifBadge} />}
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => navigation.navigate('ProfileTab')}>
                   {profilePhotoUri || user?.avatar ? (

@@ -40,24 +40,21 @@ export function PostDetailScreen() {
   const inputRef = useRef<TextInput>(null);
   const [reply, setReply] = useState('');
 
-  const { data: post, isLoading } = useQuery({
+  const { data: post, isLoading, refetch: refetchPost } = useQuery({
     queryKey: ['forum-post', postId],
     queryFn: async () => (await apiService.get(`/community/forum/${postId}`)).data.data,
     staleTime: 30_000,
   });
 
-  const { data: replies = [], refetch: refetchReplies } = useQuery({
-    queryKey: ['forum-replies', postId],
-    queryFn: async () => (await apiService.get(`/community/forum/${postId}/replies`)).data.data ?? [],
-    staleTime: 30_000,
-  });
+  // replies come embedded in the post response (post.replies)
+  const replies: any[] = post?.replies ?? [];
 
   const replyMutation = useMutation({
     mutationFn: (content: string) => apiService.post(`/community/forum/${postId}/replies`, { content }),
     onSuccess: () => {
       setReply('');
-      qc.invalidateQueries({ queryKey: ['forum-replies', postId] });
-      qc.invalidateQueries({ queryKey: ['forum', ] });
+      qc.invalidateQueries({ queryKey: ['forum-post', postId] });
+      qc.invalidateQueries({ queryKey: ['forum'] });
     },
     onError: (e: any) => Alert.alert('Error', e?.response?.data?.message ?? 'No se pudo responder'),
   });
@@ -95,8 +92,8 @@ export function PostDetailScreen() {
           keyExtractor={(r: any) => r.id}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.list}
-          onRefresh={refetchReplies}
-          refreshing={false}
+          onRefresh={refetchPost}
+          refreshing={isLoading}
           ListHeaderComponent={
             <View style={[styles.postCard, { backgroundColor: appColors.surface }]}>
               <View style={styles.postHeader}>

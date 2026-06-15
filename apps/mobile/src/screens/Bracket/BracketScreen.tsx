@@ -316,13 +316,14 @@ export function BracketScreen() {
 
   const fetchAll = useCallback(async () => {
     try {
+      const WC = '?tournamentType=WORLD_CUP';
       const [standingsRes, r32Res, r16Res, qfRes, sfRes, finRes] = await Promise.all([
         apiService.get('/stats/wc-standings'),
-        apiService.get('/matches/stage/ROUND_OF_32').catch(() => ({ data: { data: [] } })),
-        apiService.get('/matches/stage/ROUND_OF_16').catch(() => ({ data: { data: [] } })),
-        apiService.get('/matches/stage/QUARTER_FINAL').catch(() => ({ data: { data: [] } })),
-        apiService.get('/matches/stage/SEMI_FINAL').catch(() => ({ data: { data: [] } })),
-        apiService.get('/matches/stage/FINAL').catch(() => ({ data: { data: [] } })),
+        apiService.get(`/matches/stage/ROUND_OF_32${WC}`).catch(() => ({ data: { data: [] } })),
+        apiService.get(`/matches/stage/ROUND_OF_16${WC}`).catch(() => ({ data: { data: [] } })),
+        apiService.get(`/matches/stage/QUARTER_FINAL${WC}`).catch(() => ({ data: { data: [] } })),
+        apiService.get(`/matches/stage/SEMI_FINAL${WC}`).catch(() => ({ data: { data: [] } })),
+        apiService.get(`/matches/stage/FINAL${WC}`).catch(() => ({ data: { data: [] } })),
       ]);
 
       // Build group map from standings

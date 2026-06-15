@@ -44,7 +44,12 @@ export function TopPredictorsWidget({ onSeeAll }: Props) {
 
   const { data: ranking = [] } = useQuery({
     queryKey: ['global-ranking-home'],
-    queryFn: async () => (await apiService.get('/predictions/ranking?limit=5')).data.data ?? [],
+    queryFn: async () => {
+      const res = await apiService.get('/predictions/ranking?limit=5');
+      // endpoint returns { items: [...], pagination: {...} } or plain array
+      const d = res.data.data;
+      return Array.isArray(d) ? d : (d?.items ?? []);
+    },
     staleTime: 60_000,
     refetchInterval: 120_000,
   });
