@@ -1,7 +1,11 @@
 import { LinkingOptions } from '@react-navigation/native';
 
 export const linking: LinkingOptions<any> = {
-  prefixes: ['shinrafixture://', 'https://shinrafixture.com'],
+  prefixes: [
+    'shinrafixture://',
+    'https://shinrafixture.com',
+    'https://shinracode.github.io',
+  ],
   config: {
     screens: {
       Main: {

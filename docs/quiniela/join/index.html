@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f0f14" />
+  <title>Invitación a Quiniela — ShinraFixture 2026</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f0f14;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px;
+    }
+
+    .logo { font-size: 40px; margin-bottom: 8px; }
+    .app-name { font-size: 13px; color: #60a5fa; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 40px; }
+
+    .card {
+      background: #1a1a2e;
+      border: 1px solid #2a2a4a;
+      border-radius: 20px;
+      padding: 32px 28px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    .invite-label {
+      font-size: 12px; color: #94a3b8; text-transform: uppercase;
+      letter-spacing: 1px; margin-bottom: 12px;
+    }
+
+    .group-icon { font-size: 48px; margin-bottom: 12px; }
+
+    .group-name {
+      font-size: 24px; font-weight: 700; color: #fff;
+      margin-bottom: 6px; line-height: 1.2;
+    }
+
+    .stats-row {
+      display: flex; justify-content: center; gap: 32px;
+      margin: 20px 0; padding: 16px 0;
+      border-top: 1px solid #2a2a4a;
+      border-bottom: 1px solid #2a2a4a;
+    }
+
+    .stat { text-align: center; }
+    .stat-value { font-size: 22px; font-weight: 700; color: #60a5fa; }
+    .stat-label { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+    .prize {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 20px; padding: 6px 14px;
+      color: #f59e0b; font-size: 13px; font-weight: 500;
+      margin: 12px 0 24px;
+    }
+
+    .full-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 20px; padding: 6px 14px;
+      color: #ef4444; font-size: 13px; font-weight: 500;
+      margin: 12px 0 24px;
+    }
+
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 16px;
+      border-radius: 14px; border: none; cursor: pointer;
+      font-size: 16px; font-weight: 700;
+      text-decoration: none; transition: opacity 0.15s;
+      margin-bottom: 12px;
+    }
+    .btn:hover { opacity: 0.88; }
+    .btn:last-child { margin-bottom: 0; }
+
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-secondary {
+      background: transparent; color: #94a3b8;
+      border: 1px solid #2a2a4a;
+      font-size: 14px; font-weight: 500; padding: 12px;
+    }
+    .btn-disabled { background: #2a2a4a; color: #475569; cursor: not-allowed; }
+
+    .spinner {
+      width: 40px; height: 40px; margin: 0 auto 16px;
+      border: 3px solid #2a2a4a; border-top-color: #60a5fa;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text { color: #94a3b8; font-size: 14px; }
+
+    .error-icon { font-size: 48px; margin-bottom: 12px; }
+    .error-title { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .error-sub { color: #94a3b8; font-size: 14px; }
+
+    .footer {
+      margin-top: 32px; color: #475569; font-size: 12px; text-align: center;
+    }
+    .footer a { color: #475569; }
+  </style>
+</head>
+<body>
+  <div class="logo">⚽</div>
+  <div class="app-name">ShinraFixture 2026</div>
+
+  <div class="card" id="card">
+    <div class="spinner"></div>
+    <p class="loading-text">Cargando quiniela...</p>
+  </div>
+
+  <div class="footer">
+    &copy; 2026 ShinraFixture &nbsp;·&nbsp; <a href="../../privacy.html">Privacidad</a>
+  </div>
+
+  <script>
+    const API = 'https://shinraapi-production.up.railway.app/api/v1';
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code') || '';
+
+    function renderError() {
+      document.getElementById('card').innerHTML = `
+        <div class="error-icon">🔗</div>
+        <div class="error-title">Enlace inválido</div>
+        <p class="error-sub">El código de invitación no existe o la quiniela ya no está activa.</p>
+      `;
+    }
+
+    function tryOpenApp(code) {
+      // Attempt deep link (works if app is installed)
+      window.location.href = 'shinrafixture://quiniela/join/' + code;
+    }
+
+    function renderGroup(g) {
+      const isFull = g.isFull;
+      const prizeHtml = g.prizeDescription
+        ? `<div class="prize">🏆 Premio: ${g.prizeDescription}</div>`
+        : '';
+      const fullHtml = isFull
+        ? `<div class="full-badge">🔒 Quiniela llena</div>`
+        : '';
+
+      const openBtnHtml = isFull
+        ? `<span class="btn btn-disabled">Quiniela llena</span>`
+        : `<a class="btn btn-primary" href="shinrafixture://quiniela/join/${code}" id="openBtn">
+             📲 Abrir en ShinraFixture
+           </a>`;
+
+      document.getElementById('card').innerHTML = `
+        <p class="invite-label">Te invitaron a</p>
+        <div class="group-icon">👥</div>
+        <h1 class="group-name">${escapeHtml(g.name)}</h1>
+        <div class="stats-row">
+          <div class="stat">
+            <div class="stat-value">${g.memberCount}</div>
+            <div class="stat-label">miembros</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">${g.maxMembers}</div>
+            <div class="stat-label">máximo</div>
+          </div>
+        </div>
+        ${prizeHtml}${fullHtml}
+        ${openBtnHtml}
+        <a class="btn btn-secondary" id="downloadBtn" href="#">
+          No tengo la app — Descargar
+        </a>
+      `;
+
+      // Wire up download button (Play Store — change when app is published)
+      const dlBtn = document.getElementById('downloadBtn');
+      dlBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        // Fallback: play store intent URL (works on Android)
+        window.location.href =
+          'intent://quiniela/join/' + code +
+          '#Intent;scheme=shinrafixture;package=com.shinra.fixture2026;' +
+          'S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%3Fhl%3Des;end';
+      });
+
+      // Auto-try opening the app (silent — stays on page if not installed)
+      if (!isFull) {
+        setTimeout(() => tryOpenApp(code), 600);
+      }
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+
+    async function init() {
+      if (!code) { renderError(); return; }
+      try {
+        const res = await fetch(API + '/quiniela/invite-info/' + encodeURIComponent(code));
+        if (!res.ok) { renderError(); return; }
+        const json = await res.json();
+        if (!json.success || !json.data) { renderError(); return; }
+        renderGroup(json.data);
+      } catch {
+        renderError();
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
