@@ -40,15 +40,17 @@ export class QuinielaService {
     });
   }
 
-  static async create(userId: string, dto: CreateDto) {
-    // Check user doesn't have too many groups
+  static async create(userId: string, isPremium: boolean, dto: CreateDto) {
     const existingCount = await prisma.quinielaGroup.count({
       where: { ownerId: userId, isActive: true },
     });
 
-    const maxGroups = 10; // Can be configurable
+    const maxGroups = isPremium ? 10 : 2;
     if (existingCount >= maxGroups) {
-      throw ApiError.badRequest(`You can only own up to ${maxGroups} active groups`);
+      const msg = isPremium
+        ? `Máximo ${maxGroups} quinielas activas como creador`
+        : 'Los usuarios gratuitos pueden crear hasta 2 quinielas. Activá Premium para crear más.';
+      throw ApiError.badRequest(msg);
     }
 
     return prisma.quinielaGroup.create({
@@ -98,7 +100,7 @@ export class QuinielaService {
     };
   }
 
-  static async join(userId: string, inviteCode: string) {
+  static async join(userId: string, isPremium: boolean, inviteCode: string) {
     const group = await prisma.quinielaGroup.findUnique({
       where: { inviteCode },
       include: { _count: { select: { members: true } } },
@@ -108,6 +110,13 @@ export class QuinielaService {
     if (!group.isActive) throw ApiError.badRequest('This group is no longer active');
     if (group._count.members >= group.maxMembers) {
       throw ApiError.badRequest('Group is full');
+    }
+
+    if (!isPremium) {
+      const memberCount = await prisma.quinielaGroupMember.count({ where: { userId } });
+      if (memberCount >= 5) {
+        throw ApiError.badRequest('Los usuarios gratuitos pueden unirse a hasta 5 quinielas. Activá Premium para más.');
+      }
     }
 
     const existing = await prisma.quinielaGroupMember.findUnique({

@@ -45,6 +45,7 @@ import { NotificationSettingsScreen } from '../screens/Settings/NotificationSett
 import { DuelsScreen } from '../screens/Profile/DuelsScreen';
 import { UserSearchScreen } from '../screens/Profile/UserSearchScreen';
 import { WorldCupWinnersScreen } from '../screens/Stats/WorldCupWinnersScreen';
+import { PremiumScreen } from '../screens/Premium/PremiumScreen';
 
 export type MainTabParamList = {
   HomeTab: undefined;
@@ -127,6 +128,7 @@ function ProfileStack() {
       <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
       <Stack.Screen name="Duels" component={DuelsScreen} />
       <Stack.Screen name="UserSearch" component={UserSearchScreen} />
+      <Stack.Screen name="Premium" component={PremiumScreen} />
     </Stack.Navigator>
   );
 }

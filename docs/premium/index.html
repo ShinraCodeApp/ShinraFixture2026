@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShinraFixture 2026 Premium</title>
+  <meta name="description" content="Activá Premium y desbloqueá todo el potencial de ShinraFixture 2026 — IA avanzada, quinielas ilimitadas y más." />
+  <style>
+    :root {
+      --gold: #F59E0B;
+      --gold-light: #FCD34D;
+      --gold-dark: #92400e;
+      --blue: #1565C0;
+      --bg: #0F172A;
+      --surface: #1E293B;
+      --text: #F1F5F9;
+      --text-muted: #94A3B8;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; padding: 0 16px 40px;
+    }
+
+    /* Header */
+    .hero {
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold), var(--gold-light));
+      border-radius: 0 0 var(--radius) var(--radius);
+      padding: 48px 24px 36px;
+      text-align: center;
+      margin: 0 -16px 32px;
+    }
+    .hero-icon { font-size: 56px; margin-bottom: 12px; }
+    .hero h1 { font-size: 26px; font-weight: 900; color: #fff; margin-bottom: 8px; }
+    .hero p { font-size: 15px; color: rgba(255,255,255,0.85); max-width: 340px; margin: 0 auto; }
+
+    /* Plans */
+    h2 { font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; }
+    .plans { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 32px; }
+    .plan {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 20px 16px; text-align: center; cursor: pointer;
+      border: 1.5px solid transparent; transition: border-color .2s;
+      text-decoration: none; color: inherit; display: block;
+    }
+    .plan:hover { border-color: var(--gold); }
+    .plan.featured { background: var(--gold-dark); }
+    .save-badge {
+      background: var(--gold-light); color: var(--gold-dark);
+      font-size: 10px; font-weight: 900; border-radius: 99px;
+      padding: 2px 10px; display: inline-block; margin-bottom: 8px;
+    }
+    .plan-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .plan-price { font-size: 28px; font-weight: 900; color: var(--gold); }
+    .plan.featured .plan-price { color: var(--gold-light); }
+    .plan-period { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+    .plan.featured .plan-period { color: rgba(255,255,255,0.6); }
+    .plan-btn {
+      display: block; background: var(--gold); color: var(--gold-dark);
+      font-weight: 700; font-size: 13px; padding: 8px; border-radius: 10px;
+    }
+    .plan.featured .plan-btn { background: var(--gold-light); }
+
+    /* Feature table */
+    .table { background: var(--surface); border-radius: var(--radius); overflow: hidden; margin-bottom: 32px; }
+    .table-row { display: grid; grid-template-columns: 2fr 1fr 1fr; align-items: center; padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .table-row:last-child { border-bottom: none; }
+    .table-header { background: rgba(255,255,255,0.03); font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: var(--text-muted); }
+    .premium-col { background: linear-gradient(90deg, var(--gold), var(--gold-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .feature-name { font-size: 13px; display: flex; align-items: center; gap: 8px; }
+    .feature-name span { font-size: 16px; }
+    .col-val { font-size: 12px; text-align: center; color: var(--text-muted); }
+    .col-val.gold { color: var(--gold); font-weight: 700; }
+    .check { color: #34D399; font-size: 18px; }
+    .cross { color: #64748B; font-size: 18px; }
+
+    /* CTA */
+    .cta {
+      display: block; background: linear-gradient(90deg, var(--gold-dark), var(--gold));
+      color: white; text-align: center; font-size: 17px; font-weight: 900;
+      padding: 16px; border-radius: var(--radius); text-decoration: none;
+      margin-bottom: 16px;
+    }
+    .disclaimer { font-size: 11px; color: var(--text-muted); text-align: center; line-height: 1.5; }
+
+    /* Download */
+    .download { text-align: center; margin: 24px 0 0; }
+    .download p { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
+    .dl-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #1E293B; border: 1.5px solid rgba(255,255,255,0.08);
+      color: var(--text); padding: 10px 20px; border-radius: 12px;
+      text-decoration: none; font-size: 14px; font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-icon">⭐</div>
+  <h1>ShinraFixture Premium</h1>
+  <p>Desbloqueá todo el potencial del Mundial 2026</p>
+</div>
+
+<h2>Planes</h2>
+<div class="plans">
+  <a href="#" class="plan" onclick="subscribe('monthly');return false;">
+    <div class="plan-name">Mensual</div>
+    <div class="plan-price">$4.99</div>
+    <div class="plan-period">/ mes</div>
+    <div class="plan-btn">Suscribirse</div>
+  </a>
+  <a href="#" class="plan featured" onclick="subscribe('annual');return false;">
+    <div class="save-badge">AHORRÁS 33%</div>
+    <div class="plan-name">Anual</div>
+    <div class="plan-price">$39.99</div>
+    <div class="plan-period">/ año</div>
+    <div class="plan-btn">Mejor valor</div>
+  </a>
+</div>
+
+<h2>Comparación</h2>
+<div class="table">
+  <div class="table-row table-header">
+    <div>Función</div>
+    <div style="text-align:center">Gratis</div>
+    <div class="premium-col" style="text-align:center">⭐ Premium</div>
+  </div>
+  <div class="table-row">
+    <div class="feature-name"><span>⚡</span>Predicciones</div>
+    <div class="col-val">Ilimitadas</div>
+    <div class="col-val gold">Ilimitadas</div>
+  </div>
+  <div class="table-row">
+    <div class="feature-name"><span>👥</span>Quinielas (crear)</div>
+    <div class="col-val">2</div>
+    <div class="col-val gold">10</div>
+  </div>
+  <div class="table-row">
+    <div class="feature-name"><span>👥</span>Quinielas (unirse)</div>
+    <div class="col-val">5</div>
+    <div class="col-val gold">Ilimitadas</div>
+  </div>
+  <div class="table-row">
+    <div class="feature-name"><span>🤝</span>Amigos</div>
+    <div class="col-val">10</div>
+    <div class="col-val gold">Ilimitados</div>
+  </div>
+  <div class="table-row">
+    <div class="feature-name"><span>🤖</span>Análisis IA</div>
+    <div class="col-val">2/día</div>
+    <div class="col-val gold">Ilimitados</div>
+  </div>
+  <div class="table-row">
+    <div class="feature-name"><span>⚔️</span>Duelos</div>
+    <div class="col-val">Pronto</div>
+    <div class="col-val gold">Pronto</div>
+  </div>
+  <div class="table-row">
+    <div class="feature-name"><span>🌟</span>Badge Premium</div>
+    <div class="col-val"><span class="cross">✕</span></div>
+    <div class="col-val"><span class="check">✓</span></div>
+  </div>
+  <div class="table-row">
+    <div class="feature-name"><span>🔔</span>Notificaciones</div>
+    <div class="col-val">Básicas</div>
+    <div class="col-val gold">Completas</div>
+  </div>
+  <div class="table-row">
+    <div class="feature-name"><span>📊</span>Estadísticas</div>
+    <div class="col-val">Básicas</div>
+    <div class="col-val gold">Avanzadas</div>
+  </div>
+  <div class="table-row">
+    <div class="feature-name"><span>💬</span>Soporte</div>
+    <div class="col-val">Comunidad</div>
+    <div class="col-val gold">Prioritario</div>
+  </div>
+</div>
+
+<a href="#" class="cta" onclick="subscribe('annual');return false;">⭐ Activar Premium — Mejor valor</a>
+<p class="disclaimer">Pagos procesados de forma segura por Stripe. Podés cancelar en cualquier momento.</p>
+
+<div class="download">
+  <p>¿Todavía no tenés la app?</p>
+  <a class="dl-btn" href="https://play.google.com/store/apps/details?id=com.shinra.fixture2026">
+    📱 Descargar ShinraFixture 2026
+  </a>
+</div>
+
+<script>
+  const API = 'https://shinraapi-production.up.railway.app/api/v1';
+
+  // Read token from deep link or localStorage
+  function getToken() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('token') || localStorage.getItem('sf_token') || '';
+  }
+
+  async function subscribe(plan) {
+    const token = getToken();
+    if (!token) {
+      alert('Para suscribirte necesitás iniciar sesión en la app primero.');
+      return;
+    }
+    try {
+      const res = await fetch(`${API}/payments/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await res.json();
+      if (data.data?.checkoutUrl) {
+        window.location.href = data.data.checkoutUrl;
+      } else {
+        alert('No se pudo iniciar el pago. Intentá desde la app.');
+      }
+    } catch (e) {
+      alert('Error de conexión. Intentá desde la app.');
+    }
+  }
+</script>
+</body>
+</html>

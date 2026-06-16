@@ -4,7 +4,7 @@ import { FriendsService } from '../services/friends.service';
 export class FriendsController {
   static async sendRequest(req: Request, res: Response): Promise<void> {
     try {
-      const data = await FriendsService.sendRequest(req.user!.id, req.params.userId);
+      const data = await FriendsService.sendRequest(req.user!.id, req.user!.isPremium, req.params.userId);
       res.status(201).json({ success: true, data });
     } catch (err: any) {
       res.status(400).json({ success: false, message: err.message ?? 'No se pudo enviar la solicitud' });

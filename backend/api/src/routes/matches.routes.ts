@@ -949,9 +949,28 @@ matchRoutes.get('/:id/prediction-stats', async (req, res) => {
   }
 });
 
-// AI prediction endpoint — triggers Gemini analysis and caches result
-matchRoutes.post('/:id/ai-predict', async (req, res) => {
+// AI prediction endpoint — free users: max 2 requests/day
+matchRoutes.post('/:id/ai-predict', optionalAuth, async (req: any, res: any) => {
   try {
+    const user = req.user;
+    if (user && !user.isPremium) {
+      const { CacheService } = await import('../config/redis');
+      const cache = new CacheService();
+      const key = `ai:daily:${user.id}`;
+      const count = await cache.incr(key);
+      if (count === 1) {
+        // First call of the day — set TTL until midnight UTC
+        const now = new Date();
+        const midnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+        const ttl = Math.floor((midnight.getTime() - now.getTime()) / 1000);
+        const client = (cache as any).client;
+        if (client?.expire) await client.expire(key, ttl);
+      }
+      if (count > 2) {
+        res.status(429).json({ success: false, error: 'Límite diario de análisis IA alcanzado (2/día). Activá Premium para análisis ilimitados.' });
+        return;
+      }
+    }
     const { AIService } = await import('../services/ai.service');
     const prediction = await AIService.predictMatch(req.params.id);
     res.json({ success: true, data: prediction });

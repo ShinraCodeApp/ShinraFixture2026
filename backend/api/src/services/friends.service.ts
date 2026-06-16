@@ -11,8 +11,17 @@ const USER_PUBLIC_FIELDS = {
 };
 
 export class FriendsService {
-  static async sendRequest(fromUserId: string, toUserId: string) {
+  static async sendRequest(fromUserId: string, isPremium: boolean, toUserId: string) {
     if (fromUserId === toUserId) throw new Error('No puedes agregarte a ti mismo');
+
+    if (!isPremium) {
+      const friendCount = await prisma.friendship.count({
+        where: { OR: [{ fromUserId }, { toUserId: fromUserId }], status: 'ACCEPTED' },
+      });
+      if (friendCount >= 10) {
+        throw new Error('Los usuarios gratuitos pueden tener hasta 10 amigos. Activá Premium para más.');
+      }
+    }
 
     const existing = await prisma.friendship.findFirst({
       where: {

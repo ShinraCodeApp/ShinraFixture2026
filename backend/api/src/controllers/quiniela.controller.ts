@@ -9,7 +9,7 @@ export class QuinielaController {
   }
 
   static async create(req: Request, res: Response): Promise<void> {
-    const group = await QuinielaService.create(req.user!.id, req.body);
+    const group = await QuinielaService.create(req.user!.id, req.user!.isPremium, req.body);
     res.status(201).json({ success: true, data: group });
   }
 
@@ -23,7 +23,7 @@ export class QuinielaController {
   }
 
   static async join(req: Request, res: Response): Promise<void> {
-    const group = await QuinielaService.join(req.user!.id, req.body.inviteCode);
+    const group = await QuinielaService.join(req.user!.id, req.user!.isPremium, req.body.inviteCode);
     res.json({ success: true, data: group });
   }
 
