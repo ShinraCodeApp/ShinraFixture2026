@@ -8,6 +8,7 @@ import { useAppTheme } from '../../hooks/useAppTheme';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme';
 import { TeamLogo } from '../common/TeamLogo';
 import { MatchStatusBadge } from './MatchStatusBadge';
+import { getWCHostCode } from '../../utils/wcHost';
 
 dayjs.locale('es');
 
@@ -44,6 +45,7 @@ interface Match {
   awayWinProb?: number | null;
   userPrediction?: UserPrediction | null;
   venue?: string;
+  city?: string;
 }
 
 interface MatchCardProps {
@@ -58,6 +60,11 @@ export function MatchCard({ match, onPress, showPrediction = false, compact = fa
   const isLive = match.status === 'LIVE' || match.status === 'HALF_TIME';
   const isFinished = match.status === 'FINISHED';
   const isScheduled = match.status === 'SCHEDULED';
+
+  // WC 2026: only USA, MEX, CAN play as local depending on venue
+  const hostCode = match.stage !== 'FRIENDLY' ? getWCHostCode(match.city, match.venue) : null;
+  const homeIsLocal = hostCode !== null && match.homeTeam?.code === hostCode;
+  const awayIsLocal = hostCode !== null && match.awayTeam?.code === hostCode;
 
   const predictionStatus = match.userPrediction?.status;
   const hasPrediction = !!match.userPrediction;
@@ -102,6 +109,9 @@ export function MatchCard({ match, onPress, showPrediction = false, compact = fa
                 <Text style={[styles.teamName, { color: appColors.text }]} numberOfLines={1}>
                   {match.homeTeam.code}
                 </Text>
+                {homeIsLocal && (
+                  <Text style={styles.localBadge}>🏠 Local</Text>
+                )}
               </>
             ) : (
               <>
@@ -162,6 +172,9 @@ export function MatchCard({ match, onPress, showPrediction = false, compact = fa
                 <Text style={[styles.teamName, { color: appColors.text }]} numberOfLines={1}>
                   {match.awayTeam.code}
                 </Text>
+                {awayIsLocal && (
+                  <Text style={styles.localBadge}>🏠 Local</Text>
+                )}
               </>
             ) : (
               <>
@@ -232,6 +245,7 @@ const styles = StyleSheet.create({
   team: { flex: 1, alignItems: 'center', gap: spacing.xs },
   teamRight: {},
   teamName: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.bold, textAlign: 'center' },
+  localBadge: { fontSize: 9, color: '#34D399', fontFamily: typography.fontFamily.bold, textAlign: 'center' },
   tbdBadge: {
     borderRadius: 100,
     backgroundColor: 'rgba(156,163,175,0.15)',

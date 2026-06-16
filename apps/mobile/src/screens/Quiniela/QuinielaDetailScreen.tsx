@@ -100,10 +100,15 @@ export function QuinielaDetailScreen() {
     setCustomPrize('');
   };
 
+  const inviteLink = group?.inviteCode
+    ? `https://shinrafixture2026.netlify.app/quiniela/join/?code=${group.inviteCode}`
+    : '';
+
   const handleShare = async () => {
     if (!group) return;
     await Share.share({
-      message: `¡Únete a mi quiniela "${group.name}" en ShinraFixture 2026!\nCódigo: ${group.inviteCode}\n${group.prizeDescription ? `Premio: ${group.prizeDescription}` : ''}`,
+      message: `¡Únete a mi quiniela "${group.name}" en ShinraFixture 2026!\n${inviteLink}${group.prizeDescription ? `\nPremio: ${group.prizeDescription}` : ''}`,
+      url: inviteLink,
     });
   };
 
@@ -120,7 +125,7 @@ export function QuinielaDetailScreen() {
       '',
       ...lines,
       '',
-      `${group.prizeDescription ? `Premio: ${group.prizeDescription}\n` : ''}¡Sumate! Código: ${group.inviteCode}`,
+      `${group.prizeDescription ? `Premio: ${group.prizeDescription}\n` : ''}¡Sumate! ${inviteLink}`,
       '📲 ShinraFixture 2026',
     ].join('\n');
     await Share.share({ message: msg });

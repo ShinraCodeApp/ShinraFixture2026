@@ -4,6 +4,7 @@ import {
   Image, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '../../services/api';
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -13,6 +14,7 @@ type Tab = 'wc-global' | 'wc-groups' | 'wc-scorers' | 'liga';
 
 export function StatsScreen() {
   const { appColors } = useAppTheme();
+  const navigation = useNavigation<any>();
   const [tab, setTab] = useState<Tab>('wc-global');
 
   const { data: wcStandings, isLoading: loadStandings, refetch: refetchStandings } = useQuery({
@@ -59,7 +61,15 @@ export function StatsScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>
-      <Text style={[styles.title, { color: appColors.text }]}>Estadísticas</Text>
+      <View style={styles.screenHeader}>
+        <Text style={[styles.title, { color: appColors.text }]}>Estadísticas</Text>
+        <TouchableOpacity
+          style={[styles.winnersBtn, { backgroundColor: '#FFD70022', borderColor: '#FFD70055' }]}
+          onPress={() => navigation.navigate('WorldCupWinners')}
+        >
+          <Text style={styles.winnersBtnText}>🏆 Campeones</Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={[styles.tabs, { borderBottomColor: appColors.border }]}>
         {tabs.map((t) => (
@@ -345,7 +355,10 @@ function EmptyState({ label, appColors }: { label: string; appColors: any }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  screenHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: spacing.base },
   title: { fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, padding: spacing.base },
+  winnersBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: borderRadius.full, borderWidth: 1 },
+  winnersBtnText: { fontSize: 12, fontFamily: typography.fontFamily.semiBold, color: '#FFD700' },
   tabs: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth },
   tab: { flex: 1, alignItems: 'center', paddingVertical: spacing.sm, position: 'relative' },
   tabActive: {},

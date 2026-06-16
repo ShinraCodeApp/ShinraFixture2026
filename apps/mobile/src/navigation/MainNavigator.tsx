@@ -44,6 +44,7 @@ import { PostDetailScreen } from '../screens/Community/PostDetailScreen';
 import { NotificationSettingsScreen } from '../screens/Settings/NotificationSettingsScreen';
 import { DuelsScreen } from '../screens/Profile/DuelsScreen';
 import { UserSearchScreen } from '../screens/Profile/UserSearchScreen';
+import { WorldCupWinnersScreen } from '../screens/Stats/WorldCupWinnersScreen';
 
 export type MainTabParamList = {
   HomeTab: undefined;
@@ -63,6 +64,7 @@ function HomeStack() {
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="News" component={NewsScreen} />
       <Stack.Screen name="Stats" component={StatsScreen} />
+      <Stack.Screen name="WorldCupWinners" component={WorldCupWinnersScreen} />
       <Stack.Screen name="Simulator" component={SimulatorScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Community" component={CommunityScreen} />

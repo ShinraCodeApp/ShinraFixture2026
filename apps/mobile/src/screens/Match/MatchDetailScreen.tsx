@@ -11,6 +11,7 @@ import { createMaterialTopTabNavigator } from '@react-navigation/material-top-ta
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useMatchDetail } from '../../hooks/useMatchDetail';
+import { getWCHostCode } from '../../utils/wcHost';
 import { apiService, API_URL } from '../../services/api';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 import { TeamLogo } from '../../components/common/TeamLogo';
@@ -164,6 +165,9 @@ export function MatchDetailScreen() {
             {match.homeTeam.fifaRanking && (
               <Text style={styles.ranking}>#{match.homeTeam.fifaRanking}</Text>
             )}
+            {getWCHostCode(match.city, match.venue) === match.homeTeam.code && (
+              <Text style={styles.localBadge}>🏠 Local</Text>
+            )}
           </TouchableOpacity>
 
           {/* Score */}
@@ -204,6 +208,9 @@ export function MatchDetailScreen() {
             <Text style={styles.teamName}>{match.awayTeam.shortName}</Text>
             {match.awayTeam.fifaRanking && (
               <Text style={styles.ranking}>#{match.awayTeam.fifaRanking}</Text>
+            )}
+            {getWCHostCode(match.city, match.venue) === match.awayTeam.code && (
+              <Text style={styles.localBadge}>🏠 Local</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -408,6 +415,7 @@ const styles = StyleSheet.create({
   teamContainer: { flex: 1, alignItems: 'center', gap: spacing.xs },
   teamName: { color: 'white', fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.bold, textAlign: 'center' },
   ranking: { color: 'rgba(255,255,255,0.6)', fontSize: typography.fontSize.xs },
+  localBadge: { color: '#34D399', fontSize: 10, fontFamily: typography.fontFamily.bold, marginTop: 2 },
   scoreContainer: { alignItems: 'center', gap: 4 },
   scoreDisplay: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   score: { color: 'white', fontSize: 48, fontFamily: typography.fontFamily.black },
