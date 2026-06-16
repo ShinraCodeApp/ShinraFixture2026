@@ -58,4 +58,16 @@ export class UserController {
     await UsersService.deleteAccount(req.user!.id);
     res.json({ success: true, message: 'Account deleted' });
   }
+
+  static async registerDevice(req: Request, res: Response): Promise<void> {
+    const { pushToken, deviceType = 'android', deviceModel, appVersion } = req.body;
+    if (!pushToken) { res.status(400).json({ success: false, error: 'pushToken required' }); return; }
+    const { prisma } = await import('../config/database');
+    await prisma.userDevice.upsert({
+      where: { userId_fcmToken: { userId: req.user!.id, fcmToken: pushToken } },
+      create: { userId: req.user!.id, fcmToken: pushToken, deviceType, deviceModel, appVersion, isActive: true },
+      update: { isActive: true, deviceModel, appVersion },
+    });
+    res.json({ success: true });
+  }
 }

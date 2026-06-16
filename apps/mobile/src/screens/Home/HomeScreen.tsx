@@ -13,6 +13,7 @@ import { useAppTheme } from '../../hooks/useAppTheme';
 import { useMatches } from '../../hooks/useMatches';
 import { useRatingPrompt } from '../../hooks/useRatingPrompt';
 import { usePendingInvite } from '../../hooks/usePendingInvite';
+import { usePushNotifications } from '../../hooks/usePushNotifications';
 import { track } from '../../utils/analytics';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
@@ -112,6 +113,7 @@ export function HomeScreen() {
   const { liveMatches, todayMatches, upcomingMatches, isLoading, refetch } = useMatches();
   useRatingPrompt();
   usePendingInvite();
+  usePushNotifications();
 
   const { data: notifData } = useQuery({
     queryKey: ['notifications'],

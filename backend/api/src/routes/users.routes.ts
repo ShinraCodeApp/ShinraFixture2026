@@ -42,6 +42,8 @@ userRoutes.delete('/me/favorite-teams/:teamId', UserController.removeFavoriteTea
 userRoutes.get('/me/stats', UserController.myStats);
 userRoutes.delete('/me', UserController.deleteAccount);
 // GET aliases for LTE/carrier networks
+userRoutes.post('/me/register-device', UserController.registerDevice);
+userRoutes.get('/g-register-device', queryToBody, UserController.registerDevice);
 userRoutes.get('/g-update-me', queryToBody, UserController.updateProfile);
 userRoutes.get('/g-delete-me', UserController.deleteAccount);
 userRoutes.get('/g-fav-add', queryToBody, UserController.addFavoriteTeam);
