@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, Switch, Alert, Share, Linking,
+  Image, Switch, Alert, Share, Linking, TextInput, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -43,6 +43,27 @@ export function SettingsScreen() {
   const { appColors, isDark, toggleTheme } = useAppTheme();
   const { appIcon, notificationsEnabled, favoriteTeam, language } = useSelector((state: RootState) => state.settings);
   const [teamPickerVisible, setTeamPickerVisible] = useState(false);
+  const [giftCode, setGiftCode] = useState('');
+  const [giftLoading, setGiftLoading] = useState(false);
+
+  const handleApplyGiftCode = async () => {
+    const code = giftCode.trim();
+    if (!code.startsWith('@@@')) {
+      Alert.alert('Código inválido', 'El código debe empezar con @@@ (activar) o @@@@@ (revocar).');
+      return;
+    }
+    setGiftLoading(true);
+    try {
+      const res = await apiService.post('/auth/gift-code', { code });
+      const msg = res.data?.data?.message ?? 'Listo';
+      Alert.alert('Premium', msg, [{ text: 'OK' }]);
+      setGiftCode('');
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'Código inválido o sin cupos disponibles');
+    } finally {
+      setGiftLoading(false);
+    }
+  };
 
   const handleShareApk = async (url: string, source: 'Drive' | 'GitHub') => {
     try {
@@ -387,6 +408,39 @@ export function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* ── Código premium ───────────────────── */}
+        <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>PREMIUM</Text>
+        <View style={[styles.card, { backgroundColor: appColors.surface, padding: spacing.base }]}>
+          <Text style={[styles.rowLabel, { color: appColors.text, marginBottom: spacing.xs }]}>
+            Activar código de regalo
+          </Text>
+          <Text style={[styles.rowValue, { color: appColors.textSecondary, marginBottom: spacing.md }]}>
+            {'@@@'}usuario para activar · {'@@@@@'}usuario para revocar
+          </Text>
+          <View style={styles.giftRow}>
+            <TextInput
+              style={[styles.giftInput, { backgroundColor: appColors.surfaceSecondary, color: appColors.text, borderColor: appColors.border }]}
+              value={giftCode}
+              onChangeText={setGiftCode}
+              placeholder="@@@usuario"
+              placeholderTextColor={appColors.textSecondary}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <TouchableOpacity
+              style={[styles.giftButton, giftLoading && { opacity: 0.6 }]}
+              onPress={handleApplyGiftCode}
+              disabled={giftLoading}
+              activeOpacity={0.8}
+            >
+              {giftLoading
+                ? <ActivityIndicator size="small" color="white" />
+                : <Text style={styles.giftButtonText}>Aplicar</Text>
+              }
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* ── Zona de peligro ──────────────────── */}
         <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>CUENTA</Text>
         <TouchableOpacity onPress={handleDeleteAccount} activeOpacity={0.85}>
@@ -580,6 +634,21 @@ const styles = StyleSheet.create({
   },
   brandSub: {
     fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.regular,
+  },
+
+  // Gift code
+  giftRow: { flexDirection: 'row', gap: spacing.sm },
+  giftInput: {
+    flex: 1, height: 44, borderRadius: borderRadius.md, borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: spacing.md, fontFamily: typography.fontFamily.medium,
+    fontSize: typography.fontSize.sm,
+  },
+  giftButton: {
+    height: 44, paddingHorizontal: spacing.base, borderRadius: borderRadius.md,
+    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
+  },
+  giftButtonText: {
+    color: 'white', fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.sm,
   },
 
   // Generic row

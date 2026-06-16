@@ -25,8 +25,15 @@ interface OAuthUserDto {
 }
 
 export class AuthService {
+  static readonly MAX_GIFT_SLOTS = parseInt(process.env.MAX_GIFT_SLOTS ?? '10', 10);
+
+  private static async countGiftedUsers(): Promise<number> {
+    return prisma.user.count({ where: { isGifted: true } });
+  }
+
   static async register(dto: RegisterDto) {
-    const cleanUsernameCheck = dto.username.startsWith('@@')
+    const isGifted = dto.username.startsWith('@@');
+    const cleanUsernameCheck = isGifted
       ? dto.username.slice(2).toLowerCase()
       : dto.username.toLowerCase();
     const existing = await prisma.user.findFirst({
@@ -38,9 +45,13 @@ export class AuthService {
       throw ApiError.conflict('Username already taken');
     }
 
+    if (isGifted) {
+      const used = await this.countGiftedUsers();
+      if (used >= this.MAX_GIFT_SLOTS) throw ApiError.badRequest('No quedan cupos de premium regalo');
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, 12);
-    const isGifted = dto.username.startsWith('@@');
-    const cleanUsername = isGifted ? dto.username.slice(2).toLowerCase() : dto.username.toLowerCase();
+    const cleanUsername = isGifted ? cleanUsernameCheck : dto.username.toLowerCase();
     const user = await prisma.user.create({
       data: {
         email: dto.email,
@@ -135,6 +146,49 @@ export class AuthService {
     await this.storeRefreshToken(user.id, tokens.refreshToken);
 
     return tokens;
+  }
+
+  static async applyGiftCode(callerId: string, callerRole: string, code: string) {
+    let action: 'grant' | 'revoke';
+    let targetUsername: string | null = null;
+
+    if (code.startsWith('@@@@@')) {
+      action = 'revoke';
+      const rest = code.slice(5).toLowerCase().trim();
+      targetUsername = rest || null;
+    } else if (code.startsWith('@@@')) {
+      action = 'grant';
+      const rest = code.slice(3).toLowerCase().trim();
+      targetUsername = rest || null;
+    } else {
+      throw ApiError.badRequest('Código inválido. Usá @@@ para activar o @@@@@ para revocar.');
+    }
+
+    // If targeting another user, only admins can do that
+    if (targetUsername && callerRole !== 'ADMIN') {
+      throw ApiError.forbidden('Solo admins pueden activar premium en otras cuentas');
+    }
+
+    const where = targetUsername ? { username: targetUsername } : { id: callerId };
+    const target = await prisma.user.findUnique({
+      where,
+      select: { id: true, username: true, isPremium: true, isGifted: true },
+    });
+    if (!target) throw ApiError.notFound('Usuario');
+
+    if (action === 'grant') {
+      if (target.isPremium) throw ApiError.conflict('La cuenta ya es premium');
+      const used = await this.countGiftedUsers();
+      if (used >= this.MAX_GIFT_SLOTS) throw ApiError.badRequest('No quedan cupos de premium regalo');
+      await prisma.user.update({ where: { id: target.id }, data: { isPremium: true, isGifted: true } });
+      return { message: 'Premium activado', username: target.username };
+    } else {
+      await prisma.user.update({
+        where: { id: target.id },
+        data: { isPremium: false, isGifted: false },
+      });
+      return { message: 'Premium revocado', username: target.username };
+    }
   }
 
   static async sendPasswordReset(email: string): Promise<void> {

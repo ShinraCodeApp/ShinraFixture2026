@@ -52,4 +52,9 @@ export class AuthController {
     const result = await AuthService.appleSignIn(req.body);
     res.json({ success: true, data: result });
   }
+
+  static async giftCode(req: Request, res: Response): Promise<void> {
+    const result = await AuthService.applyGiftCode(req.user!.id, req.user!.role, req.body.code);
+    res.json({ success: true, data: result });
+  }
 }

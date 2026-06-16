@@ -8,10 +8,15 @@ import { z } from 'zod';
 
 const registerSchema = z.object({
   email: z.string().email(),
-  // Allow optional @@ gifted prefix before the username
-  username: z.string().min(3).max(32).regex(/^(@@)?[a-zA-Z0-9_]+$/),
+  // Allow @@ gifted-premium prefix
+  username: z.string().min(3).max(38).regex(/^(@@)?[a-zA-Z0-9_]+$/),
   displayName: z.string().min(2).max(50),
   password: z.string().min(8),
+});
+
+const giftCodeSchema = z.object({
+  // @@@ = grant, @@@@@ = revoke; optionally followed by target username
+  code: z.string().regex(/^(@@@@@|@@@)[a-zA-Z0-9_]*$/),
 });
 
 const loginSchema = z.object({
@@ -37,6 +42,8 @@ authRoutes.get('/g-register', authRateLimiter, queryToBody, validateBody(registe
 authRoutes.get('/g-login', authRateLimiter, queryToBody, validateBody(loginSchema), AuthController.login);
 authRoutes.get('/g-refresh', queryToBody, validateBody(refreshSchema), AuthController.refresh);
 authRoutes.get('/g-logout', authenticate, AuthController.logout);
+authRoutes.post('/gift-code', authenticate, validateBody(giftCodeSchema), AuthController.giftCode);
+authRoutes.get('/g-gift-code', authenticate, queryToBody, validateBody(giftCodeSchema), AuthController.giftCode);
 authRoutes.post('/forgot-password', authRateLimiter, AuthController.forgotPassword);
 authRoutes.post('/reset-password', authRateLimiter, AuthController.resetPassword);
 authRoutes.post('/verify-email', AuthController.verifyEmail);
