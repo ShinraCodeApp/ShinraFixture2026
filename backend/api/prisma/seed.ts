@@ -299,7 +299,7 @@ async function seedGroupMatches(tournamentId: string, teams: any[]) {
     ['SEN', 'IRQ', '2026-06-25T22:00:00Z',  8, 'I', 3],
     ['NOR', 'FRA', '2026-06-25T22:00:00Z',  7, 'I', 3],
     // ── Group J (ARG, ALG, AUT, JOR) ──
-    ['ARG', 'ALG', '2026-06-15T19:00:00Z',  2, 'J', 1],
+    ['ARG', 'ALG', '2026-06-17T01:00:00Z',  2, 'J', 1],
     ['AUT', 'JOR', '2026-06-16T16:00:00Z', 13, 'J', 1],
     ['ALG', 'JOR', '2026-06-21T19:00:00Z',  6, 'J', 2],
     ['ARG', 'AUT', '2026-06-21T22:00:00Z',  0, 'J', 2],

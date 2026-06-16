@@ -20,6 +20,7 @@ adminRoutes.post('/users/:id/grant-premium', AdminController.grantPremium);
 // Matches (live management)
 adminRoutes.get('/matches', AdminController.listMatches);
 adminRoutes.patch('/matches/:id', AdminController.updateMatch);
+adminRoutes.post('/matches/fix-time', AdminController.fixMatchTime);
 adminRoutes.post('/matches/:id/events', AdminController.addMatchEvent);
 adminRoutes.delete('/matches/:id/events/:eventId', AdminController.removeMatchEvent);
 adminRoutes.post('/matches/:id/start', AdminController.startMatch);

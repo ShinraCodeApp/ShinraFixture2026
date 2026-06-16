@@ -138,6 +138,33 @@ export class AdminController {
     res.json({ success: true, data: match });
   }
 
+  static async fixMatchTime(req: Request, res: Response): Promise<void> {
+    const { homeCode, awayCode, correctDateUTC } = req.body as {
+      homeCode: string;
+      awayCode: string;
+      correctDateUTC: string; // ISO string in UTC, e.g. "2026-06-17T01:00:00Z"
+    };
+
+    const match = await prisma.match.findFirst({
+      where: {
+        homeTeam: { code: homeCode.toUpperCase() },
+        awayTeam: { code: awayCode.toUpperCase() },
+      },
+      select: { id: true, matchDate: true },
+    });
+
+    if (!match) throw ApiError.notFound(`Match ${homeCode} vs ${awayCode}`);
+
+    const updated = await prisma.match.update({
+      where: { id: match.id },
+      data: { matchDate: new Date(correctDateUTC) },
+      select: { id: true, matchDate: true },
+    });
+
+    await cache.delPattern(`match:${match.id}*`);
+    res.json({ success: true, data: updated });
+  }
+
   static async addMatchEvent(req: Request, res: Response): Promise<void> {
     const event = await prisma.matchEvent.create({
       data: { matchId: req.params.id, ...req.body },
