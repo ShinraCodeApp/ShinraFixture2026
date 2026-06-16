@@ -21,6 +21,7 @@ const APK_DRIVE_URL =
   'https://drive.google.com/uc?export=download&id=1If7JUMqKt3BPX2gzZMFFMICJl0EIS9hB';
 const APK_GITHUB_URL =
   'https://github.com/ShinraCodeApp/ShinraFixture2026/releases/latest/download/app-release.apk';
+const QR_DOWNLOAD_URL = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(APK_GITHUB_URL)}`;
 
 const ICONS: { id: AppIconId; label: string; description: string; image: ReturnType<typeof require> }[] = [
   {
@@ -408,6 +409,31 @@ export function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* ── QR de descarga ──────────────────── */}
+        <View style={[styles.card, { backgroundColor: appColors.surface, alignItems: 'center', padding: spacing.xl }]}>
+          <Text style={[styles.rowLabel, { color: appColors.text, marginBottom: spacing.xs }]}>
+            Escaneá para descargar la app
+          </Text>
+          <Text style={[styles.rowValue, { color: appColors.textSecondary, marginBottom: spacing.base, textAlign: 'center' }]}>
+            Mostrá este QR a tus amigos
+          </Text>
+          <View style={styles.qrWrapper}>
+            <Image
+              source={{ uri: QR_DOWNLOAD_URL }}
+              style={styles.qrImage}
+              resizeMode="contain"
+            />
+          </View>
+          <TouchableOpacity
+            style={[styles.qrShareBtn, { backgroundColor: colors.primary }]}
+            onPress={() => handleShareApk(APK_GITHUB_URL, 'GitHub')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="share-social-outline" size={16} color="white" />
+            <Text style={styles.qrShareText}>Compartir enlace</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* ── Código premium ───────────────────── */}
         <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>PREMIUM</Text>
         <View style={[styles.card, { backgroundColor: appColors.surface, padding: spacing.base }]}>
@@ -635,6 +661,17 @@ const styles = StyleSheet.create({
   brandSub: {
     fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.regular,
   },
+
+  // QR code
+  qrWrapper: {
+    padding: 12, backgroundColor: 'white', borderRadius: borderRadius.lg, marginBottom: spacing.base,
+  },
+  qrImage: { width: 200, height: 200 },
+  qrShareBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    paddingHorizontal: spacing.xl, paddingVertical: spacing.sm, borderRadius: borderRadius.full,
+  },
+  qrShareText: { color: 'white', fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.sm },
 
   // Gift code
   giftRow: { flexDirection: 'row', gap: spacing.sm },
