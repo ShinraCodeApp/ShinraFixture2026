@@ -110,12 +110,57 @@ statsRoutes.get('/wc-standings', async (_req, res) => {
   }
 });
 
-// ─── WC2026 top scorers ── ESPN scoreboard API ────────────────────────────
+// ─── WC2026 top scorers ── DB primary (match events) + ESPN fallback ─────
 statsRoutes.get('/wc-scorers', async (_req, res) => {
   const cached = cacheGet('wc-scorers');
   if (cached) return res.json({ success: true, source: 'cache', data: cached });
 
-  // Try ESPN WC scorers via different endpoints
+  // Primary: compute from our own matchEvent table (populated by ESPN sync)
+  try {
+    const goals = await prisma.matchEvent.findMany({
+      where: {
+        type: 'GOAL',
+        match: { tournament: { type: 'WORLD_CUP' }, status: 'FINISHED' },
+      },
+      include: {
+        match: {
+          include: {
+            homeTeam: { select: { name: true, code: true, flagUrl: true } },
+            awayTeam: { select: { name: true, code: true, flagUrl: true } },
+          },
+        },
+      },
+    });
+
+    if (goals.length > 0) {
+      const playerMap: Record<string, any> = {};
+      for (const g of goals) {
+        const key = (g.description ?? '').trim() || `jugador-${g.teamId}-${g.id}`;
+        if (!playerMap[key]) {
+          const isHome = g.teamId === g.match.homeTeamId;
+          playerMap[key] = {
+            name: key,
+            goals: 0,
+            team: isHome ? g.match.homeTeam : g.match.awayTeam,
+          };
+        }
+        playerMap[key].goals++;
+      }
+
+      const scorers = Object.values(playerMap)
+        .filter((p: any) => p.name && !p.name.startsWith('jugador-'))
+        .sort((a: any, b: any) => b.goals - a.goals)
+        .slice(0, 30);
+
+      if (scorers.length >= 3) {
+        const result = { categories: [{ displayName: 'Goleadores', leaders: scorers }] };
+        cacheSet('wc-scorers', result, 2 * 60_000);
+        return res.json({ success: true, source: 'db', data: result });
+      }
+    }
+  } catch {}
+
+  // Fallback: ESPN stats API
   const urls = [
     'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/statistics?lang=es',
     'https://sports.core.api.espn.com/v2/sports/soccer/leagues/fifa.world/seasons/2026/leaders?limit=20&lang=es',
@@ -126,44 +171,13 @@ statsRoutes.get('/wc-scorers', async (_req, res) => {
     try {
       const { data } = await axios.get(url, { headers: ESPN_HEADERS, timeout: 8_000 });
       if (data && (data.categories?.length || data.leaders?.length || data.items?.length)) {
-        cacheSet('wc-scorers', data);
+        cacheSet('wc-scorers', data, 5 * 60_000);
         return res.json({ success: true, source: 'espn', data });
       }
     } catch {}
   }
 
-  // DB fallback: return event-based goal tally from our DB
-  try {
-    const goals = await prisma.matchEvent.findMany({
-      where: { type: 'GOAL', match: { stage: 'GROUP' } },
-      include: {
-        match: { include: { homeTeam: { select: { name: true, code: true, flagUrl: true } }, awayTeam: { select: { name: true, code: true, flagUrl: true } } } },
-      },
-    });
-
-    const playerMap: Record<string, any> = {};
-    for (const g of goals) {
-      const key = g.description ?? `unknown-${g.teamId}`;
-      if (!playerMap[key]) {
-        const isHome = g.teamId === g.match.homeTeamId;
-        playerMap[key] = {
-          name: key,
-          goals: 0,
-          team: isHome ? g.match.homeTeam : g.match.awayTeam,
-        };
-      }
-      playerMap[key].goals++;
-    }
-
-    const scorers = Object.values(playerMap)
-      .sort((a: any, b: any) => b.goals - a.goals)
-      .slice(0, 20);
-
-    cacheSet('wc-scorers', { categories: [{ displayName: 'Goleadores', leaders: scorers }] }, 2 * 60_000);
-    return res.json({ success: true, source: 'db', data: { categories: [{ displayName: 'Goleadores', leaders: scorers }] } });
-  } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message });
-  }
+  return res.status(502).json({ success: false, error: 'No scorer data available' });
 });
 
 // ─── WC2026 team stats ── DB computed ─────────────────────────────────────

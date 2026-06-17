@@ -323,6 +323,32 @@ export function SettingsScreen() {
           </LinearGradient>
         </TouchableOpacity>
 
+        {/* ── QR de descarga ──────────────────── */}
+        <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>QR DE DESCARGA</Text>
+        <View style={[styles.card, { backgroundColor: appColors.surface, alignItems: 'center', padding: spacing.xl }]}>
+          <Text style={[styles.rowLabel, { color: appColors.text, marginBottom: spacing.xs }]}>
+            Escaneá para descargar la app
+          </Text>
+          <Text style={[styles.rowValue, { color: appColors.textSecondary, marginBottom: spacing.base, textAlign: 'center' }]}>
+            Mostrá este QR a tus amigos
+          </Text>
+          <View style={styles.qrWrapper}>
+            <Image
+              source={{ uri: QR_DOWNLOAD_URL }}
+              style={styles.qrImage}
+              resizeMode="contain"
+            />
+          </View>
+          <TouchableOpacity
+            style={[styles.qrShareBtn, { backgroundColor: colors.primary }]}
+            onPress={() => handleShareApk(APK_GITHUB_URL, 'GitHub')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="share-social-outline" size={16} color="white" />
+            <Text style={styles.qrShareText}>Compartir enlace</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* ── Cómo usar la app ─────────────────── */}
         <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>INFORMACIÓN</Text>
         <View style={[styles.card, { backgroundColor: appColors.surface }]}>
@@ -406,31 +432,6 @@ export function SettingsScreen() {
               <Text style={[styles.rowValue, { color: appColors.textSecondary }]}>@Shinracode</Text>
             </View>
             <Ionicons name="open-outline" size={16} color={appColors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-
-        {/* ── QR de descarga ──────────────────── */}
-        <View style={[styles.card, { backgroundColor: appColors.surface, alignItems: 'center', padding: spacing.xl }]}>
-          <Text style={[styles.rowLabel, { color: appColors.text, marginBottom: spacing.xs }]}>
-            Escaneá para descargar la app
-          </Text>
-          <Text style={[styles.rowValue, { color: appColors.textSecondary, marginBottom: spacing.base, textAlign: 'center' }]}>
-            Mostrá este QR a tus amigos
-          </Text>
-          <View style={styles.qrWrapper}>
-            <Image
-              source={{ uri: QR_DOWNLOAD_URL }}
-              style={styles.qrImage}
-              resizeMode="contain"
-            />
-          </View>
-          <TouchableOpacity
-            style={[styles.qrShareBtn, { backgroundColor: colors.primary }]}
-            onPress={() => handleShareApk(APK_GITHUB_URL, 'GitHub')}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="share-social-outline" size={16} color="white" />
-            <Text style={styles.qrShareText}>Compartir enlace</Text>
           </TouchableOpacity>
         </View>
 
