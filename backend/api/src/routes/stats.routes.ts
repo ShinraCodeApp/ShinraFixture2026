@@ -110,91 +110,46 @@ statsRoutes.get('/wc-standings', async (_req, res) => {
   }
 });
 
-// ─── ESPN.com.ar page scraper ── shared for scorers + assists ─────────────
-let _espnScrapeCache: { scorers: any[]; assists: any[]; ts: number } | null = null;
+// ─── ESPN statistics API helper ───────────────────────────────────────────
+// ESPN's page uses React (client-side), so cheerio scraping returns empty tables.
+// The correct source is their statistics API: data.stats[0].leaders (NOT data.categories).
+// athlete.statistics[] contains per-player breakdowns including goalAssists.
+let _espnStatsCache: { leaders: any[]; ts: number } | null = null;
 
-async function scrapeESPNWCStats(): Promise<{ scorers: any[]; assists: any[] }> {
-  if (_espnScrapeCache && Date.now() - _espnScrapeCache.ts < 4 * 60_000) {
-    return _espnScrapeCache;
+async function fetchESPNLeaders(limit = 200): Promise<any[]> {
+  if (_espnStatsCache && Date.now() - _espnStatsCache.ts < 4 * 60_000) {
+    return _espnStatsCache.leaders;
   }
-
-  const { data: html } = await axios.get(
-    'https://www.espn.com.ar/futbol/estadisticas/_/liga/FIFA.WORLD/temporada/2026/copa-mundial',
-    { headers: BROWSER_HEADERS, timeout: 15_000 }
+  const { data } = await axios.get(
+    `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/statistics?lang=es&limit=${limit}`,
+    { headers: ESPN_HEADERS, timeout: 10_000 }
   );
-
-  const $ = cheerio.load(html);
-
-  function parseSection($section: cheerio.Cheerio<any>): any[] {
-    const tables = $section.find('table');
-    if (!tables.length) return [];
-
-    // ESPN splits each section into 2 tables: left (pos/name/team) + right (stats)
-    const leftRows: cheerio.Cheerio<any>[] = [];
-    const rightRows: cheerio.Cheerio<any>[] = [];
-
-    tables.eq(0).find('tbody tr').each((_: any, tr: any) => {
-      const cells = $(tr).find('td');
-      if (cells.length) leftRows.push(cells);
-    });
-
-    if (tables.length >= 2) {
-      tables.eq(1).find('tbody tr').each((_: any, tr: any) => {
-        const cells = $(tr).find('td');
-        if (cells.length) rightRows.push(cells);
-      });
-    }
-
-    const results: any[] = [];
-    for (let i = 0; i < leftRows.length; i++) {
-      const left = leftRows[i];
-      const right = rightRows[i];
-      let name = '';
-      let team = '';
-
-      left.each((_: any, td: any) => {
-        const links = $(td).find('a');
-        links.each((_2: any, a: any) => {
-          const href = $(a).attr('href') ?? '';
-          const text = $(a).text().trim();
-          if (!text) return;
-          if (href.includes('/jugador/') || href.includes('/player/')) name = text;
-          else if (href.includes('/equipo/') || href.includes('/team/')) team = text;
-        });
-      });
-
-      if (!name) {
-        // fallback: second non-numeric cell as name
-        left.each((_: any, td: any) => {
-          const text = $(td).text().trim();
-          if (!name && text && isNaN(Number(text))) name = text;
-        });
-      }
-
-      if (!name) continue;
-
-      // stat is last cell of right table (or left if no right)
-      const statText = right
-        ? right.last().text().trim()
-        : left.last().text().trim();
-      const value = parseInt(statText, 10);
-      if (isNaN(value)) continue;
-
-      results.push({ name, team: { name: team }, value });
-    }
-
-    return results;
+  // ESPN returns: { stats: [{ name: "goalsLeaders", leaders: [...] }] }
+  const goalsCategory = (data.stats ?? []).find((s: any) =>
+    s.name === 'goalsLeaders' || s.abbreviation === 'G'
+  );
+  const leaders: any[] = goalsCategory?.leaders ?? [];
+  if (leaders.length > 0) {
+    _espnStatsCache = { leaders, ts: Date.now() };
   }
+  return leaders;
+}
 
-  const sections = $('.ResponsiveTable');
-  const scorers = parseSection(sections.eq(0));
-  const assists = parseSection(sections.eq(1));
-
-  if (scorers.length > 0 || assists.length > 0) {
-    _espnScrapeCache = { scorers, assists, ts: Date.now() };
-  }
-
-  return { scorers, assists };
+function espnNormalize(item: any): { name: string; goals: number; assists: number; value: number; photo: string | undefined; team: { name: string; logo: string | undefined } } {
+  const assistStat = (item.athlete?.statistics ?? []).find((s: any) =>
+    s.name === 'goalAssists' || s.abbreviation === 'A'
+  );
+  return {
+    name: item.athlete?.displayName ?? '—',
+    goals: item.value ?? 0,
+    assists: assistStat?.value ?? 0,
+    value: item.value ?? 0,
+    photo: item.athlete?.headshot?.href,
+    team: {
+      name: item.athlete?.team?.displayName ?? item.athlete?.team?.name ?? '',
+      logo: item.athlete?.team?.logos?.[0]?.href,
+    },
+  };
 }
 
 // ─── WC2026 top scorers ─────────────────────────────────────────────────────
@@ -202,13 +157,15 @@ statsRoutes.get('/wc-scorers', async (_req, res) => {
   const cached = cacheGet('wc-scorers');
   if (cached) return res.json({ success: true, source: 'cache', data: cached });
 
-  // Primary: scrape ESPN.com.ar page (most accurate)
+  // Primary: ESPN statistics API (correct source — data.stats[0].leaders)
   try {
-    const { scorers } = await scrapeESPNWCStats();
-    if (scorers.length >= 3) {
-      const result = { categories: [{ displayName: 'Goleadores', leaders: scorers.map(s => ({ ...s, goals: s.value })) }] };
+    const leaders = await fetchESPNLeaders(200);
+    if (leaders.length >= 3) {
+      const normalized = leaders.map(espnNormalize)
+        .sort((a, b) => b.goals - a.goals);
+      const result = { categories: [{ displayName: 'Goleadores', leaders: normalized }] };
       cacheSet('wc-scorers', result, 4 * 60_000);
-      return res.json({ success: true, source: 'espn-web', data: result });
+      return res.json({ success: true, source: 'espn-api', data: result });
     }
   } catch {}
 
@@ -243,13 +200,20 @@ statsRoutes.get('/wc-assists', async (_req, res) => {
   const cached = cacheGet('wc-assists');
   if (cached) return res.json({ success: true, source: 'cache', data: cached });
 
-  // Primary: scrape ESPN.com.ar page
+  // Extract assists from athlete.statistics[] on each player in the goals response.
+  // Note: players with 0 goals won't appear here (ESPN API is goals-sorted).
   try {
-    const { assists } = await scrapeESPNWCStats();
-    if (assists.length >= 3) {
-      const result = { categories: [{ displayName: 'Asistencias', leaders: assists.map(a => ({ ...a, assists: a.value })) }] };
-      cacheSet('wc-assists', result, 4 * 60_000);
-      return res.json({ success: true, source: 'espn-web', data: result });
+    const leaders = await fetchESPNLeaders(200);
+    if (leaders.length > 0) {
+      const withAssists = leaders
+        .map(espnNormalize)
+        .filter(p => p.assists > 0)
+        .sort((a, b) => b.assists - a.assists);
+      if (withAssists.length >= 1) {
+        const result = { categories: [{ displayName: 'Asistencias', leaders: withAssists }] };
+        cacheSet('wc-assists', result, 4 * 60_000);
+        return res.json({ success: true, source: 'espn-api', data: result });
+      }
     }
   } catch {}
 
@@ -268,7 +232,7 @@ statsRoutes.get('/wc-assists', async (_req, res) => {
         map[key].assists++;
       }
       const assists = Object.values(map).sort((a: any, b: any) => b.assists - a.assists).slice(0, 30);
-      if (assists.length >= 3) {
+      if (assists.length >= 1) {
         const result = { categories: [{ displayName: 'Asistencias', leaders: assists }] };
         cacheSet('wc-assists', result, 2 * 60_000);
         return res.json({ success: true, source: 'db', data: result });
