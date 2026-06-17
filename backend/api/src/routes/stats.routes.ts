@@ -110,48 +110,123 @@ statsRoutes.get('/wc-standings', async (_req, res) => {
   }
 });
 
-// ─── WC2026 top scorers ── DB primary (match events) + ESPN fallback ─────
+// ─── ESPN.com.ar page scraper ── shared for scorers + assists ─────────────
+let _espnScrapeCache: { scorers: any[]; assists: any[]; ts: number } | null = null;
+
+async function scrapeESPNWCStats(): Promise<{ scorers: any[]; assists: any[] }> {
+  if (_espnScrapeCache && Date.now() - _espnScrapeCache.ts < 4 * 60_000) {
+    return _espnScrapeCache;
+  }
+
+  const { data: html } = await axios.get(
+    'https://www.espn.com.ar/futbol/estadisticas/_/liga/FIFA.WORLD/temporada/2026/copa-mundial',
+    { headers: BROWSER_HEADERS, timeout: 15_000 }
+  );
+
+  const $ = cheerio.load(html);
+
+  function parseSection($section: cheerio.Cheerio<any>): any[] {
+    const tables = $section.find('table');
+    if (!tables.length) return [];
+
+    // ESPN splits each section into 2 tables: left (pos/name/team) + right (stats)
+    const leftRows: cheerio.Cheerio<any>[] = [];
+    const rightRows: cheerio.Cheerio<any>[] = [];
+
+    tables.eq(0).find('tbody tr').each((_: any, tr: any) => {
+      const cells = $(tr).find('td');
+      if (cells.length) leftRows.push(cells);
+    });
+
+    if (tables.length >= 2) {
+      tables.eq(1).find('tbody tr').each((_: any, tr: any) => {
+        const cells = $(tr).find('td');
+        if (cells.length) rightRows.push(cells);
+      });
+    }
+
+    const results: any[] = [];
+    for (let i = 0; i < leftRows.length; i++) {
+      const left = leftRows[i];
+      const right = rightRows[i];
+      let name = '';
+      let team = '';
+
+      left.each((_: any, td: any) => {
+        const links = $(td).find('a');
+        links.each((_2: any, a: any) => {
+          const href = $(a).attr('href') ?? '';
+          const text = $(a).text().trim();
+          if (!text) return;
+          if (href.includes('/jugador/') || href.includes('/player/')) name = text;
+          else if (href.includes('/equipo/') || href.includes('/team/')) team = text;
+        });
+      });
+
+      if (!name) {
+        // fallback: second non-numeric cell as name
+        left.each((_: any, td: any) => {
+          const text = $(td).text().trim();
+          if (!name && text && isNaN(Number(text))) name = text;
+        });
+      }
+
+      if (!name) continue;
+
+      // stat is last cell of right table (or left if no right)
+      const statText = right
+        ? right.last().text().trim()
+        : left.last().text().trim();
+      const value = parseInt(statText, 10);
+      if (isNaN(value)) continue;
+
+      results.push({ name, team: { name: team }, value });
+    }
+
+    return results;
+  }
+
+  const sections = $('.ResponsiveTable');
+  const scorers = parseSection(sections.eq(0));
+  const assists = parseSection(sections.eq(1));
+
+  if (scorers.length > 0 || assists.length > 0) {
+    _espnScrapeCache = { scorers, assists, ts: Date.now() };
+  }
+
+  return { scorers, assists };
+}
+
+// ─── WC2026 top scorers ─────────────────────────────────────────────────────
 statsRoutes.get('/wc-scorers', async (_req, res) => {
   const cached = cacheGet('wc-scorers');
   if (cached) return res.json({ success: true, source: 'cache', data: cached });
 
-  // Primary: compute from our own matchEvent table (populated by ESPN sync)
+  // Primary: scrape ESPN.com.ar page (most accurate)
+  try {
+    const { scorers } = await scrapeESPNWCStats();
+    if (scorers.length >= 3) {
+      const result = { categories: [{ displayName: 'Goleadores', leaders: scorers.map(s => ({ ...s, goals: s.value })) }] };
+      cacheSet('wc-scorers', result, 4 * 60_000);
+      return res.json({ success: true, source: 'espn-web', data: result });
+    }
+  } catch {}
+
+  // Fallback: DB match events
   try {
     const goals = await prisma.matchEvent.findMany({
-      where: {
-        type: 'GOAL',
-        match: { tournament: { type: 'WORLD_CUP' }, status: 'FINISHED' },
-      },
-      include: {
-        match: {
-          include: {
-            homeTeam: { select: { name: true, code: true, flagUrl: true } },
-            awayTeam: { select: { name: true, code: true, flagUrl: true } },
-          },
-        },
-      },
+      where: { type: 'GOAL', match: { tournament: { type: 'WORLD_CUP' }, status: 'FINISHED' } },
+      include: { match: { include: { homeTeam: { select: { name: true, code: true, flagUrl: true } }, awayTeam: { select: { name: true, code: true, flagUrl: true } } } } },
     });
-
     if (goals.length > 0) {
-      const playerMap: Record<string, any> = {};
+      const map: Record<string, any> = {};
       for (const g of goals) {
-        const key = (g.description ?? '').trim() || `jugador-${g.teamId}-${g.id}`;
-        if (!playerMap[key]) {
-          const isHome = g.teamId === g.match.homeTeamId;
-          playerMap[key] = {
-            name: key,
-            goals: 0,
-            team: isHome ? g.match.homeTeam : g.match.awayTeam,
-          };
-        }
-        playerMap[key].goals++;
+        const key = (g.description ?? '').trim();
+        if (!key) continue;
+        if (!map[key]) { const isHome = g.teamId === g.match.homeTeamId; map[key] = { name: key, goals: 0, team: isHome ? g.match.homeTeam : g.match.awayTeam }; }
+        map[key].goals++;
       }
-
-      const scorers = Object.values(playerMap)
-        .filter((p: any) => p.name && !p.name.startsWith('jugador-'))
-        .sort((a: any, b: any) => b.goals - a.goals)
-        .slice(0, 30);
-
+      const scorers = Object.values(map).sort((a: any, b: any) => b.goals - a.goals).slice(0, 30);
       if (scorers.length >= 3) {
         const result = { categories: [{ displayName: 'Goleadores', leaders: scorers }] };
         cacheSet('wc-scorers', result, 2 * 60_000);
@@ -160,24 +235,48 @@ statsRoutes.get('/wc-scorers', async (_req, res) => {
     }
   } catch {}
 
-  // Fallback: ESPN stats API
-  const urls = [
-    'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/statistics?lang=es',
-    'https://sports.core.api.espn.com/v2/sports/soccer/leagues/fifa.world/seasons/2026/leaders?limit=20&lang=es',
-    'https://site.api.espn.com/apis/v2/sports/soccer/leagues/fifa.world/statistics?limit=20',
-  ];
-
-  for (const url of urls) {
-    try {
-      const { data } = await axios.get(url, { headers: ESPN_HEADERS, timeout: 8_000 });
-      if (data && (data.categories?.length || data.leaders?.length || data.items?.length)) {
-        cacheSet('wc-scorers', data, 5 * 60_000);
-        return res.json({ success: true, source: 'espn', data });
-      }
-    } catch {}
-  }
-
   return res.status(502).json({ success: false, error: 'No scorer data available' });
+});
+
+// ─── WC2026 top assists ──────────────────────────────────────────────────────
+statsRoutes.get('/wc-assists', async (_req, res) => {
+  const cached = cacheGet('wc-assists');
+  if (cached) return res.json({ success: true, source: 'cache', data: cached });
+
+  // Primary: scrape ESPN.com.ar page
+  try {
+    const { assists } = await scrapeESPNWCStats();
+    if (assists.length >= 3) {
+      const result = { categories: [{ displayName: 'Asistencias', leaders: assists.map(a => ({ ...a, assists: a.value })) }] };
+      cacheSet('wc-assists', result, 4 * 60_000);
+      return res.json({ success: true, source: 'espn-web', data: result });
+    }
+  } catch {}
+
+  // Fallback: DB match events (ASSIST type)
+  try {
+    const events = await prisma.matchEvent.findMany({
+      where: { type: 'ASSIST', match: { tournament: { type: 'WORLD_CUP' }, status: 'FINISHED' } },
+      include: { match: { include: { homeTeam: { select: { name: true, code: true, flagUrl: true } }, awayTeam: { select: { name: true, code: true, flagUrl: true } } } } },
+    });
+    if (events.length > 0) {
+      const map: Record<string, any> = {};
+      for (const e of events) {
+        const key = (e.description ?? '').trim();
+        if (!key) continue;
+        if (!map[key]) { const isHome = e.teamId === e.match.homeTeamId; map[key] = { name: key, assists: 0, team: isHome ? e.match.homeTeam : e.match.awayTeam }; }
+        map[key].assists++;
+      }
+      const assists = Object.values(map).sort((a: any, b: any) => b.assists - a.assists).slice(0, 30);
+      if (assists.length >= 3) {
+        const result = { categories: [{ displayName: 'Asistencias', leaders: assists }] };
+        cacheSet('wc-assists', result, 2 * 60_000);
+        return res.json({ success: true, source: 'db', data: result });
+      }
+    }
+  } catch {}
+
+  return res.status(502).json({ success: false, error: 'No assist data available' });
 });
 
 // ─── WC2026 team stats ── DB computed ─────────────────────────────────────

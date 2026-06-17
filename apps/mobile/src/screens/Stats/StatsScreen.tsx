@@ -24,11 +24,20 @@ export function StatsScreen() {
     staleTime: 5 * 60_000,
   });
 
+  const [scorersSubTab, setScorersSubTab] = useState<'goals' | 'assists'>('goals');
+
   const { data: wcScorers, isLoading: loadScorers, refetch: refetchScorers } = useQuery({
     queryKey: ['wc-scorers'],
     queryFn: async () => (await apiService.get('/stats/wc-scorers')).data.data,
     enabled: tab === 'wc-scorers',
-    staleTime: 5 * 60_000,
+    staleTime: 4 * 60_000,
+  });
+
+  const { data: wcAssists, isLoading: loadAssists, refetch: refetchAssists } = useQuery({
+    queryKey: ['wc-assists'],
+    queryFn: async () => (await apiService.get('/stats/wc-assists')).data.data,
+    enabled: tab === 'wc-scorers' && scorersSubTab === 'assists',
+    staleTime: 4 * 60_000,
   });
 
   const { data: ligaData, isLoading: loadLiga, refetch: refetchLiga } = useQuery({
@@ -42,8 +51,10 @@ export function StatsScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     if (tab === 'wc-global' || tab === 'wc-groups') await refetchStandings();
-    else if (tab === 'wc-scorers') await refetchScorers();
-    else await refetchLiga();
+    else if (tab === 'wc-scorers') {
+      await refetchScorers();
+      if (scorersSubTab === 'assists') await refetchAssists();
+    } else await refetchLiga();
     setRefreshing(false);
   };
 
@@ -57,7 +68,7 @@ export function StatsScreen() {
   const isLoading =
     tab === 'wc-global' ? loadStandings :
     tab === 'wc-groups' ? loadStandings :
-    tab === 'wc-scorers' ? loadScorers : loadLiga;
+    tab === 'wc-scorers' ? (scorersSubTab === 'goals' ? loadScorers : loadAssists) : loadLiga;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>
@@ -101,11 +112,29 @@ export function StatsScreen() {
         </ScrollView>
       )}
 
-      {/* WC Top Scorers */}
-      {tab === 'wc-scorers' && !isLoading && wcScorers && (
-        <ScrollView contentContainerStyle={styles.list} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}>
-          <WCScorersView data={wcScorers} appColors={appColors} />
-        </ScrollView>
+      {/* WC Top Scorers / Assists */}
+      {tab === 'wc-scorers' && (
+        <>
+          <View style={[styles.subTabRow, { borderBottomColor: appColors.border }]}>
+            {([['goals', 'Goleadores'], ['assists', 'Asistencias']] as const).map(([key, label]) => (
+              <TouchableOpacity
+                key={key}
+                style={[styles.subTab, scorersSubTab === key && styles.subTabActive]}
+                onPress={() => setScorersSubTab(key)}
+              >
+                <Text style={[styles.subTabLabel, { color: scorersSubTab === key ? colors.primary : appColors.textSecondary }]}>{label}</Text>
+                {scorersSubTab === key && <View style={styles.subTabBar} />}
+              </TouchableOpacity>
+            ))}
+          </View>
+          {isLoading
+            ? <View style={styles.loader}><ActivityIndicator color={colors.primary} size="large" /></View>
+            : <ScrollView contentContainerStyle={styles.list} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}>
+                {scorersSubTab === 'goals'
+                  ? <WCScorersView data={wcScorers} type="goals" appColors={appColors} />
+                  : <WCScorersView data={wcAssists} type="assists" appColors={appColors} />}
+              </ScrollView>}
+        </>
       )}
 
       {/* Liga Argentina */}
@@ -261,27 +290,29 @@ function WCStandingsView({ data, appColors }: { data: any; appColors: any }) {
   );
 }
 
-// ── WC Scorers ─────────────────────────────────────────────────────────────
-function WCScorersView({ data, appColors }: { data: any; appColors: any }) {
-  const categories: any[] = data?.categories ?? data?.leaders ?? [];
-  const goalsCategory = categories.find((c: any) =>
-    (c.displayName ?? c.name ?? '').toLowerCase().includes('gol') ||
-    (c.displayName ?? c.name ?? '').toLowerCase().includes('goal')
-  ) ?? categories[0];
+// ── WC Scorers / Assists ───────────────────────────────────────────────────
+function WCScorersView({ data, type, appColors }: { data: any; type: 'goals' | 'assists'; appColors: any }) {
+  const isGoals = type === 'goals';
+  const emptyLabel = isGoals ? 'Sin datos de goleadores' : 'Sin datos de asistencias';
 
-  const leaders: any[] = goalsCategory?.leaders ?? goalsCategory?.items ?? data?.items ?? [];
-  if (!leaders.length) return <EmptyState label="Sin datos de goleadores disponibles" appColors={appColors} />;
+  if (!data) return <EmptyState label={emptyLabel} appColors={appColors} />;
+
+  const categories: any[] = data?.categories ?? data?.leaders ?? [];
+  const category = categories[0];
+  const leaders: any[] = category?.leaders ?? category?.items ?? data?.items ?? [];
+
+  if (!leaders.length) return <EmptyState label={emptyLabel} appColors={appColors} />;
 
   return (
     <>
-      <Text style={[styles.groupHeader, { color: appColors.text, backgroundColor: `${colors.primary}20` }]}>
-        {goalsCategory?.displayName ?? 'Goleadores'}
-      </Text>
       {leaders.map((item: any, i: number) => {
-        const isDbFormat = !!item.goals;
-        const playerName = isDbFormat ? item.name : (item.athlete?.displayName ?? '—');
-        const goals = isDbFormat ? item.goals : (item.value ?? item.statValue ?? '—');
-        const teamInfo = isDbFormat ? item.team : item.athlete?.team;
+        // Supports both espn-web format ({name, team:{name}, value, goals/assists})
+        // and ESPN API format ({athlete:{displayName}, value, athlete:{team:{...}}})
+        const playerName = item.name ?? item.athlete?.displayName ?? '—';
+        const statValue = isGoals
+          ? (item.goals ?? item.value ?? item.statValue ?? '—')
+          : (item.assists ?? item.value ?? item.statValue ?? '—');
+        const teamInfo = item.team ?? item.athlete?.team;
         const teamLogo = teamInfo?.flagUrl ?? teamInfo?.logos?.[0]?.href ?? teamInfo?.logo;
         const teamName = teamInfo?.name ?? teamInfo?.displayName ?? '';
         const photo = item.athlete?.headshot?.href;
@@ -299,9 +330,9 @@ function WCScorersView({ data, appColors }: { data: any; appColors: any }) {
                 <Text style={[styles.sub, { color: appColors.textSecondary }]}>{teamName}</Text>
               </View>
             </View>
-            <View style={styles.statBadge}>
-              <Text style={styles.statBadgeText}>{goals}</Text>
-              <Text style={[styles.statBadgeLabel, { color: appColors.textSecondary }]}>goles</Text>
+            <View style={[styles.statBadge, !isGoals && { backgroundColor: '#7C3AED22' }]}>
+              <Text style={[styles.statBadgeText, !isGoals && { color: '#7C3AED' }]}>{statValue}</Text>
+              <Text style={[styles.statBadgeLabel, { color: appColors.textSecondary }]}>{isGoals ? 'goles' : 'asist.'}</Text>
             </View>
           </View>
         );
@@ -364,6 +395,11 @@ const styles = StyleSheet.create({
   tabActive: {},
   tabLabel: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.medium },
   tabBar: { position: 'absolute', bottom: 0, left: 8, right: 8, height: 2, backgroundColor: colors.primary, borderRadius: 1 },
+  subTabRow: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth, paddingHorizontal: spacing.base },
+  subTab: { flex: 1, alignItems: 'center', paddingVertical: spacing.sm, position: 'relative' },
+  subTabActive: {},
+  subTabLabel: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold },
+  subTabBar: { position: 'absolute', bottom: 0, left: 8, right: 8, height: 2, backgroundColor: colors.primary, borderRadius: 1 },
   loader: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
   loadingText: { fontSize: typography.fontSize.sm },
   list: { padding: spacing.sm, gap: spacing.xs, paddingBottom: 80 },
