@@ -1,5 +1,5 @@
 FROM node:20-slim
-# ShinraFixture2026 API
+# ShinraFixture2026 API — build 2026-06-18
 
 RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
