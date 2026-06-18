@@ -381,6 +381,20 @@ export function SettingsScreen() {
           ))}
         </View>
 
+        {/* ── Branding (debajo de Información) ─── */}
+        <View style={styles.branding}>
+          <Image
+            source={require('../../../assets/ShinraCodeLogo1.png')}
+            style={styles.brandLogo}
+            resizeMode="contain"
+          />
+          <View style={styles.brandText}>
+            <Text style={[styles.brandTitle, { color: appColors.text }]}>ShinraCode</Text>
+            <Text style={[styles.brandSub, { color: appColors.textSecondary }]}>Desarrollado por Yamil D. Rueda</Text>
+            <Text style={[styles.brandSub, { color: appColors.textSecondary }]}>San Rafael, Mendoza. Argentina</Text>
+          </View>
+        </View>
+
         {/* ── Acerca de ────────────────────────── */}
         <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>ACERCA DE</Text>
         <View style={[styles.card, { backgroundColor: appColors.surface }]}>
@@ -441,11 +455,8 @@ export function SettingsScreen() {
         {/* ── Código premium ───────────────────── */}
         <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>PREMIUM</Text>
         <View style={[styles.card, { backgroundColor: appColors.surface, padding: spacing.base }]}>
-          <Text style={[styles.rowLabel, { color: appColors.text, marginBottom: spacing.xs }]}>
+          <Text style={[styles.rowLabel, { color: appColors.text, marginBottom: spacing.md }]}>
             Activar código de regalo
-          </Text>
-          <Text style={[styles.rowValue, { color: appColors.textSecondary, marginBottom: spacing.md }]}>
-            {'@@@'}usuario para activar · {'@@@@@'}usuario para revocar
           </Text>
           <View style={styles.giftRow}>
             <TextInput
@@ -486,18 +497,6 @@ export function SettingsScreen() {
           </View>
         </TouchableOpacity>
 
-        {/* ── Branding ─────────────────────────── */}
-        <View style={styles.branding}>
-          <Image
-            source={require('../../../assets/ShinraCodeLogo1.png')}
-            style={styles.brandLogo}
-            resizeMode="contain"
-          />
-          <View style={styles.brandText}>
-            <Text style={[styles.brandTitle, { color: appColors.text }]}>ShinraCode</Text>
-            <Text style={[styles.brandSub, { color: appColors.textSecondary }]}>Desarrollado por Yamil D. Rueda</Text>
-          </View>
-        </View>
 
       </ScrollView>
     </SafeAreaView>
