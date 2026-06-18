@@ -353,12 +353,15 @@ export function SettingsScreen() {
         <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>INFORMACIÓN</Text>
         <View style={[styles.card, { backgroundColor: appColors.surface }]}>
           {[
-            { icon: 'home', label: 'Inicio', desc: 'Noticias, partidos del día y predicciones destacadas' },
-            { icon: 'soccer', label: 'Fixture', desc: 'Todos los partidos del torneo, resultados en vivo y detalle de cada match' },
-            { icon: 'lightning-bolt', label: 'Predicciones', desc: 'Predecí resultados y acumulá puntos. El resultado exacto vale 5 pts' },
-            { icon: 'account-group', label: 'Comunidad', desc: 'Quinielas grupales y ranking global de predictores' },
-            { icon: 'flag', label: 'Equipos', desc: 'Plantel, posiciones del grupo, partidos y estadísticas de cada selección' },
-            { icon: 'robot', label: 'IA', desc: 'Análisis predictivo de partidos con inteligencia artificial' },
+            { icon: 'home', label: 'Inicio', desc: 'Partidos del día, resultados recientes y predicciones destacadas de la comunidad' },
+            { icon: 'soccer', label: 'Fixture', desc: 'Todos los partidos del torneo con resultados en vivo, reacciones con emojis y análisis detallado de cada match' },
+            { icon: 'lightning-bolt', label: 'Predicciones', desc: 'Predecí resultados antes de cada partido y acumulá puntos. Resultado exacto: 5 pts · Ganador correcto: 2 pts · Empate correcto: 3 pts. Free: 5 predicciones por quiniela · Premium: ilimitadas' },
+            { icon: 'chart-bar', label: 'Estadísticas', desc: 'Tabla de posiciones #WC (48 equipos), standings por grupo, goleadores y asistencias del Mundial en tiempo real' },
+            { icon: 'account-group', label: 'Mi Liga', desc: 'Creá o uní a quinielas grupales con amigos. Free: hasta 2 quinielas creadas y 5 unidas · Premium: ilimitadas' },
+            { icon: 'flag', label: 'Equipos', desc: 'Plantel completo, posiciones del grupo, próximos partidos y estadísticas de las 48 selecciones del Mundial' },
+            { icon: 'robot', label: 'IA', desc: 'Análisis predictivo con inteligencia artificial para cada partido. Free: 2 consultas por día · Premium: ilimitadas' },
+            { icon: 'bell-outline', label: 'Notificaciones', desc: 'Recibís una alerta 15 minutos antes de que juegue tu equipo favorito. Activá tu equipo en "Mi Equipo" arriba' },
+            { icon: 'crown', label: 'Premium', desc: 'Desbloqueá predicciones, quinielas y consultas de IA ilimitadas. Activá con código de regalo en la sección PREMIUM de esta pantalla' },
           ].map((item, i, arr) => (
             <View
               key={item.label}
