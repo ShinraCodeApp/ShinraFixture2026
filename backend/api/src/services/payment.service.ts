@@ -5,13 +5,17 @@ import { config } from '../config';
 import { ApiError } from '../utils/ApiError';
 import { logger } from '../utils/logger';
 
-// ─── MercadoPago client (lazy — only if token is configured) ──────────────
+// ─── MercadoPago client (lazy) ────────────────────────────────────────────
 function getMPClient() {
   if (!config.mp.accessToken) throw ApiError.badRequest('MercadoPago no configurado.');
   return new MercadoPagoConfig({ accessToken: config.mp.accessToken, options: { timeout: 10_000 } });
 }
 
-const stripe = new Stripe(config.stripe.secretKey, { apiVersion: '2023-10-16' });
+// ─── Stripe client (lazy — avoids crash when key is not configured) ───────
+function getStripe() {
+  if (!config.stripe.secretKey) throw ApiError.badRequest('Stripe no configurado.');
+  return new Stripe(config.stripe.secretKey, { apiVersion: '2023-10-16' });
+}
 
 export class PaymentService {
   static getPlans() {
@@ -69,12 +73,12 @@ export class PaymentService {
 
     // Create or retrieve Stripe customer
     let customerId: string;
-    const existingCustomers = await stripe.customers.list({ email: user.email, limit: 1 });
+    const existingCustomers = await getStripe().customers.list({ email: user.email, limit: 1 });
 
     if (existingCustomers.data.length > 0) {
       customerId = existingCustomers.data[0].id;
     } else {
-      const customer = await stripe.customers.create({
+      const customer = await getStripe().customers.create({
         email: user.email,
         name: user.displayName,
         metadata: { userId },
@@ -83,7 +87,7 @@ export class PaymentService {
     }
 
     // Create checkout session
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
       mode: 'subscription',
@@ -103,7 +107,7 @@ export class PaymentService {
     const sub = await this.getSubscription(userId);
     if (!sub || !sub.stripeSubId) throw ApiError.notFound('Active subscription');
 
-    await stripe.subscriptions.update(sub.stripeSubId, { cancel_at_period_end: true });
+    await getStripe().subscriptions.update(sub.stripeSubId, { cancel_at_period_end: true });
     await prisma.subscription.update({
       where: { id: sub.id },
       data: { cancelAtPeriodEnd: true },
@@ -117,10 +121,10 @@ export class PaymentService {
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
     if (!user) throw ApiError.notFound('User');
 
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    const customers = await getStripe().customers.list({ email: user.email, limit: 1 });
     if (!customers.data.length) throw ApiError.notFound('Customer');
 
-    const session = await stripe.billingPortal.sessions.create({
+    const session = await getStripe().billingPortal.sessions.create({
       customer: customers.data[0].id,
       return_url: `${config.clientUrl}/profile`,
     });
@@ -218,7 +222,7 @@ export class PaymentService {
     let event: Stripe.Event;
 
     try {
-      event = stripe.webhooks.constructEvent(payload, signature, config.stripe.webhookSecret);
+      event = getStripe().webhooks.constructEvent(payload, signature, config.stripe.webhookSecret);
     } catch (err) {
       throw ApiError.badRequest('Invalid webhook signature');
     }
@@ -229,7 +233,7 @@ export class PaymentService {
         const userId = session.metadata?.userId;
         if (!userId || !session.subscription) break;
 
-        const stripeSub = await stripe.subscriptions.retrieve(session.subscription as string);
+        const stripeSub = await getStripe().subscriptions.retrieve(session.subscription as string);
         await prisma.subscription.create({
           data: {
             userId,
