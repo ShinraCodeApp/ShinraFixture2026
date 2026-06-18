@@ -102,6 +102,14 @@ export const config = {
     premiumAnnualPriceId: process.env.PREMIUM_ANNUAL_PRICE_ID || '',
   },
 
+  mp: {
+    accessToken: process.env.MP_ACCESS_TOKEN || '',
+    monthlyPrice: parseFloat(process.env.MP_MONTHLY_PRICE || '4.99'),
+    annualPrice: parseFloat(process.env.MP_ANNUAL_PRICE || '39.99'),
+    currency: process.env.MP_CURRENCY || 'USD',
+    webhookUrl: process.env.MP_WEBHOOK_URL || 'https://shinraapi-production.up.railway.app/api/v1/payments/webhook/mp',
+  },
+
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
     maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),

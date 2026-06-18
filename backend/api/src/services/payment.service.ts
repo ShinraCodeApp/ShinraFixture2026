@@ -1,8 +1,15 @@
 import Stripe from 'stripe';
+import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
 import { prisma } from '../config/database';
 import { config } from '../config';
 import { ApiError } from '../utils/ApiError';
 import { logger } from '../utils/logger';
+
+// ─── MercadoPago client (lazy — only if token is configured) ──────────────
+function getMPClient() {
+  if (!config.mp.accessToken) throw ApiError.badRequest('MercadoPago no configurado.');
+  return new MercadoPagoConfig({ accessToken: config.mp.accessToken, options: { timeout: 10_000 } });
+}
 
 const stripe = new Stripe(config.stripe.secretKey, { apiVersion: '2023-10-16' });
 
@@ -119,6 +126,92 @@ export class PaymentService {
     });
 
     return { portalUrl: session.url };
+  }
+
+  // ── MercadoPago ──────────────────────────────────────────────────────────
+
+  static async createMPPreference(userId: string, plan: 'monthly' | 'annual') {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, displayName: true, isPremium: true },
+    });
+    if (!user) throw ApiError.notFound('User');
+    if (user.isPremium) throw ApiError.conflict('Ya tenés Premium activo.');
+
+    const isMonthly = plan === 'monthly';
+    const price = isMonthly ? config.mp.monthlyPrice : config.mp.annualPrice;
+    const title = isMonthly ? 'ShinraFixture Premium Mensual' : 'ShinraFixture Premium Anual';
+
+    const client = getMPClient();
+    const preference = new Preference(client);
+
+    const result = await preference.create({
+      body: {
+        items: [{
+          id: plan,
+          title,
+          quantity: 1,
+          unit_price: price,
+          currency_id: config.mp.currency,
+        }],
+        payer: { email: user.email },
+        back_urls: {
+          success: 'shinrafixture://premium/success',
+          failure: 'shinrafixture://premium/cancel',
+          pending: 'shinrafixture://premium/pending',
+        },
+        auto_return: 'approved',
+        external_reference: `${userId}|${plan}`,
+        notification_url: config.mp.webhookUrl,
+        statement_descriptor: 'SHINRAFIXTURE',
+      },
+    });
+
+    return {
+      checkoutUrl: result.init_point,
+      preferenceId: result.id,
+    };
+  }
+
+  static async handleMPWebhook(body: any): Promise<void> {
+    // MP sends type='payment' or type='merchant_order'
+    if (body.type !== 'payment' || !body.data?.id) return;
+
+    const client = getMPClient();
+    const paymentApi = new Payment(client);
+    const payment = await paymentApi.get({ id: body.data.id });
+
+    if (payment.status !== 'approved') return;
+
+    const externalRef = payment.external_reference ?? '';
+    const [userId, plan] = externalRef.split('|');
+    if (!userId) { logger.warn('MP webhook: missing userId in external_reference'); return; }
+
+    const months = plan === 'annual' ? 12 : 1;
+    const premiumUntil = new Date();
+    premiumUntil.setMonth(premiumUntil.getMonth() + months);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isPremium: true, premiumUntil, role: 'PREMIUM' },
+    });
+
+    // Store payment record reusing stripeSubId field for MP payment ID
+    try {
+      await prisma.subscription.create({
+        data: {
+          userId,
+          stripeSubId: `mp_${payment.id}`,
+          stripePriceId: plan,
+          status: 'active',
+          planType: plan as 'monthly' | 'annual',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: premiumUntil,
+        },
+      });
+    } catch { /* ignore duplicate */ }
+
+    logger.info(`MP Premium activated: userId=${userId} plan=${plan} until=${premiumUntil.toISOString()}`);
   }
 
   static async handleWebhook(payload: Buffer, signature: string): Promise<void> {

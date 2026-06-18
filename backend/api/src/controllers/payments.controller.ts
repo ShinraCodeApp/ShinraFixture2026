@@ -36,4 +36,21 @@ export class PaymentController {
     await PaymentService.handleWebhook(req.body, sig);
     res.json({ received: true });
   }
+
+  static async subscribeMp(req: Request, res: Response): Promise<void> {
+    const { plan } = req.body;
+    if (!plan || !['monthly', 'annual'].includes(plan)) throw ApiError.badRequest('plan debe ser "monthly" o "annual"');
+    const data = await PaymentService.createMPPreference(req.user!.id, plan as 'monthly' | 'annual');
+    res.json({ success: true, data });
+  }
+
+  static async webhookMp(req: Request, res: Response): Promise<void> {
+    // MP expects 200 immediately, process async
+    res.sendStatus(200);
+    try {
+      await PaymentService.handleMPWebhook(req.body);
+    } catch (e: any) {
+      console.error('MP webhook error:', e.message);
+    }
+  }
 }

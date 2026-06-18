@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -10,9 +10,8 @@ import { useSelector } from 'react-redux';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootState } from '../../store';
+import { apiService } from '../../services/api';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme';
-
-const PREMIUM_URL = 'https://shinrafixture2026.netlify.app/premium/';
 
 interface Feature {
   icon: string;
@@ -39,9 +38,23 @@ export function PremiumScreen() {
   const { appColors } = useAppTheme();
   const { user } = useSelector((state: RootState) => state.auth);
   const isPremium = user?.isPremium ?? false;
+  const [loading, setLoading] = useState<'monthly' | 'annual' | null>(null);
 
-  const handleSubscribe = (plan: 'monthly' | 'annual') => {
-    Linking.openURL(`${PREMIUM_URL}?plan=${plan}`);
+  const handleSubscribe = async (plan: 'monthly' | 'annual') => {
+    setLoading(plan);
+    try {
+      const res = await apiService.post('/payments/subscribe/mp', { plan });
+      const checkoutUrl = res.data?.data?.checkoutUrl;
+      if (checkoutUrl) {
+        await Linking.openURL(checkoutUrl);
+      } else {
+        Alert.alert('Error', 'No se pudo generar el link de pago.');
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e?.response?.data?.error ?? e?.message ?? 'Error al procesar el pago.');
+    } finally {
+      setLoading(null);
+    }
   };
 
   const renderCell = (value: string | boolean, highlight: boolean) => {
@@ -95,17 +108,17 @@ export function PremiumScreen() {
             <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>PLANES</Text>
             <View style={styles.plansRow}>
               {/* Monthly */}
-              <TouchableOpacity style={[styles.planCard, { backgroundColor: appColors.surface }, shadows.md]} onPress={() => handleSubscribe('monthly')} activeOpacity={0.85}>
+              <TouchableOpacity style={[styles.planCard, { backgroundColor: appColors.surface }, shadows.md]} onPress={() => handleSubscribe('monthly')} activeOpacity={0.85} disabled={!!loading}>
                 <Text style={[styles.planName, { color: appColors.text }]}>Mensual</Text>
                 <Text style={[styles.planPrice, { color: colors.primary }]}>$4.99</Text>
                 <Text style={[styles.planPeriod, { color: appColors.textSecondary }]}>/ mes</Text>
                 <View style={[styles.planBtn, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.planBtnText}>Suscribirse</Text>
+                  {loading === 'monthly' ? <ActivityIndicator size="small" color="white" /> : <Text style={styles.planBtnText}>Suscribirse</Text>}
                 </View>
               </TouchableOpacity>
 
               {/* Annual */}
-              <TouchableOpacity style={[styles.planCard, styles.planCardFeatured, shadows.lg]} onPress={() => handleSubscribe('annual')} activeOpacity={0.85}>
+              <TouchableOpacity style={[styles.planCard, styles.planCardFeatured, shadows.lg]} onPress={() => handleSubscribe('annual')} activeOpacity={0.85} disabled={!!loading}>
                 <View style={styles.saveBadge}>
                   <Text style={styles.saveBadgeText}>AHORRÁS 33%</Text>
                 </View>
@@ -113,7 +126,7 @@ export function PremiumScreen() {
                 <Text style={[styles.planPrice, { color: '#FCD34D' }]}>$39.99</Text>
                 <Text style={[styles.planPeriod, { color: 'rgba(255,255,255,0.7)' }]}>/ año</Text>
                 <View style={[styles.planBtn, { backgroundColor: '#FCD34D' }]}>
-                  <Text style={[styles.planBtnText, { color: '#92400e' }]}>Mejor valor</Text>
+                  {loading === 'annual' ? <ActivityIndicator size="small" color="#92400e" /> : <Text style={[styles.planBtnText, { color: '#92400e' }]}>Mejor valor</Text>}
                 </View>
               </TouchableOpacity>
             </View>
@@ -167,9 +180,13 @@ export function PremiumScreen() {
           </TouchableOpacity>
         )}
 
-        <Text style={[styles.disclaimer, { color: appColors.textSecondary }]}>
-          Pagos procesados de forma segura por Stripe. Podés cancelar en cualquier momento.
-        </Text>
+        {/* MP branding */}
+        <View style={styles.mpBranding}>
+          <MaterialCommunityIcons name="shield-check" size={14} color="#00BCFF" />
+          <Text style={[styles.disclaimer, { color: appColors.textSecondary, marginTop: 0 }]}>
+            Pagos procesados por <Text style={{ color: '#00BCFF', fontFamily: typography.fontFamily.bold }}>MercadoPago</Text>. Podés cancelar en cualquier momento.
+          </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -243,6 +260,10 @@ const styles = StyleSheet.create({
   },
   ctaText: { color: 'white', fontFamily: typography.fontFamily.black, fontSize: typography.fontSize.lg },
   disclaimer: {
-    fontSize: typography.fontSize.xs, textAlign: 'center', marginTop: spacing.base, lineHeight: 18,
+    fontSize: typography.fontSize.xs, textAlign: 'center', marginTop: spacing.base, lineHeight: 18, flex: 1,
+  },
+  mpBranding: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    justifyContent: 'center', marginTop: spacing.base,
   },
 });
