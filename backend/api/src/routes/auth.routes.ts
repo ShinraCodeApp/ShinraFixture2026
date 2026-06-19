@@ -20,10 +20,14 @@ const giftCodeSchema = z.object({
 });
 
 const loginSchema = z.object({
-  identifier: z.string().min(1),
+  identifier: z.string().min(1).optional(),
+  email: z.string().optional(),
   password: z.string().min(1),
   rememberMe: z.preprocess(val => val === true || val === 'true', z.boolean()).optional().default(false),
-});
+}).transform(data => ({
+  ...data,
+  identifier: data.identifier ?? data.email ?? '',
+})).refine(data => !!data.identifier, { message: 'Email o usuario requerido' });
 
 const refreshSchema = z.object({
   refreshToken: z.string(),
