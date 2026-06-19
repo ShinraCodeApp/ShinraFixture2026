@@ -387,8 +387,8 @@ export function HomeScreen() {
             {[
               { icon: 'forum', label: 'Comunidad', color: '#10B981', onPress: () => navigation.navigate('Community') },
               { icon: 'soccer-field', label: 'Simulador', color: '#8B5CF6', onPress: () => navigation.navigate('Simulator') },
-              { icon: 'trophy', label: 'Mis logros', color: '#F59E0B', onPress: () => navigation.navigate('ProfileTab', { screen: 'Achievements' }) },
-              { icon: 'account-group', label: 'Amigos', color: '#3B82F6', onPress: () => navigation.navigate('ProfileTab', { screen: 'Friends' }) },
+              { icon: 'trophy', label: 'Mis logros', color: '#F59E0B', onPress: () => navigation.navigate('Achievements') },
+              { icon: 'account-group', label: 'Amigos', color: '#3B82F6', onPress: () => navigation.navigate('Friends') },
             ].map((a) => (
               <TouchableOpacity key={a.label} style={[styles.quickBtn, { backgroundColor: a.color + '15' }]} onPress={a.onPress}>
                 <MaterialCommunityIcons name={a.icon as any} size={22} color={a.color} />

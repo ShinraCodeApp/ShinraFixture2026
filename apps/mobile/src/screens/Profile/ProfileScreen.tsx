@@ -313,6 +313,21 @@ export function ProfileScreen() {
         </TouchableOpacity>
 
         <Text style={[styles.version, { color: appColors.textSecondary }]}>ShinraFixture 2026 v1.0.0</Text>
+
+        {/* ── Branding ─────────────────────────── */}
+        <View style={styles.branding}>
+          <Image
+            source={require('../../../assets/ShinraCodeLogo1.png')}
+            style={styles.brandLogo}
+            resizeMode="contain"
+          />
+          <View>
+            <Text style={[styles.brandTitle, { color: appColors.text }]}>ShinraCode</Text>
+            <Text style={[styles.brandSub, { color: appColors.textSecondary }]}>Programador: Yamil D. Rueda</Text>
+            <Text style={[styles.brandSub, { color: appColors.textSecondary }]}>San Rafael, Mendoza. Argentina</Text>
+          </View>
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -382,5 +397,12 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg, marginBottom: spacing.base, ...shadows.sm,
   },
   logoutText: { fontFamily: typography.fontFamily.medium, fontSize: typography.fontSize.base },
-  version: { textAlign: 'center', fontSize: typography.fontSize.xs, marginBottom: spacing.xxxl },
+  version: { textAlign: 'center', fontSize: typography.fontSize.xs, marginBottom: spacing.base },
+  branding: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.base,
+    justifyContent: 'center', paddingVertical: spacing.xl, marginBottom: spacing.xxxl,
+  },
+  brandLogo: { width: 44, height: 44, borderRadius: borderRadius.md },
+  brandTitle: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold },
+  brandSub: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.regular },
 });

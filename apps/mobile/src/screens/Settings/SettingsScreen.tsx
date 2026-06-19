@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, Switch, Alert, Share, Linking, TextInput, ActivityIndicator,
+  Image, Switch, Alert, Share, Linking, TextInput, ActivityIndicator, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -21,7 +21,8 @@ const APK_DRIVE_URL =
   'https://drive.google.com/uc?export=download&id=1If7JUMqKt3BPX2gzZMFFMICJl0EIS9hB';
 const APK_GITHUB_URL =
   'https://github.com/ShinraCodeApp/ShinraFixture2026/releases/latest/download/app-release.apk';
-const QR_DOWNLOAD_URL = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(APK_GITHUB_URL)}`;
+const QR_DOWNLOAD_URL = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(APK_DRIVE_URL)}`;
+const QR_GITHUB_URL = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(APK_GITHUB_URL)}`;
 
 const ICONS: { id: AppIconId; label: string; description: string; image: ReturnType<typeof require> }[] = [
   {
@@ -46,6 +47,7 @@ export function SettingsScreen() {
   const [teamPickerVisible, setTeamPickerVisible] = useState(false);
   const [giftCode, setGiftCode] = useState('');
   const [giftLoading, setGiftLoading] = useState(false);
+  const [zoomQR, setZoomQR] = useState<string | null>(null);
 
   const handleApplyGiftCode = async () => {
     const code = giftCode.trim();
@@ -325,29 +327,48 @@ export function SettingsScreen() {
 
         {/* ── QR de descarga ──────────────────── */}
         <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>QR DE DESCARGA</Text>
-        <View style={[styles.card, { backgroundColor: appColors.surface, alignItems: 'center', padding: spacing.xl }]}>
-          <Text style={[styles.rowLabel, { color: appColors.text, marginBottom: spacing.xs }]}>
-            Escaneá para descargar la app
-          </Text>
-          <Text style={[styles.rowValue, { color: appColors.textSecondary, marginBottom: spacing.base, textAlign: 'center' }]}>
-            Mostrá este QR a tus amigos
-          </Text>
-          <View style={styles.qrWrapper}>
-            <Image
-              source={{ uri: QR_DOWNLOAD_URL }}
-              style={styles.qrImage}
-              resizeMode="contain"
-            />
-          </View>
-          <TouchableOpacity
-            style={[styles.qrShareBtn, { backgroundColor: colors.primary }]}
-            onPress={() => handleShareApk(APK_GITHUB_URL, 'GitHub')}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="share-social-outline" size={16} color="white" />
-            <Text style={styles.qrShareText}>Compartir enlace</Text>
+        <Text style={[styles.qrHint, { color: appColors.textSecondary }]}>Tocá un QR para agrandarlo y escanearlo más fácil</Text>
+        <View style={styles.qrRow}>
+          {/* Drive QR */}
+          <TouchableOpacity style={[styles.qrCard, { backgroundColor: appColors.surface }]} onPress={() => setZoomQR(QR_DOWNLOAD_URL)} activeOpacity={0.8}>
+            <View style={styles.qrLabelRow}>
+              <Ionicons name="logo-google" size={13} color="#4285F4" />
+              <Text style={[styles.qrLabel, { color: '#4285F4' }]}>Google Drive</Text>
+            </View>
+            <View style={styles.qrWrapper}>
+              <Image source={{ uri: QR_DOWNLOAD_URL }} style={styles.qrImageSmall} resizeMode="contain" />
+            </View>
+            <TouchableOpacity style={[styles.qrShareBtn, { backgroundColor: '#4285F4' }]} onPress={() => handleShareApk(APK_DRIVE_URL, 'Drive')} activeOpacity={0.8}>
+              <Ionicons name="share-social-outline" size={13} color="white" />
+              <Text style={styles.qrShareText}>Compartir</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+
+          {/* GitHub QR */}
+          <TouchableOpacity style={[styles.qrCard, { backgroundColor: appColors.surface }]} onPress={() => setZoomQR(QR_GITHUB_URL)} activeOpacity={0.8}>
+            <View style={styles.qrLabelRow}>
+              <Ionicons name="logo-github" size={13} color={appColors.text} />
+              <Text style={[styles.qrLabel, { color: appColors.text }]}>GitHub</Text>
+            </View>
+            <View style={styles.qrWrapper}>
+              <Image source={{ uri: QR_GITHUB_URL }} style={styles.qrImageSmall} resizeMode="contain" />
+            </View>
+            <TouchableOpacity style={[styles.qrShareBtn, { backgroundColor: '#333' }]} onPress={() => handleShareApk(APK_GITHUB_URL, 'GitHub')} activeOpacity={0.8}>
+              <Ionicons name="share-social-outline" size={13} color="white" />
+              <Text style={styles.qrShareText}>Compartir</Text>
+            </TouchableOpacity>
           </TouchableOpacity>
         </View>
+
+        {/* Modal zoom QR */}
+        <Modal visible={!!zoomQR} transparent animationType="fade" onRequestClose={() => setZoomQR(null)}>
+          <TouchableOpacity style={styles.zoomOverlay} onPress={() => setZoomQR(null)} activeOpacity={1}>
+            <View style={styles.zoomCard}>
+              <Image source={{ uri: zoomQR ?? '' }} style={styles.zoomImage} resizeMode="contain" />
+              <Text style={styles.zoomHint}>Tocá para cerrar</Text>
+            </View>
+          </TouchableOpacity>
+        </Modal>
 
         {/* ── Cómo usar la app ─────────────────── */}
         <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>INFORMACIÓN</Text>
@@ -463,7 +484,7 @@ export function SettingsScreen() {
               style={[styles.giftInput, { backgroundColor: appColors.surfaceSecondary, color: appColors.text, borderColor: appColors.border }]}
               value={giftCode}
               onChangeText={setGiftCode}
-              placeholder="@@@usuario"
+              placeholder="Ingresá tu código"
               placeholderTextColor={appColors.textSecondary}
               autoCapitalize="none"
               autoCorrect={false}
@@ -666,15 +687,23 @@ const styles = StyleSheet.create({
   },
 
   // QR code
-  qrWrapper: {
-    padding: 12, backgroundColor: 'white', borderRadius: borderRadius.lg, marginBottom: spacing.base,
-  },
-  qrImage: { width: 200, height: 200 },
+  qrHint: { fontSize: typography.fontSize.xs, textAlign: 'center', marginBottom: spacing.sm },
+  qrRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.base },
+  qrCard: { flex: 1, borderRadius: borderRadius.lg, padding: spacing.sm, alignItems: 'center', gap: spacing.xs, ...shadows.sm },
+  qrWrapper: { padding: 8, backgroundColor: 'white', borderRadius: borderRadius.md, marginBottom: spacing.xs },
+  qrImageSmall: { width: 120, height: 120 },
+  qrLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: spacing.xs },
+  qrLabel: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.semiBold },
   qrShareBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    paddingHorizontal: spacing.xl, paddingVertical: spacing.sm, borderRadius: borderRadius.full,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: spacing.sm, paddingVertical: 5, borderRadius: borderRadius.full,
   },
-  qrShareText: { color: 'white', fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.sm },
+  qrShareText: { color: 'white', fontFamily: typography.fontFamily.bold, fontSize: 11 },
+  // Zoom modal
+  zoomOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', justifyContent: 'center' },
+  zoomCard: { alignItems: 'center', gap: spacing.base },
+  zoomImage: { width: 300, height: 300, backgroundColor: 'white', borderRadius: borderRadius.lg, padding: 12 },
+  zoomHint: { color: 'rgba(255,255,255,0.6)', fontSize: typography.fontSize.sm },
 
   // Gift code
   giftRow: { flexDirection: 'row', gap: spacing.sm },

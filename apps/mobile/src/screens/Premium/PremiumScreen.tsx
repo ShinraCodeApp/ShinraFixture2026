@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RootState } from '../../store';
@@ -37,8 +37,11 @@ export function PremiumScreen() {
   const navigation = useNavigation<any>();
   const { appColors } = useAppTheme();
   const { user } = useSelector((state: RootState) => state.auth);
+  const dispatch = useDispatch<any>();
   const isPremium = user?.isPremium ?? false;
   const [loading, setLoading] = useState<'monthly' | 'annual' | null>(null);
+  const [hasPendingPayment, setHasPendingPayment] = useState(false);
+  const [checkingPayment, setCheckingPayment] = useState(false);
 
   const handleSubscribe = async (plan: 'monthly' | 'annual') => {
     setLoading(plan);
@@ -47,6 +50,7 @@ export function PremiumScreen() {
       const checkoutUrl = res.data?.data?.checkoutUrl;
       if (checkoutUrl) {
         await Linking.openURL(checkoutUrl);
+        setHasPendingPayment(true);
       } else {
         Alert.alert('Error', 'No se pudo generar el link de pago.');
       }
@@ -54,6 +58,25 @@ export function PremiumScreen() {
       Alert.alert('Error', e?.response?.data?.error ?? e?.message ?? 'Error al procesar el pago.');
     } finally {
       setLoading(null);
+    }
+  };
+
+  const handleCheckPayment = async () => {
+    setCheckingPayment(true);
+    try {
+      const res = await apiService.get('/auth/me');
+      const updatedUser = res.data?.data?.user ?? res.data?.data;
+      if (updatedUser?.isPremium) {
+        dispatch({ type: 'auth/updateUser', payload: updatedUser });
+        setHasPendingPayment(false);
+        Alert.alert('¡Premium activado!', 'Ya podés disfrutar todas las funciones Premium.');
+      } else {
+        Alert.alert('Pago pendiente', 'Todavía no recibimos la confirmación. Esperá unos segundos e intentá de nuevo.');
+      }
+    } catch {
+      Alert.alert('Error', 'No se pudo verificar el pago. Intentá de nuevo.');
+    } finally {
+      setCheckingPayment(false);
     }
   };
 
@@ -130,6 +153,19 @@ export function PremiumScreen() {
                 </View>
               </TouchableOpacity>
             </View>
+
+            {/* Ya pagué — solo aparece después de abrir el checkout */}
+            {hasPendingPayment && (
+              <TouchableOpacity style={[styles.checkBtn, { backgroundColor: appColors.surface }]} onPress={handleCheckPayment} disabled={checkingPayment} activeOpacity={0.85}>
+                {checkingPayment
+                  ? <ActivityIndicator size="small" color={colors.primary} />
+                  : <>
+                      <MaterialCommunityIcons name="check-circle-outline" size={20} color={colors.primary} />
+                      <Text style={[styles.checkBtnText, { color: colors.primary }]}>Ya pagué — verificar</Text>
+                    </>
+                }
+              </TouchableOpacity>
+            )}
           </>
         )}
 
@@ -266,4 +302,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     justifyContent: 'center', marginTop: spacing.base,
   },
+  checkBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
+    borderRadius: borderRadius.xl, paddingVertical: spacing.md,
+    marginTop: spacing.base, borderWidth: 1.5, borderColor: colors.primary,
+    minHeight: 48,
+  },
+  checkBtnText: { fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.base },
 });
