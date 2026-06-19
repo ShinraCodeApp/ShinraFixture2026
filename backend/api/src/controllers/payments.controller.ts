@@ -40,13 +40,8 @@ export class PaymentController {
   static async subscribeMp(req: Request, res: Response): Promise<void> {
     const { plan } = req.body;
     if (!plan || !['monthly', 'annual'].includes(plan)) throw ApiError.badRequest('plan debe ser "monthly" o "annual"');
-    try {
-      const data = await PaymentService.createMPPreference(req.user!.id, plan as 'monthly' | 'annual');
-      res.json({ success: true, data });
-    } catch (e: any) {
-      console.error('[MP] createMPPreference error:', e?.message, e?.cause, JSON.stringify(e?.response?.data));
-      res.status(500).json({ success: false, error: e?.message ?? 'Error MP', detail: e?.cause ?? e?.response?.data });
-    }
+    const data = await PaymentService.createMPPreference(req.user!.id, plan as 'monthly' | 'annual');
+    res.json({ success: true, data });
   }
 
   static async webhookMp(req: Request, res: Response): Promise<void> {
