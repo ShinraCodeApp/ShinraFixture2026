@@ -168,7 +168,7 @@ export class AuthService {
     }
 
     // If targeting another user, only admins can do that
-    if (targetUsername && callerRole !== 'ADMIN') {
+    if (targetUsername && callerRole !== 'ADMIN' && callerRole !== 'SUPER') {
       throw ApiError.forbidden('Solo admins pueden activar premium en otras cuentas');
     }
 
