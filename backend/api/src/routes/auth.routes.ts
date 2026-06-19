@@ -20,8 +20,9 @@ const giftCodeSchema = z.object({
 });
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  identifier: z.string().min(1),
   password: z.string().min(1),
+  rememberMe: z.preprocess(val => val === true || val === 'true', z.boolean()).optional().default(false),
 });
 
 const refreshSchema = z.object({

@@ -83,15 +83,18 @@ export class AuthService {
     return { user, ...tokens };
   }
 
-  static async login(email: string, password: string) {
+  static async login(identifier: string, password: string, rememberMe = false) {
+    const isEmail = identifier.includes('@');
+    const userSelect = {
+      id: true, email: true, username: true, displayName: true, passwordHash: true,
+      role: true, isPremium: true, isBanned: true, tokenVersion: true,
+      level: true, xp: true, predictionPoints: true, totalPredictions: true,
+      correctPredictions: true, country: true, avatar: true,
+    };
+
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
-      select: {
-        id: true, email: true, username: true, displayName: true, passwordHash: true,
-        role: true, isPremium: true, isBanned: true, tokenVersion: true,
-        level: true, xp: true, predictionPoints: true, totalPredictions: true,
-        correctPredictions: true, country: true, avatar: true,
-      },
+      where: isEmail ? { email: identifier.toLowerCase() } : { username: identifier },
+      select: userSelect,
     });
 
     if (!user || !user.passwordHash) {
@@ -106,7 +109,7 @@ export class AuthService {
     if (!isValid) throw ApiError.unauthorized('Invalid email or password');
 
     const tokens = this.createTokens(user.id, user.email, user.role, user.tokenVersion);
-    await this.storeRefreshToken(user.id, tokens.refreshToken);
+    await this.storeRefreshToken(user.id, tokens.refreshToken, rememberMe);
 
     const { passwordHash, tokenVersion, isBanned, ...safeUser } = user;
     return { user: safeUser as Omit<typeof user, 'passwordHash' | 'tokenVersion' | 'isBanned'>, ...tokens };
@@ -289,9 +292,9 @@ export class AuthService {
     return generateTokenPair({ userId, email, role, tokenVersion });
   }
 
-  private static async storeRefreshToken(userId: string, token: string): Promise<void> {
+  private static async storeRefreshToken(userId: string, token: string, rememberMe = false): Promise<void> {
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    expiresAt.setDate(expiresAt.getDate() + (rememberMe ? 30 : 7));
 
     await prisma.refreshToken.create({ data: { userId, token, expiresAt } });
   }

@@ -17,17 +17,18 @@ export function LoginScreen() {
   const navigation = useNavigation<any>();
   const dispatch = useDispatch<AppDispatch>();
   const { isLoading, error } = useSelector((s: RootState) => s.auth);
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   useEffect(() => {
     dispatch(clearError());
   }, []);
-  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
-    if (!email.trim() || !password) return;
-    await dispatch(login({ email: email.trim().toLowerCase(), password }));
+    if (!identifier.trim() || !password) return;
+    await dispatch(login({ identifier: identifier.trim(), password, rememberMe }));
   };
 
   return (
@@ -56,13 +57,13 @@ export function LoginScreen() {
               )}
 
               <View style={styles.inputContainer}>
-                <Ionicons name="mail-outline" size={18} color="rgba(255,255,255,0.5)" style={styles.inputIcon} />
+                <Ionicons name="person-outline" size={18} color="rgba(255,255,255,0.5)" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Correo electrónico"
+                  placeholder="Email o usuario"
                   placeholderTextColor="rgba(255,255,255,0.4)"
-                  value={email}
-                  onChangeText={setEmail}
+                  value={identifier}
+                  onChangeText={setIdentifier}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoComplete="email"
@@ -85,14 +86,22 @@ export function LoginScreen() {
                 </TouchableOpacity>
               </View>
 
-              <TouchableOpacity style={styles.forgotLink} onPress={() => (navigation as any).navigate('ForgotPassword')}>
-                <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
-              </TouchableOpacity>
+              <View style={styles.rememberRow}>
+                <TouchableOpacity style={styles.checkboxContainer} onPress={() => setRememberMe(!rememberMe)} activeOpacity={0.7}>
+                  <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                    {rememberMe && <Ionicons name="checkmark" size={12} color="white" />}
+                  </View>
+                  <Text style={styles.rememberText}>Recordarme</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => (navigation as any).navigate('ForgotPassword')}>
+                  <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
+                </TouchableOpacity>
+              </View>
 
               <TouchableOpacity
-                style={[styles.loginButton, (isLoading || !email || !password) && styles.buttonDisabled]}
+                style={[styles.loginButton, (isLoading || !identifier || !password) && styles.buttonDisabled]}
                 onPress={handleLogin}
-                disabled={isLoading || !email || !password}
+                disabled={isLoading || !identifier || !password}
               >
                 {isLoading ? (
                   <ActivityIndicator color="white" />
@@ -166,7 +175,18 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.regular,
   },
   eyeButton: { padding: spacing.xs },
-  forgotLink: { alignSelf: 'flex-end', marginBottom: spacing.base },
+  rememberRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginBottom: spacing.base,
+  },
+  checkboxContainer: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  checkbox: {
+    width: 18, height: 18, borderRadius: 4,
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  checkboxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
+  rememberText: { color: 'rgba(255,255,255,0.7)', fontSize: typography.fontSize.sm },
   forgotText: { color: 'rgba(255,255,255,0.6)', fontSize: typography.fontSize.sm },
   loginButton: {
     backgroundColor: colors.primary, borderRadius: borderRadius.lg,

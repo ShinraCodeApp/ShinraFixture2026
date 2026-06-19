@@ -8,8 +8,8 @@ export class AuthController {
   }
 
   static async login(req: Request, res: Response): Promise<void> {
-    const { email, password } = req.body;
-    const result = await AuthService.login(email, password);
+    const { identifier, password, rememberMe } = req.body;
+    const result = await AuthService.login(identifier, password, !!rememberMe);
     res.json({ success: true, data: result });
   }
 

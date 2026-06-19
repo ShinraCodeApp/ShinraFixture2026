@@ -65,9 +65,9 @@ const initialState: AuthState = {
 
 export const login = createAsyncThunk(
   'auth/login',
-  async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
+  async ({ identifier, password, rememberMe }: { identifier: string; password: string; rememberMe?: boolean }, { rejectWithValue }) => {
     try {
-      return await authGet('/auth/g-login', { email, password });
+      return await authGet('/auth/g-login', { identifier, password, rememberMe: rememberMe ? 'true' : 'false' });
     } catch (err: any) {
       return rejectWithValue(err.message || 'No se pudo iniciar sesión. Verificá tus datos.');
     }
