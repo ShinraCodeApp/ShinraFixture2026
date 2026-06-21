@@ -87,12 +87,21 @@ function DuelCard({ duel, userId, onAccept, onDecline }: { duel: any; userId?: s
         </View>
       </View>
 
+      {/* XP bet indicator */}
+      {duel.xpBet > 0 && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
+          <Text style={{ fontSize: 12, color: '#F59E0B', fontFamily: typography.fontFamily.semiBold }}>
+            ⚡ {duel.xpBet} XP en juego
+          </Text>
+        </View>
+      )}
+
       {/* Result */}
       {duel.status === 'RESOLVED' && (
         <View style={S.resultRow}>
           <Text style={S.resultIcon}>{resultIcon}</Text>
           <Text style={[S.resultText, { color: isWinner ? '#10B981' : isLoser ? '#EF4444' : '#F59E0B' }]}>
-            {isWinner ? 'Ganaste' : isLoser ? 'Perdiste' : 'Empate'}{actualScore ? ` · Real: ${actualScore}` : ''}
+            {isWinner ? `Ganaste${duel.xpBet > 0 ? ` +${duel.xpBet * 2} XP` : ''}` : isLoser ? 'Perdiste' : 'Empate'}{actualScore ? ` · Real: ${actualScore}` : ''}
           </Text>
         </View>
       )}

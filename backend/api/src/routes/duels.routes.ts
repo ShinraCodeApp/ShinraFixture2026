@@ -38,11 +38,13 @@ duelRoutes.get('/', async (req: any, res) => {
 duelRoutes.post('/', async (req: any, res) => {
   try {
     const challengerId = req.user.id;
-    const { matchId, opponentId, challengerPick } = req.body;
+    const { matchId, opponentId, challengerPick, xpBet = 0 } = req.body;
     if (!matchId || !opponentId || !challengerPick)
       return res.status(400).json({ success: false, error: 'matchId, opponentId and challengerPick required' });
     if (challengerId === opponentId)
       return res.status(400).json({ success: false, error: 'Cannot duel yourself' });
+
+    const betAmount = Math.max(0, parseInt(String(xpBet), 10) || 0);
 
     // Verify match is still scheduled
     const match = await prisma.match.findUnique({
@@ -53,8 +55,17 @@ duelRoutes.post('/', async (req: any, res) => {
     if (match.status !== 'SCHEDULED')
       return res.status(400).json({ success: false, error: 'Match already started or finished' });
 
+    // Check challenger has enough XP if betting
+    if (betAmount > 0) {
+      const challenger = await prisma.user.findUnique({ where: { id: challengerId }, select: { xp: true } });
+      if (!challenger || challenger.xp < betAmount)
+        return res.status(400).json({ success: false, error: `XP insuficiente. Tenés ${challenger?.xp ?? 0} XP` });
+
+      await prisma.user.update({ where: { id: challengerId }, data: { xp: { decrement: betAmount } } });
+    }
+
     const duel = await prisma.matchDuel.create({
-      data: { matchId, challengerId, opponentId, challengerPick, status: 'PENDING' },
+      data: { matchId, challengerId, opponentId, challengerPick, xpBet: betAmount, status: 'PENDING' },
       include: {
         challenger: { select: { id: true, displayName: true, username: true, avatar: true } },
         opponent:   { select: { id: true, displayName: true, username: true, avatar: true } },
@@ -63,10 +74,11 @@ duelRoutes.post('/', async (req: any, res) => {
     });
 
     // Notify opponent
+    const betMsg = betAmount > 0 ? ` · Apuesta: ${betAmount} XP` : '';
     NotificationService.sendPush([opponentId], {
       type: NotificationType.SYSTEM,
       title: `⚔️ Duelo de ${duel.challenger.displayName}`,
-      body: `Te desafió en ${match.homeTeam?.name} vs ${match.awayTeam?.name}`,
+      body: `Te desafió en ${match.homeTeam?.name} vs ${match.awayTeam?.name}${betMsg}`,
       data: { duelId: duel.id, matchId },
     }).catch(() => {});
 
@@ -88,6 +100,18 @@ duelRoutes.post('/:id/accept', async (req: any, res) => {
     if (!duel) return res.status(404).json({ success: false, error: 'Duel not found' });
     if (duel.opponentId !== userId) return res.status(403).json({ success: false, error: 'Not your duel' });
     if (duel.status !== 'PENDING') return res.status(400).json({ success: false, error: 'Duel already responded' });
+
+    // Deduct XP from opponent if there's a bet
+    if (duel.xpBet > 0) {
+      const opponent = await prisma.user.findUnique({ where: { id: userId }, select: { xp: true } });
+      if (!opponent || opponent.xp < duel.xpBet) {
+        // Refund challenger and decline
+        await prisma.user.update({ where: { id: duel.challengerId }, data: { xp: { increment: duel.xpBet } } });
+        await prisma.matchDuel.update({ where: { id }, data: { status: 'DECLINED' } });
+        return res.status(400).json({ success: false, error: `XP insuficiente para aceptar. Necesitás ${duel.xpBet} XP` });
+      }
+      await prisma.user.update({ where: { id: userId }, data: { xp: { decrement: duel.xpBet } } });
+    }
 
     const updated = await prisma.matchDuel.update({
       where: { id },
@@ -113,13 +137,20 @@ duelRoutes.post('/:id/accept', async (req: any, res) => {
   }
 });
 
-// Decline a duel
+// Decline a duel (refund challenger XP if there was a bet)
 duelRoutes.post('/:id/decline', async (req: any, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
     const duel = await prisma.matchDuel.findUnique({ where: { id } });
     if (!duel || duel.opponentId !== userId) return res.status(403).json({ success: false, error: 'Forbidden' });
+    if (duel.status !== 'PENDING') return res.status(400).json({ success: false, error: 'Duel already responded' });
+
+    // Refund challenger's XP
+    if (duel.xpBet > 0) {
+      await prisma.user.update({ where: { id: duel.challengerId }, data: { xp: { increment: duel.xpBet } } });
+    }
+
     await prisma.matchDuel.update({ where: { id }, data: { status: 'DECLINED' } });
     res.json({ success: true });
   } catch (e: any) {
@@ -168,14 +199,29 @@ export async function resolveDuelsForMatch(matchId: string): Promise<void> {
       data: { status: 'RESOLVED', winnerId },
     });
 
+    // Award XP
+    if (duel.xpBet > 0) {
+      if (winnerId) {
+        // Winner gets both bets (2x)
+        await prisma.user.update({ where: { id: winnerId }, data: { xp: { increment: duel.xpBet * 2 } } });
+      } else {
+        // Tie — refund both
+        await prisma.user.update({ where: { id: duel.challengerId }, data: { xp: { increment: duel.xpBet } } });
+        await prisma.user.update({ where: { id: duel.opponentId }, data: { xp: { increment: duel.xpBet } } });
+      }
+    }
+
     // Notify both
+    const xpMsg = duel.xpBet > 0
+      ? (winnerId ? ` · +${duel.xpBet * 2} XP` : ` · ${duel.xpBet} XP devueltos`)
+      : '';
     const msg = winnerId
       ? (winnerId === duel.challengerId ? `🏆 ${duel.challenger.displayName} ganó el duelo` : `🏆 ${duel.opponent.displayName} ganó el duelo`)
       : '🤝 Duelo empatado';
     NotificationService.sendPush([duel.challengerId, duel.opponentId], {
       type: NotificationType.SYSTEM,
-      title: msg,
-      body: `Resultado: ${actualResult} · Tus picks: ${cPick} vs ${oPick}`,
+      title: msg + xpMsg,
+      body: `Resultado: ${actualResult} · Picks: ${cPick} vs ${oPick}`,
       data: { duelId: duel.id, matchId },
     }).catch(() => {});
   }

@@ -127,6 +127,7 @@ export function ProfileScreen() {
     { icon: 'trophy', label: 'Mis logros', onPress: () => navigation.navigate('Achievements') },
     { icon: 'chart-bar', label: 'Mis estadísticas', onPress: () => navigation.navigate('PersonalStats') },
     { icon: 'sword-cross', label: 'Mis duelos', onPress: () => navigation.navigate('Duels') },
+    { icon: 'trophy-outline', label: 'Torneos entre amigos', onPress: () => navigation.navigate('FriendTournaments') },
     { icon: 'account-search', label: 'Buscar usuarios', onPress: () => navigation.navigate('UserSearch') },
     { icon: 'history', label: 'Historial de predicciones', onPress: () => navigation.navigate('PredictionsTab') },
     {

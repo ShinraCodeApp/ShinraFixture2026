@@ -196,6 +196,8 @@ model User {
   bracketPicks      BracketPick[]
   duelsAsChallenger MatchDuel[]  @relation("DuelChallenger")
   duelsAsOpponent   MatchDuel[]  @relation("DuelOpponent")
+  tournamentsCreated FriendTournament[] @relation("TournamentCreator")
+  tournamentParticipations TournamentParticipant[] @relation("TournamentParticipant")
 
   @@index([email])
   @@index([username])
@@ -1031,6 +1033,7 @@ model MatchDuel {
   opponentPick   String?
   status         DuelStatus  @default(PENDING)
   winnerId       String?     // null = draw
+  xpBet          Int         @default(0)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
@@ -1038,6 +1041,45 @@ model MatchDuel {
   @@index([opponentId])
   @@index([matchId])
   @@index([status])
+}
+
+// ══════════════════════════════════════════════════════
+// FRIEND TOURNAMENTS
+// ══════════════════════════════════════════════════════
+
+enum TournamentStatus {
+  OPEN
+  IN_PROGRESS
+  FINISHED
+}
+
+model FriendTournament {
+  id           String            @id @default(uuid())
+  name         String
+  creatorId    String
+  creator      User              @relation("TournamentCreator", fields: [creatorId], references: [id])
+  status       TournamentStatus  @default(OPEN)
+  matchIds     Json              @default("[]")
+  participants TournamentParticipant[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([creatorId])
+  @@index([status])
+}
+
+model TournamentParticipant {
+  id           String           @id @default(uuid())
+  tournamentId String
+  tournament   FriendTournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User             @relation("TournamentParticipant", fields: [userId], references: [id])
+  points       Int              @default(0)
+  status       String           @default("INVITED") // INVITED | JOINED | DECLINED
+  createdAt    DateTime         @default(now())
+
+  @@unique([tournamentId, userId])
+  @@index([userId])
 }
 
 // ══════════════════════════════════════════════════════

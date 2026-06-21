@@ -7,6 +7,7 @@ import { prisma } from '../config/database';
 import { NotificationService } from '../services/notifications.service';
 import { PredictionService } from '../services/predictions.service';
 import { resolveDuelsForMatch } from './duels.routes';
+import { updateTournamentPointsForMatch } from './friend-tournaments.routes';
 
 export const matchRoutes = Router();
 
@@ -347,6 +348,7 @@ matchRoutes.post('/espn-sync', async (req, res) => {
           NotificationService.notifyMatchEnd(match.id).catch(() => {});
           PredictionService.resolveMatchPredictions(match.id).catch(() => {});
           resolveDuelsForMatch(match.id).catch(() => {});
+          updateTournamentPointsForMatch(match.id).catch(() => {});
         }
       }
 

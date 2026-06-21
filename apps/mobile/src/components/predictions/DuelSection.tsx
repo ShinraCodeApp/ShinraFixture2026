@@ -66,6 +66,7 @@ export function DuelSection({ matchId, matchStatus, homeTeam, awayTeam }: DuelSe
   const [pickHome, setPickHome] = useState('');
   const [pickAway, setPickAway] = useState('');
   const [friendSearch, setFriendSearch] = useState('');
+  const [xpBet, setXpBet] = useState(0);
 
   const filteredFriends = (friends as any[]).filter((f: any) => {
     const name = (f.displayName ?? f.username ?? '').toLowerCase();
@@ -81,6 +82,7 @@ export function DuelSection({ matchId, matchStatus, homeTeam, awayTeam }: DuelSe
         matchId,
         opponentId: selectedFriend.id,
         challengerPick: `${ph}-${pa}`,
+        xpBet,
       });
     },
     onSuccess: () => {
@@ -90,6 +92,7 @@ export function DuelSection({ matchId, matchStatus, homeTeam, awayTeam }: DuelSe
       setSelectedFriend(null);
       setPickHome('');
       setPickAway('');
+      setXpBet(0);
     },
     onError: (e: any) => showMessage({ message: e?.response?.data?.error ?? 'Error al enviar desafío', type: 'danger' }),
   });
@@ -251,6 +254,9 @@ export function DuelSection({ matchId, matchStatus, homeTeam, awayTeam }: DuelSe
                   ? <ScoreTag score={duel.opponentPick} color="#9C27B0" />
                   : <Text style={S.pickLabel}>Pendiente</Text>}
               </View>
+              {duel.xpBet > 0 && (
+                <Text style={[S.pickLabel, { color: '#F59E0B', marginTop: 4 }]}>⚡ {duel.xpBet} XP en juego</Text>
+              )}
 
               {/* Only opponent sees Accept/Decline on PENDING duels */}
               {duel.status === 'PENDING' && amOpponent && (
@@ -304,6 +310,22 @@ export function DuelSection({ matchId, matchStatus, homeTeam, awayTeam }: DuelSe
               placeholder="0"
               placeholderTextColor={appColors.textSecondary}
             />
+          </View>
+
+          {/* XP Bet */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm, paddingHorizontal: 4 }}>
+            <Text style={{ color: appColors.textSecondary, fontSize: 12 }}>⚡ Apostar XP (opcional)</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <TouchableOpacity onPress={() => setXpBet(Math.max(0, xpBet - 10))}>
+                <Text style={{ fontSize: 20, color: appColors.textSecondary, fontFamily: typography.fontFamily.bold }}>−</Text>
+              </TouchableOpacity>
+              <Text style={{ fontSize: 16, fontFamily: typography.fontFamily.bold, color: xpBet > 0 ? '#F59E0B' : appColors.textSecondary, minWidth: 36, textAlign: 'center' }}>
+                {xpBet} XP
+              </Text>
+              <TouchableOpacity onPress={() => setXpBet(xpBet + 10)}>
+                <Text style={{ fontSize: 20, color: colors.primary, fontFamily: typography.fontFamily.bold }}>+</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <TextInput
