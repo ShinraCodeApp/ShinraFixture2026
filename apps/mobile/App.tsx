@@ -1,5 +1,6 @@
 import React, { useEffect, useState, Component } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import * as Updates from 'expo-updates';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -118,6 +119,20 @@ export default function App() {
       SplashScreen.hideAsync().catch(() => {});
     }, 4000);
     return () => clearTimeout(t);
+  }, []);
+
+  // OTA update check
+  useEffect(() => {
+    if (__DEV__) return;
+    (async () => {
+      try {
+        const check = await Updates.checkForUpdateAsync();
+        if (check.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+        }
+      } catch {}
+    })();
   }, []);
 
   if (!appIsReady) return null;

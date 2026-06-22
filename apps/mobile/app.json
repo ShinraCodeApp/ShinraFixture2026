@@ -45,7 +45,10 @@
     },
     "owner": "shinracode",
     "updates": {
-      "url": "https://u.expo.dev/ca54987c-9913-406b-b6ca-6903fb0f507e"
+      "url": "https://u.expo.dev/ca54987c-9913-406b-b6ca-6903fb0f507e",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     }
   }
 }
