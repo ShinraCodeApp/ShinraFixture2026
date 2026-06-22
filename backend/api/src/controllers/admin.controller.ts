@@ -25,14 +25,26 @@ export class AdminController {
   }
 
   static async stats(req: Request, res: Response): Promise<void> {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const [premiumUsers, revenue, newUsersToday] = await Promise.all([
+
+    const [total, premium, newToday, newLast7, newLast30, totalPredictions, totalDuels, totalTournaments] = await Promise.all([
+      prisma.user.count(),
       prisma.user.count({ where: { isPremium: true } }),
-      prisma.subscription.count({ where: { status: 'active' } }),
-      prisma.user.count({ where: { createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } } }),
+      prisma.user.count({ where: { createdAt: { gte: startOfToday } } }),
+      prisma.user.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+      prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+      prisma.prediction.count(),
+      prisma.matchDuel.count(),
+      prisma.friendTournament.count(),
     ]);
 
-    res.json({ success: true, data: { premiumUsers, activeSubscriptions: revenue, newUsersToday } });
+    res.json({
+      success: true,
+      data: { total, premium, newToday, newLast7, newLast30, totalPredictions, totalDuels, totalTournaments },
+    });
   }
 
   static async listUsers(req: Request, res: Response): Promise<void> {

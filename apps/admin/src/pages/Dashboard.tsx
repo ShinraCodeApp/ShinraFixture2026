@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Users, Calendar, Trophy, TrendingUp, Bell, Activity,
-  ArrowUpRight, ArrowDownRight, DollarSign, Eye
+  ArrowUpRight, ArrowDownRight, DollarSign, Eye, Swords, Star
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { adminApi } from '../services/adminApi';
@@ -61,33 +61,49 @@ export function Dashboard() {
       {/* ── Stat Cards ─────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
-          title="Usuarios Activos"
-          value={stats?.activeUsers ?? 125840}
-          change={12.5}
+          title="Usuarios totales"
+          value={stats?.total ?? '—'}
+          change={0}
           icon={<Users size={20} className="text-blue-600" />}
           color="bg-blue-50 dark:bg-blue-950/30"
         />
         <StatCard
-          title="Partidos en Vivo"
-          value={stats?.liveMatches ?? 3}
+          title="Premium activos"
+          value={stats?.premium ?? '—'}
           change={0}
-          icon={<Activity size={20} className="text-red-500" />}
-          color="bg-red-50 dark:bg-red-950/30"
+          icon={<Star size={20} className="text-yellow-500" />}
+          color="bg-yellow-50 dark:bg-yellow-950/30"
         />
         <StatCard
-          title="Predicciones Hoy"
-          value={stats?.todayPredictions ?? 48930}
-          change={8.2}
+          title="Predicciones totales"
+          value={stats?.totalPredictions ?? '—'}
+          change={0}
           icon={<TrendingUp size={20} className="text-green-600" />}
           color="bg-green-50 dark:bg-green-950/30"
         />
         <StatCard
-          title="Ingresos (USD)"
-          value={`$${(stats?.revenue ?? 15280).toLocaleString()}`}
-          change={-2.1}
-          icon={<DollarSign size={20} className="text-yellow-600" />}
-          color="bg-yellow-50 dark:bg-yellow-950/30"
+          title="Duelos creados"
+          value={stats?.totalDuels ?? '—'}
+          change={0}
+          icon={<Swords size={20} className="text-purple-600" />}
+          color="bg-purple-50 dark:bg-purple-950/30"
         />
+      </div>
+
+      {/* ── Registros de usuarios ───────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700 text-center">
+          <p className="text-3xl font-bold text-blue-600">{stats?.newToday ?? '—'}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Registros hoy</p>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700 text-center">
+          <p className="text-3xl font-bold text-green-600">{stats?.newLast7 ?? '—'}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Últimos 7 días</p>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700 text-center">
+          <p className="text-3xl font-bold text-purple-600">{stats?.newLast30 ?? '—'}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Últimos 30 días</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
