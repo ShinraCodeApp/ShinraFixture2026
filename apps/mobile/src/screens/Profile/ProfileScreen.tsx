@@ -131,13 +131,7 @@ export function ProfileScreen() {
     { icon: 'account-search', label: 'Buscar usuarios', onPress: () => navigation.navigate('UserSearch') },
     { icon: 'history', label: 'Historial de predicciones', onPress: () => navigation.navigate('PredictionsTab') },
     {
-      icon: 'share-variant', label: 'Compartir la app', onPress: async () => {
-        track('share_app');
-        await Share.share({
-          message: '⚽ Seguí el Mundial 2026 con ShinraFixture — predicciones, duelos y más!\nhttps://play.google.com/store/apps/details?id=com.shinra.fixture2026',
-          title: 'ShinraFixture 2026',
-        });
-      },
+      icon: 'share-variant', label: 'Compartir la app', onPress: () => navigation.navigate('ShareApp'),
     },
     { icon: 'account-group', label: 'Mis quinielas', onPress: () => navigation.navigate('Quiniela') },
     { icon: 'star', label: 'Premium', onPress: () => navigation.navigate('Premium'), highlight: !user?.isPremium },

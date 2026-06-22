@@ -44,6 +44,7 @@ import { PostDetailScreen } from '../screens/Community/PostDetailScreen';
 import { NotificationSettingsScreen } from '../screens/Settings/NotificationSettingsScreen';
 import { DuelsScreen } from '../screens/Profile/DuelsScreen';
 import { FriendTournamentsScreen } from '../screens/Profile/FriendTournamentsScreen';
+import { ShareAppScreen } from '../screens/Settings/ShareAppScreen';
 import { UserSearchScreen } from '../screens/Profile/UserSearchScreen';
 import { WorldCupWinnersScreen } from '../screens/Stats/WorldCupWinnersScreen';
 import { PremiumScreen } from '../screens/Premium/PremiumScreen';
@@ -130,6 +131,7 @@ function ProfileStack() {
       <Stack.Screen name="Duels" component={DuelsScreen} />
       <Stack.Screen name="FriendTournaments" component={FriendTournamentsScreen} />
       <Stack.Screen name="UserSearch" component={UserSearchScreen} />
+      <Stack.Screen name="ShareApp" component={ShareAppScreen} />
       <Stack.Screen name="Premium" component={PremiumScreen} />
     </Stack.Navigator>
   );
