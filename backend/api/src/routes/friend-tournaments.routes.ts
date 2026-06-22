@@ -84,7 +84,7 @@ friendTournamentRoutes.post('/', async (req: any, res) => {
       data: {
         name: name.trim(),
         creatorId,
-        matchIds,
+        matchIds: validMatchIds,
         participants: {
           create: [
             { userId: creatorId, status: 'JOINED' },

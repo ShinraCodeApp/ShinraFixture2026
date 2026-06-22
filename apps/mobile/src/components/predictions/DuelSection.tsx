@@ -282,8 +282,8 @@ export function DuelSection({ matchId, matchStatus, homeTeam, awayTeam }: DuelSe
       )}
 
       {/* Challenge Modal */}
-      <Modal visible={showChallenge} transparent animationType="slide" onRequestClose={() => setShowChallenge(false)}>
-        <TouchableOpacity style={S.backdrop} activeOpacity={1} onPress={() => setShowChallenge(false)} />
+      <Modal visible={showChallenge} transparent animationType="slide" onRequestClose={() => { setShowChallenge(false); setXpBet(0); setSelectedFriend(null); setPickHome(''); setPickAway(''); }}>
+        <TouchableOpacity style={S.backdrop} activeOpacity={1} onPress={() => { setShowChallenge(false); setXpBet(0); setSelectedFriend(null); setPickHome(''); setPickAway(''); }} />
         <View style={S.sheet}>
           <Text style={S.sheetTitle}>⚔️ Desafiar a un amigo</Text>
 
