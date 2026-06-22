@@ -76,7 +76,8 @@ friendTournamentRoutes.post('/', async (req: any, res) => {
 
     if (!name || typeof name !== 'string' || name.trim().length < 3)
       return res.status(400).json({ success: false, error: 'Nombre del torneo requerido (mín. 3 caracteres)' });
-    if (!Array.isArray(matchIds) || matchIds.length < 1)
+    const validMatchIds = (matchIds as any[]).filter((id: any) => typeof id === 'string' && id.trim().length > 0);
+    if (validMatchIds.length < 1)
       return res.status(400).json({ success: false, error: 'Seleccioná al menos 1 partido' });
 
     const tournament = await prisma.friendTournament.create({

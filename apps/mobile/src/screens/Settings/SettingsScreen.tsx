@@ -19,9 +19,12 @@ import { TeamPickerModal } from '../../components/common/TeamPickerModal';
 
 const APK_DRIVE_URL =
   'https://drive.google.com/uc?export=download&id=1If7JUMqKt3BPX2gzZMFFMICJl0EIS9hB';
+const APK_DRIVE_SHARE_URL =
+  'https://drive.google.com/file/d/1If7JUMqKt3BPX2gzZMFFMICJl0EIS9hB/view?usp=sharing';
 const APK_GITHUB_URL =
   'https://github.com/ShinraCodeApp/ShinraFixture2026/releases/latest/download/app-release.apk';
 const QR_DOWNLOAD_URL = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(APK_DRIVE_URL)}`;
+const QR_DRIVE_SHARE_URL = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(APK_DRIVE_SHARE_URL)}`;
 const QR_GITHUB_URL = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(APK_GITHUB_URL)}`;
 
 const ICONS: { id: AppIconId; label: string; description: string; image: ReturnType<typeof require> }[] = [
@@ -360,6 +363,24 @@ export function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Drive compartir QR — fila completa */}
+        <TouchableOpacity style={[styles.qrCardWide, { backgroundColor: appColors.surface }]} onPress={() => setZoomQR(QR_DRIVE_SHARE_URL)} activeOpacity={0.8}>
+          <View style={styles.qrWrapper}>
+            <Image source={{ uri: QR_DRIVE_SHARE_URL }} style={styles.qrImageSmall} resizeMode="contain" />
+          </View>
+          <View style={{ flex: 1, gap: 4 }}>
+            <View style={styles.qrLabelRow}>
+              <MaterialCommunityIcons name="google-drive" size={14} color="#34A853" />
+              <Text style={[styles.qrLabel, { color: '#34A853' }]}>Drive — Compartir</Text>
+            </View>
+            <Text style={[styles.qrHint, { textAlign: 'left', marginBottom: 0 }]}>Escaneá para abrir el archivo en Drive y compartirlo</Text>
+            <TouchableOpacity style={[styles.qrShareBtn, { backgroundColor: '#34A853', alignSelf: 'flex-start' }]} onPress={() => handleShareApk(APK_DRIVE_SHARE_URL, 'Drive')} activeOpacity={0.8}>
+              <Ionicons name="share-social-outline" size={13} color="white" />
+              <Text style={styles.qrShareText}>Compartir link</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+
         {/* Modal zoom QR */}
         <Modal visible={!!zoomQR} transparent animationType="fade" onRequestClose={() => setZoomQR(null)}>
           <TouchableOpacity style={styles.zoomOverlay} onPress={() => setZoomQR(null)} activeOpacity={1}>
@@ -690,6 +711,7 @@ const styles = StyleSheet.create({
   qrHint: { fontSize: typography.fontSize.xs, textAlign: 'center', marginBottom: spacing.sm },
   qrRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.base },
   qrCard: { flex: 1, borderRadius: borderRadius.lg, padding: spacing.sm, alignItems: 'center', gap: spacing.xs, ...shadows.sm },
+  qrCardWide: { flexDirection: 'row', borderRadius: borderRadius.lg, padding: spacing.sm, alignItems: 'center', gap: spacing.base, marginBottom: spacing.base, ...shadows.sm },
   qrWrapper: { padding: 8, backgroundColor: 'white', borderRadius: borderRadius.md, marginBottom: spacing.xs },
   qrImageSmall: { width: 120, height: 120 },
   qrLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: spacing.xs },
