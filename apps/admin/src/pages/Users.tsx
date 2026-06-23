@@ -37,8 +37,8 @@ export function UsersPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
   });
 
-  const users: UserRow[] = data?.data?.users ?? [];
-  const total: number = data?.data?.total ?? 0;
+  const users: UserRow[] = data?.data?.items ?? [];
+  const total: number = data?.data?.pagination?.total ?? 0;
 
   return (
     <div className="space-y-6">
