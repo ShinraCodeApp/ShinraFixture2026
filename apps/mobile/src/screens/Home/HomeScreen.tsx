@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, RefreshControl,
   TouchableOpacity, Dimensions, Image,
 } from 'react-native';
+import { AdBanner } from '../../components/ads/AdBanner';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -409,6 +410,7 @@ export function HomeScreen() {
           <FeaturedNews onPress={(news) => navigation.navigate('NewsDetail', { newsId: news.id, slug: news.slug })} />
         </View>
       </ScrollView>
+      <AdBanner />
     </SafeAreaView>
   );
 }

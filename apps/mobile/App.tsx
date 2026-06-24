@@ -34,8 +34,12 @@ import { useAppTheme } from './src/hooks/useAppTheme';
 import { ThemeProvider } from './src/theme/ThemeProvider';
 import { LoadingScreen } from './src/screens/Loading/LoadingScreen';
 import { OfflineBanner } from './src/components/common/OfflineBanner';
+import { initAds, loadInterstitial } from './src/services/ads';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// Initialize AdMob on startup
+initAds().then(() => loadInterstitial()).catch(() => {});
 
 // Sincronizar TanStack Query online/offline con el estado real de la red
 onlineManager.setEventListener((setOnline) => {

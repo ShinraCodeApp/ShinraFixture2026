@@ -56,6 +56,15 @@
       ],
       "runtimeVersion": "1.0.0"
     },
+    "plugins": [
+      [
+        "../../node_modules/react-native-google-mobile-ads/app.plugin.js",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "ca54987c-9913-406b-b6ca-6903fb0f507e"
