@@ -30,7 +30,6 @@ jobs:
           distribution: 'temurin'
 
       - name: Install dependencies
-        working-directory: apps/mobile
         run: npm install
 
       - name: Generate Android project (expo prebuild)
