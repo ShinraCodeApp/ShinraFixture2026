@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { spacing, typography, borderRadius, colors } from '../../theme';
 
-const PRIVACY_URL = 'https://shinracode.github.io/ShinraFixture2026/privacy';
+const PRIVACY_URL = 'https://shinracodeapp.github.io/ShinraFixture2026/privacy';
 
 interface SectionProps {
   title: string;
