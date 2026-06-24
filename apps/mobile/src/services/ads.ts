@@ -14,13 +14,13 @@ const IS_TEST = __DEV__;
 export const AD_UNIT_IDS = {
   banner: IS_TEST
     ? TestIds.BANNER
-    : 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+    : 'ca-app-pub-1538025475616883/8967069346',
   interstitial: IS_TEST
     ? TestIds.INTERSTITIAL
-    : 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+    : 'ca-app-pub-1538025475616883/7733878728',
   rewarded: IS_TEST
     ? TestIds.REWARDED
-    : 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+    : 'ca-app-pub-1538025475616883/7653987672',
 };
 
 export { BannerAdSize };
