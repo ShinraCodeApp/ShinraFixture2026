@@ -17,15 +17,8 @@ import { apiService } from '../../services/api';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme';
 import { TeamPickerModal } from '../../components/common/TeamPickerModal';
 
-const APK_DRIVE_URL =
-  'https://drive.google.com/uc?export=download&id=1If7JUMqKt3BPX2gzZMFFMICJl0EIS9hB';
-const APK_DRIVE_SHARE_URL =
-  'https://drive.google.com/file/d/1If7JUMqKt3BPX2gzZMFFMICJl0EIS9hB/view?usp=sharing';
-const APK_GITHUB_URL =
-  'https://github.com/ShinraCodeApp/ShinraFixture2026/releases/latest/download/app-release.apk';
-const QR_DOWNLOAD_URL = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(APK_DRIVE_URL)}`;
-const QR_DRIVE_SHARE_URL = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(APK_DRIVE_SHARE_URL)}`;
-const QR_GITHUB_URL = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(APK_GITHUB_URL)}`;
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.shinra.fixture2026';
+const QR_PLAY_STORE = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(PLAY_STORE_URL)}`;
 
 const ICONS: { id: AppIconId; label: string; description: string; image: ReturnType<typeof require> }[] = [
   {
@@ -50,7 +43,7 @@ export function SettingsScreen() {
   const [teamPickerVisible, setTeamPickerVisible] = useState(false);
   const [giftCode, setGiftCode] = useState('');
   const [giftLoading, setGiftLoading] = useState(false);
-  const [zoomQR, setZoomQR] = useState<string | null>(null);
+  const [zoomQR, setZoomQR] = useState(false);
 
   const handleApplyGiftCode = async () => {
     const code = giftCode.trim();
@@ -71,15 +64,15 @@ export function SettingsScreen() {
     }
   };
 
-  const handleShareApk = async (url: string, source: 'Drive' | 'GitHub') => {
+  const handleShareApp = async () => {
     try {
       await Share.share({
-        message: `Instala ShinraFixture 2026 (beta) desde ${source}:\n${url}`,
-        url,
-        title: 'ShinraFixture 2026 — APK',
+        message: `⚽ ShinraFixture 2026 — Seguí el Mundial con predicciones, estadísticas en vivo y IA.\nDescargá gratis en Google Play:\n${PLAY_STORE_URL}`,
+        url: PLAY_STORE_URL,
+        title: 'ShinraFixture 2026',
       });
     } catch {
-      Linking.openURL(url);
+      Linking.openURL(PLAY_STORE_URL);
     }
   };
 
@@ -291,101 +284,64 @@ export function SettingsScreen() {
           )}
         </View>
 
-        {/* ── Compartir APK ───────────────────── */}
-        <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>DISTRIBUCIÓN</Text>
-        <TouchableOpacity onPress={() => handleShareApk(APK_DRIVE_URL, 'Drive')} activeOpacity={0.85} style={{ marginBottom: spacing.sm }}>
+        {/* ── Compartir app ───────────────────── */}
+        <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>COMPARTIR</Text>
+        <TouchableOpacity onPress={handleShareApp} activeOpacity={0.85}>
           <LinearGradient
-            colors={['#0D47A1', '#1565C0']}
+            colors={['#1D7A46', '#2E9E5A']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.shareButton}
           >
             <View style={styles.shareIconContainer}>
-              <MaterialCommunityIcons name="google-drive" size={22} color="white" />
+              <Ionicons name="logo-google-playstore" size={22} color="white" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.shareLabel}>Compartir APK — Drive</Text>
-              <Text style={styles.shareSub}>Enlace de Google Drive</Text>
+              <Text style={styles.shareLabel}>Compartir — Google Play</Text>
+              <Text style={styles.shareSub}>Instalación directa, siempre actualizada</Text>
             </View>
             <Ionicons name="share-social-outline" size={20} color="rgba(255,255,255,0.8)" />
           </LinearGradient>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleShareApk(APK_GITHUB_URL, 'GitHub')} activeOpacity={0.85}>
-          <LinearGradient
-            colors={['#1B1F23', '#24292E']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.shareButton}
-          >
-            <View style={styles.shareIconContainer}>
-              <MaterialCommunityIcons name="github" size={22} color="white" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.shareLabel}>Compartir APK — GitHub</Text>
-              <Text style={styles.shareSub}>Siempre descarga la última versión</Text>
-            </View>
-            <Ionicons name="share-social-outline" size={20} color="rgba(255,255,255,0.8)" />
-          </LinearGradient>
+
+        <TouchableOpacity
+          style={[styles.openStoreRow, { backgroundColor: appColors.surface, borderColor: appColors.border }]}
+          onPress={() => Linking.openURL(PLAY_STORE_URL)}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="logo-google-playstore" size={18} color={colors.primary} />
+          <Text style={[styles.openStoreText, { color: colors.primary }]}>Abrir en Play Store</Text>
+          <Ionicons name="open-outline" size={15} color={colors.primary} />
         </TouchableOpacity>
 
         {/* ── QR de descarga ──────────────────── */}
-        <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>QR DE DESCARGA</Text>
-        <Text style={[styles.qrHint, { color: appColors.textSecondary }]}>Tocá un QR para agrandarlo y escanearlo más fácil</Text>
-        <View style={styles.qrRow}>
-          {/* Drive QR */}
-          <TouchableOpacity style={[styles.qrCard, { backgroundColor: appColors.surface }]} onPress={() => setZoomQR(QR_DOWNLOAD_URL)} activeOpacity={0.8}>
-            <View style={styles.qrLabelRow}>
-              <Ionicons name="logo-google" size={13} color="#4285F4" />
-              <Text style={[styles.qrLabel, { color: '#4285F4' }]}>Google Drive</Text>
-            </View>
-            <View style={styles.qrWrapper}>
-              <Image source={{ uri: QR_DOWNLOAD_URL }} style={styles.qrImageSmall} resizeMode="contain" />
-            </View>
-            <TouchableOpacity style={[styles.qrShareBtn, { backgroundColor: '#4285F4' }]} onPress={() => handleShareApk(APK_DRIVE_URL, 'Drive')} activeOpacity={0.8}>
-              <Ionicons name="share-social-outline" size={13} color="white" />
-              <Text style={styles.qrShareText}>Compartir</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
+        <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>QR — GOOGLE PLAY</Text>
+        <Text style={[styles.qrHint, { color: appColors.textSecondary }]}>Tocá para agrandar y escanear más fácil</Text>
 
-          {/* GitHub QR */}
-          <TouchableOpacity style={[styles.qrCard, { backgroundColor: appColors.surface }]} onPress={() => setZoomQR(QR_GITHUB_URL)} activeOpacity={0.8}>
-            <View style={styles.qrLabelRow}>
-              <Ionicons name="logo-github" size={13} color={appColors.text} />
-              <Text style={[styles.qrLabel, { color: appColors.text }]}>GitHub</Text>
-            </View>
-            <View style={styles.qrWrapper}>
-              <Image source={{ uri: QR_GITHUB_URL }} style={styles.qrImageSmall} resizeMode="contain" />
-            </View>
-            <TouchableOpacity style={[styles.qrShareBtn, { backgroundColor: '#333' }]} onPress={() => handleShareApk(APK_GITHUB_URL, 'GitHub')} activeOpacity={0.8}>
-              <Ionicons name="share-social-outline" size={13} color="white" />
-              <Text style={styles.qrShareText}>Compartir</Text>
-            </TouchableOpacity>
+        <View style={[styles.qrCardWide, { backgroundColor: appColors.surface }]}>
+          <TouchableOpacity style={styles.qrWrapper} onPress={() => setZoomQR(true)} activeOpacity={0.8}>
+            <Image source={{ uri: QR_PLAY_STORE }} style={styles.qrImageSmall} resizeMode="contain" />
           </TouchableOpacity>
-        </View>
-
-        {/* Drive compartir QR — fila completa */}
-        <TouchableOpacity style={[styles.qrCardWide, { backgroundColor: appColors.surface }]} onPress={() => setZoomQR(QR_DRIVE_SHARE_URL)} activeOpacity={0.8}>
-          <View style={styles.qrWrapper}>
-            <Image source={{ uri: QR_DRIVE_SHARE_URL }} style={styles.qrImageSmall} resizeMode="contain" />
-          </View>
-          <View style={{ flex: 1, gap: 4 }}>
+          <View style={{ flex: 1, gap: 6 }}>
             <View style={styles.qrLabelRow}>
-              <MaterialCommunityIcons name="google-drive" size={14} color="#34A853" />
-              <Text style={[styles.qrLabel, { color: '#34A853' }]}>Drive — Compartir</Text>
+              <Ionicons name="logo-google-playstore" size={14} color="#1D7A46" />
+              <Text style={[styles.qrLabel, { color: '#1D7A46' }]}>Google Play</Text>
             </View>
-            <Text style={[styles.qrHint, { textAlign: 'left', marginBottom: 0 }]}>Escaneá para abrir el archivo en Drive y compartirlo</Text>
-            <TouchableOpacity style={[styles.qrShareBtn, { backgroundColor: '#34A853', alignSelf: 'flex-start' }]} onPress={() => handleShareApk(APK_DRIVE_SHARE_URL, 'Drive')} activeOpacity={0.8}>
+            <Text style={[styles.qrHint, { textAlign: 'left', marginBottom: 0, color: appColors.textSecondary }]}>
+              Escaneá para descargar directamente desde Play Store
+            </Text>
+            <TouchableOpacity style={[styles.qrShareBtn, { backgroundColor: '#1D7A46', alignSelf: 'flex-start' }]} onPress={handleShareApp} activeOpacity={0.8}>
               <Ionicons name="share-social-outline" size={13} color="white" />
               <Text style={styles.qrShareText}>Compartir link</Text>
             </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </View>
 
         {/* Modal zoom QR */}
-        <Modal visible={!!zoomQR} transparent animationType="fade" onRequestClose={() => setZoomQR(null)}>
-          <TouchableOpacity style={styles.zoomOverlay} onPress={() => setZoomQR(null)} activeOpacity={1}>
+        <Modal visible={zoomQR} transparent animationType="fade" onRequestClose={() => setZoomQR(false)}>
+          <TouchableOpacity style={styles.zoomOverlay} onPress={() => setZoomQR(false)} activeOpacity={1}>
             <View style={styles.zoomCard}>
-              <Image source={{ uri: zoomQR ?? '' }} style={styles.zoomImage} resizeMode="contain" />
+              <Image source={{ uri: QR_PLAY_STORE }} style={styles.zoomImage} resizeMode="contain" />
               <Text style={styles.zoomHint}>Tocá para cerrar</Text>
             </View>
           </TouchableOpacity>
@@ -656,6 +612,12 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xs,
     marginTop: 2,
   },
+  openStoreRow: {
+    flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const,
+    gap: spacing.sm, padding: spacing.md, borderRadius: borderRadius.lg,
+    borderWidth: 1, marginTop: spacing.sm,
+  },
+  openStoreText: { fontFamily: typography.fontFamily.semiBold, fontSize: typography.fontSize.base },
 
   // Team picker
   teamRow: {

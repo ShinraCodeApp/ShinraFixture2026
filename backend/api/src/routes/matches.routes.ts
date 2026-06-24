@@ -8,6 +8,7 @@ import { NotificationService } from '../services/notifications.service';
 import { PredictionService } from '../services/predictions.service';
 import { resolveDuelsForMatch } from './duels.routes';
 import { updateTournamentPointsForMatch } from './friend-tournaments.routes';
+import { PlayerStatsService } from '../services/playerStats.service';
 
 export const matchRoutes = Router();
 
@@ -148,7 +149,7 @@ async function syncWithApiFootball(apiKey: string, io: any): Promise<number> {
         if (!evType) continue;
         const evMinute = ev.time?.elapsed ?? 0;
         const evTeamName: string = ev.team?.name ?? '';
-        const evTeamId = evTeamName.toLowerCase().includes(homeWord.toLowerCase()) ? homeTeam.id : awayTeam.id;
+        const evTeamId = evTeamName.toLowerCase().includes(homeName.toLowerCase()) ? homeTeam.id : awayTeam.id;
         const evPlayer: string = ev.player?.name ?? '';
         const existing = await prisma.matchEvent.findFirst({
           where: { matchId: match.id, type: evType as any, minute: evMinute, teamId: evTeamId },
@@ -349,6 +350,10 @@ matchRoutes.post('/espn-sync', async (req, res) => {
           PredictionService.resolveMatchPredictions(match.id).catch(() => {});
           resolveDuelsForMatch(match.id).catch(() => {});
           updateTournamentPointsForMatch(match.id).catch(() => {});
+          // Sync player stats from ESPN match summary
+          if (event.id && tournament?.id) {
+            PlayerStatsService.syncMatchPlayerStats(event.id, tournament.id).catch(() => {});
+          }
         }
       }
 
@@ -1080,5 +1085,52 @@ matchRoutes.put('/:id/live-stats', async (req, res) => {
   io?.to(`match:${id}`).emit('match:stats', updated);
 
   res.json({ success: true, data: updated });
+});
+
+// ── Player stats sync (LTE-friendly GET) ─────────────────────────────────────
+// Sync player stats from ESPN leaderboards + all finished WC matches
+matchRoutes.get('/g-sync-player-stats', async (_req, res) => {
+  try {
+    const wc = await prisma.tournament.findFirst({ where: { type: 'WORLD_CUP', year: 2026 } });
+    if (!wc) return res.status(404).json({ success: false, message: 'WC2026 not found' });
+
+    const [leaderboards, recalc] = await Promise.all([
+      PlayerStatsService.syncTournamentLeaderboards(wc.id),
+      PlayerStatsService.recalcFromMatchEvents(wc.id),
+    ]);
+
+    // Top 10 scorers for quick preview
+    const topScorers = await prisma.playerTournamentStats.findMany({
+      where: { tournamentId: wc.id, goals: { gt: 0 } },
+      include: { player: { select: { name: true, shortName: true, team: { select: { name: true, code: true } } } } },
+      orderBy: [{ goals: 'desc' }, { assists: 'desc' }],
+      take: 10,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        leaderboardsSynced: leaderboards.synced,
+        recalcUpdated: recalc,
+        errors: leaderboards.errors,
+        topScorers,
+      },
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Recalculate player stats from local match events only (no ESPN needed)
+matchRoutes.get('/g-recalc-player-stats', async (_req, res) => {
+  try {
+    const wc = await prisma.tournament.findFirst({ where: { type: 'WORLD_CUP', year: 2026 } });
+    if (!wc) return res.status(404).json({ success: false, message: 'WC2026 not found' });
+
+    const updated = await PlayerStatsService.recalcFromMatchEvents(wc.id);
+    res.json({ success: true, data: { updated } });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 

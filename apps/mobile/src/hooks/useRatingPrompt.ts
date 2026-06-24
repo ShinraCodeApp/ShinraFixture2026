@@ -7,9 +7,10 @@ const SESSIONS_KEY = '@shinra_session_count';
 const RATED_KEY    = '@shinra_rated';
 const SESSIONS_THRESHOLD = 5; // Show after 5 sessions
 
+// iOS URL: update with real App Store ID once the app is published on iOS
 const STORE_URL = Platform.select({
   android: 'market://details?id=com.shinra.fixture2026',
-  ios: 'itms-apps://itunes.apple.com/app/id0000000000', // Replace with real App Store ID
+  ios: 'https://apps.apple.com/app/shinrafixture-2026',
   default: 'https://play.google.com/store/apps/details?id=com.shinra.fixture2026',
 });
 

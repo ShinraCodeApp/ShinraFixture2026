@@ -45,6 +45,7 @@ export const linking: LinkingOptions<any> = {
         screens: {
           Login: 'login',
           Register: 'register',
+          ResetPassword: 'reset-password/:token',
         },
       },
     },

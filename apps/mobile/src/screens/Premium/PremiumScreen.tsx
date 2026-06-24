@@ -39,26 +39,15 @@ export function PremiumScreen() {
   const { user } = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch<any>();
   const isPremium = user?.isPremium ?? false;
-  const [loading, setLoading] = useState<'monthly' | 'annual' | null>(null);
-  const [hasPendingPayment, setHasPendingPayment] = useState(false);
   const [checkingPayment, setCheckingPayment] = useState(false);
 
-  const handleSubscribe = async (plan: 'monthly' | 'annual') => {
-    setLoading(plan);
-    try {
-      const res = await apiService.post('/payments/subscribe/mp', { plan });
-      const checkoutUrl = res.data?.data?.checkoutUrl;
-      if (checkoutUrl) {
-        await Linking.openURL(checkoutUrl);
-        setHasPendingPayment(true);
-      } else {
-        Alert.alert('Error', 'No se pudo generar el link de pago.');
-      }
-    } catch (e: any) {
-      Alert.alert('Error', e?.response?.data?.error ?? e?.message ?? 'Error al procesar el pago.');
-    } finally {
-      setLoading(null);
-    }
+  // Play Store policy: digital subscriptions must be purchased outside the app (web)
+  // and the app only verifies the status. MercadoPago redirect in-app violates billing policy.
+  const WEB_PREMIUM_URL = 'https://shinrafixture.com/premium';
+
+  const handleSubscribe = (plan: 'monthly' | 'annual') => {
+    const url = `${WEB_PREMIUM_URL}?plan=${plan}`;
+    Linking.openURL(url);
   };
 
   const handleCheckPayment = async () => {
@@ -68,13 +57,12 @@ export function PremiumScreen() {
       const updatedUser = res.data?.data?.user ?? res.data?.data;
       if (updatedUser?.isPremium) {
         dispatch({ type: 'auth/updateUser', payload: updatedUser });
-        setHasPendingPayment(false);
         Alert.alert('¡Premium activado!', 'Ya podés disfrutar todas las funciones Premium.');
       } else {
-        Alert.alert('Pago pendiente', 'Todavía no recibimos la confirmación. Esperá unos segundos e intentá de nuevo.');
+        Alert.alert('Aún no activo', 'Si ya compraste Premium en la web, puede tardar unos segundos. Intentá de nuevo.');
       }
     } catch {
-      Alert.alert('Error', 'No se pudo verificar el pago. Intentá de nuevo.');
+      Alert.alert('Error', 'No se pudo verificar el estado Premium. Intentá de nuevo.');
     } finally {
       setCheckingPayment(false);
     }
@@ -131,17 +119,17 @@ export function PremiumScreen() {
             <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>PLANES</Text>
             <View style={styles.plansRow}>
               {/* Monthly */}
-              <TouchableOpacity style={[styles.planCard, { backgroundColor: appColors.surface }, shadows.md]} onPress={() => handleSubscribe('monthly')} activeOpacity={0.85} disabled={!!loading}>
+              <TouchableOpacity style={[styles.planCard, { backgroundColor: appColors.surface }, shadows.md]} onPress={() => handleSubscribe('monthly')} activeOpacity={0.85}>
                 <Text style={[styles.planName, { color: appColors.text }]}>Mensual</Text>
                 <Text style={[styles.planPrice, { color: colors.primary }]}>$4.99</Text>
                 <Text style={[styles.planPeriod, { color: appColors.textSecondary }]}>/ mes</Text>
                 <View style={[styles.planBtn, { backgroundColor: colors.primary }]}>
-                  {loading === 'monthly' ? <ActivityIndicator size="small" color="white" /> : <Text style={styles.planBtnText}>Suscribirse</Text>}
+                  <Text style={styles.planBtnText}>Suscribirse</Text>
                 </View>
               </TouchableOpacity>
 
               {/* Annual */}
-              <TouchableOpacity style={[styles.planCard, styles.planCardFeatured, shadows.lg]} onPress={() => handleSubscribe('annual')} activeOpacity={0.85} disabled={!!loading}>
+              <TouchableOpacity style={[styles.planCard, styles.planCardFeatured, shadows.lg]} onPress={() => handleSubscribe('annual')} activeOpacity={0.85}>
                 <View style={styles.saveBadge}>
                   <Text style={styles.saveBadgeText}>AHORRÁS 33%</Text>
                 </View>
@@ -149,23 +137,21 @@ export function PremiumScreen() {
                 <Text style={[styles.planPrice, { color: '#FCD34D' }]}>$39.99</Text>
                 <Text style={[styles.planPeriod, { color: 'rgba(255,255,255,0.7)' }]}>/ año</Text>
                 <View style={[styles.planBtn, { backgroundColor: '#FCD34D' }]}>
-                  {loading === 'annual' ? <ActivityIndicator size="small" color="#92400e" /> : <Text style={[styles.planBtnText, { color: '#92400e' }]}>Mejor valor</Text>}
+                  <Text style={[styles.planBtnText, { color: '#92400e' }]}>Mejor valor</Text>
                 </View>
               </TouchableOpacity>
             </View>
 
-            {/* Ya pagué — solo aparece después de abrir el checkout */}
-            {hasPendingPayment && (
-              <TouchableOpacity style={[styles.checkBtn, { backgroundColor: appColors.surface }]} onPress={handleCheckPayment} disabled={checkingPayment} activeOpacity={0.85}>
-                {checkingPayment
-                  ? <ActivityIndicator size="small" color={colors.primary} />
-                  : <>
-                      <MaterialCommunityIcons name="check-circle-outline" size={20} color={colors.primary} />
-                      <Text style={[styles.checkBtnText, { color: colors.primary }]}>Ya pagué — verificar</Text>
-                    </>
-                }
-              </TouchableOpacity>
-            )}
+            {/* Verificar estado después de comprar en la web */}
+            <TouchableOpacity style={[styles.checkBtn, { backgroundColor: appColors.surface }]} onPress={handleCheckPayment} disabled={checkingPayment} activeOpacity={0.85}>
+              {checkingPayment
+                ? <ActivityIndicator size="small" color={colors.primary} />
+                : <>
+                    <MaterialCommunityIcons name="check-circle-outline" size={20} color={colors.primary} />
+                    <Text style={[styles.checkBtnText, { color: colors.primary }]}>Ya compré en la web — verificar</Text>
+                  </>
+              }
+            </TouchableOpacity>
           </>
         )}
 
@@ -211,16 +197,16 @@ export function PremiumScreen() {
             <LinearGradient colors={['#92400e', '#F59E0B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaButton}>
               <MaterialCommunityIcons name="star-circle" size={22} color="white" />
               <Text style={styles.ctaText}>Activar Premium</Text>
-              <Ionicons name="arrow-forward" size={18} color="white" />
+              <Ionicons name="open-outline" size={18} color="white" />
             </LinearGradient>
           </TouchableOpacity>
         )}
 
-        {/* MP branding */}
+        {/* Web purchase notice */}
         <View style={styles.mpBranding}>
-          <MaterialCommunityIcons name="shield-check" size={14} color="#00BCFF" />
+          <MaterialCommunityIcons name="web" size={14} color={appColors.textSecondary} />
           <Text style={[styles.disclaimer, { color: appColors.textSecondary, marginTop: 0 }]}>
-            Pagos procesados por <Text style={{ color: '#00BCFF', fontFamily: typography.fontFamily.bold }}>MercadoPago</Text>. Podés cancelar en cualquier momento.
+            La suscripción se gestiona en <Text style={{ fontFamily: typography.fontFamily.bold }}>shinrafixture.com</Text>. Podés cancelar en cualquier momento.
           </Text>
         </View>
       </ScrollView>

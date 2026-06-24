@@ -9,6 +9,7 @@ import { PredictionService } from '../services/predictions.service';
 import { NotificationService } from '../services/notifications.service';
 import { BracketScoringService } from '../services/bracketScoring.service';
 import { AIService } from '../services/ai.service';
+import { PlayerStatsService } from '../services/playerStats.service';
 
 const cache = new CacheService();
 
@@ -77,6 +78,15 @@ export function startCronJobs(): void {
   cron.schedule('*/10 * * * *', async () => {
     await BracketScoringService.scoreAllActiveTournaments().catch((e) =>
       logger.warn('Bracket scoring cron failed:', e)
+    );
+  });
+
+  // ── Player stats sync (every 10 min) ─────────────────────────────────────
+  cron.schedule('*/10 * * * *', async () => {
+    const wc = await prisma.tournament.findFirst({ where: { type: 'WORLD_CUP', year: 2026 } }).catch(() => null);
+    if (!wc) return;
+    PlayerStatsService.syncTournamentLeaderboards(wc.id).catch((e) =>
+      logger.warn('PlayerStats cron failed:', e)
     );
   });
 

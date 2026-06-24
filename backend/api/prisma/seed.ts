@@ -1,5 +1,7 @@
 import { PrismaClient, Region, TournamentType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { seedPlayersAF } from './seed-players-af';
+import { seedPlayersGL } from './seed-players-gl';
 
 const prisma = new PrismaClient();
 
@@ -1909,6 +1911,9 @@ async function seedTeamLogos() {
   console.log(`✅ Updated logos for ${updated} teams`);
 }
 
+  await seedPlayersAF();
+  await seedPlayersGL();
+
   await seedAdminUser();
   await seedAchievements();
   await seedAppConfig();
@@ -1919,6 +1924,7 @@ async function seedTeamLogos() {
     matches: await prisma.match.count(),
     users: await prisma.user.count(),
     achievements: await prisma.achievement.count(),
+    players: await prisma.player.count(),
   };
 
   console.log('\n═'.repeat(50));
@@ -1928,6 +1934,7 @@ async function seedTeamLogos() {
   console.log(`  Matches     : ${stats.matches}`);
   console.log(`  Users       : ${stats.users}`);
   console.log(`  Achievements: ${stats.achievements}`);
+  console.log(`  Players     : ${stats.players}`);
   console.log('\n🚀 ShinraFixture 2026 is ready!');
 }
 
