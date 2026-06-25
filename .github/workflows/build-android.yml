@@ -40,15 +40,13 @@ jobs:
           EXPO_PUBLIC_PROJECT_ID: ca54987c-9913-406b-b6ca-6903fb0f507e
         run: npx expo prebuild --platform android --clean --no-install
 
-      - name: Set targetSdkVersion 35 in build.gradle
+      - name: Set targetSdkVersion 35 in root build.gradle
         run: |
-          echo "=== build.gradle targetSdk lines before patch ==="
-          grep -n "targetSdk\|compileSdk" apps/mobile/android/app/build.gradle || true
-          sed -i 's/targetSdkVersion = [0-9]*/targetSdkVersion = 35/g' apps/mobile/android/app/build.gradle
-          sed -i 's/targetSdkVersion [0-9]*/targetSdkVersion 35/g' apps/mobile/android/app/build.gradle
-          sed -i 's/targetSdk = [0-9]*/targetSdk = 35/g' apps/mobile/android/app/build.gradle
-          echo "=== build.gradle targetSdk lines after patch ==="
-          grep -n "targetSdk\|compileSdk" apps/mobile/android/app/build.gradle || true
+          echo "=== android/build.gradle targetSdk before ==="
+          grep -n "targetSdkVersion" apps/mobile/android/build.gradle || true
+          sed -i 's/targetSdkVersion = [0-9][0-9]*/targetSdkVersion = 35/' apps/mobile/android/build.gradle
+          echo "=== android/build.gradle targetSdk after ==="
+          grep -n "targetSdkVersion" apps/mobile/android/build.gradle || true
 
       - name: Inject AdMob App ID into AndroidManifest
         run: |
