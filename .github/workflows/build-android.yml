@@ -32,15 +32,6 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Debug node_modules structure
-        run: |
-          echo "=== npm version ==="
-          npm --version
-          echo "=== react-native-google-mobile-ads in root ==="
-          ls node_modules/react-native-google-mobile-ads/ 2>/dev/null | head -5 || echo "NOT FOUND in root/node_modules"
-          echo "=== react-native-google-mobile-ads in apps/mobile ==="
-          ls apps/mobile/node_modules/react-native-google-mobile-ads/ 2>/dev/null | head -5 || echo "NOT FOUND in apps/mobile/node_modules"
-
       - name: Generate Android project (expo prebuild)
         working-directory: apps/mobile
         env:

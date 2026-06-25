@@ -49,5 +49,8 @@
   "engines": {
     "node": ">=20.19.4",
     "yarn": ">=1.22.0"
+  },
+  "dependencies": {
+    "react-native-google-mobile-ads": "^16.3.4"
   }
 }
