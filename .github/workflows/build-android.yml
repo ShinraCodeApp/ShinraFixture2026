@@ -42,8 +42,13 @@ jobs:
 
       - name: Set targetSdkVersion 35 in build.gradle
         run: |
-          sed -i 's/targetSdkVersion = [0-9]*/targetSdkVersion = 35/' apps/mobile/android/app/build.gradle
-          grep "targetSdkVersion" apps/mobile/android/app/build.gradle
+          echo "=== build.gradle targetSdk lines before patch ==="
+          grep -n "targetSdk\|compileSdk" apps/mobile/android/app/build.gradle || true
+          sed -i 's/targetSdkVersion = [0-9]*/targetSdkVersion = 35/g' apps/mobile/android/app/build.gradle
+          sed -i 's/targetSdkVersion [0-9]*/targetSdkVersion 35/g' apps/mobile/android/app/build.gradle
+          sed -i 's/targetSdk = [0-9]*/targetSdk = 35/g' apps/mobile/android/app/build.gradle
+          echo "=== build.gradle targetSdk lines after patch ==="
+          grep -n "targetSdk\|compileSdk" apps/mobile/android/app/build.gradle || true
 
       - name: Inject AdMob App ID into AndroidManifest
         run: |
