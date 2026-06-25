@@ -32,7 +32,7 @@
         "color": "#001489"
       },
       "package": "com.shinra.fixture2026",
-      "versionCode": 6,
+      "versionCode": 7,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE",
