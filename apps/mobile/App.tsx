@@ -68,12 +68,8 @@ class ErrorBoundary extends Component<
           <Text style={eb.msg}>
             La app encontró un error inesperado. Por favor cerrá y volvé a abrirla.
           </Text>
-          {isDev && (
-            <>
-              <Text style={eb.devLabel}>{err.message}</Text>
-              <Text style={eb.stack}>{err.stack}</Text>
-            </>
-          )}
+          <Text style={eb.devLabel}>{err.message}</Text>
+          <Text style={eb.stack}>{err.stack?.substring(0, 400)}</Text>
         </ScrollView>
       );
     }
