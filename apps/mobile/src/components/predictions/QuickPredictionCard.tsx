@@ -79,8 +79,8 @@ export function QuickPredictionCard({ match, onPress }: QuickPredictionCardProps
 
         <View style={styles.teams}>
           <View style={styles.team}>
-            <TeamLogo uri={match.homeTeam.flagUrl} size={32} code={match.homeTeam.code} />
-            <Text style={[styles.code, { color: appColors.text }]}>{match.homeTeam.code}</Text>
+            <TeamLogo uri={match.homeTeam?.flagUrl} size={32} code={match.homeTeam?.code ?? '?'} />
+            <Text style={[styles.code, { color: appColors.text }]}>{match.homeTeam?.code ?? match.homeLabel ?? 'TBD'}</Text>
           </View>
 
           <View style={styles.lockedScore}>
@@ -97,8 +97,8 @@ export function QuickPredictionCard({ match, onPress }: QuickPredictionCardProps
           </View>
 
           <View style={styles.team}>
-            <TeamLogo uri={match.awayTeam.flagUrl} size={32} code={match.awayTeam.code} />
-            <Text style={[styles.code, { color: appColors.text }]}>{match.awayTeam.code}</Text>
+            <TeamLogo uri={match.awayTeam?.flagUrl} size={32} code={match.awayTeam?.code ?? '?'} />
+            <Text style={[styles.code, { color: appColors.text }]}>{match.awayTeam?.code ?? match.awayLabel ?? 'TBD'}</Text>
           </View>
         </View>
       </View>
@@ -125,8 +125,8 @@ export function QuickPredictionCard({ match, onPress }: QuickPredictionCardProps
 
       <View style={styles.teams}>
         <View style={styles.team}>
-          <TeamLogo uri={match.homeTeam.flagUrl} size={36} code={match.homeTeam.code} />
-          <Text style={[styles.code, { color: appColors.text }]}>{match.homeTeam.code}</Text>
+          <TeamLogo uri={match.homeTeam?.flagUrl} size={36} code={match.homeTeam?.code ?? '?'} />
+          <Text style={[styles.code, { color: appColors.text }]}>{match.homeTeam?.code ?? match.homeLabel ?? 'TBD'}</Text>
         </View>
 
         <View style={styles.scoreRow}>
@@ -150,8 +150,8 @@ export function QuickPredictionCard({ match, onPress }: QuickPredictionCardProps
         </View>
 
         <View style={styles.team}>
-          <TeamLogo uri={match.awayTeam.flagUrl} size={36} code={match.awayTeam.code} />
-          <Text style={[styles.code, { color: appColors.text }]}>{match.awayTeam.code}</Text>
+          <TeamLogo uri={match.awayTeam?.flagUrl} size={36} code={match.awayTeam?.code ?? '?'} />
+          <Text style={[styles.code, { color: appColors.text }]}>{match.awayTeam?.code ?? match.awayLabel ?? 'TBD'}</Text>
         </View>
       </View>
 
