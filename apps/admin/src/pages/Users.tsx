@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Ban, Star, CheckCircle, XCircle, User } from 'lucide-react';
+import { Search, X, User, Shield, Crown } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 
 interface UserRow {
@@ -17,24 +17,117 @@ interface UserRow {
   createdAt: string;
 }
 
+function UserModal({ user, onClose }: { user: UserRow; onClose: () => void }) {
+  const qc = useQueryClient();
+  const opts = { onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); onClose(); } };
+
+  const banMut = useMutation({ mutationFn: () => adminApi.banUser(user.id, 'Violación de términos'), ...opts });
+  const unbanMut = useMutation({ mutationFn: () => adminApi.unbanUser(user.id), ...opts });
+  const premiumMut = useMutation({ mutationFn: () => adminApi.grantPremium(user.id, 30), ...opts });
+  const revokeMut = useMutation({ mutationFn: () => adminApi.revokePremium(user.id), ...opts });
+  const roleMut = useMutation({ mutationFn: (role: string) => adminApi.setRole(user.id, role), ...opts });
+
+  const isPending = banMut.isPending || unbanMut.isPending || premiumMut.isPending || revokeMut.isPending || roleMut.isPending;
+
+  const initials = (user.displayName || user.username || '?')[0].toUpperCase();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div
+        className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+          <X size={18} />
+        </button>
+
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-primary-500/10 flex items-center justify-center text-primary-600 font-bold text-lg">
+            {initials}
+          </div>
+          <div>
+            <p className="font-semibold dark:text-white">{user.displayName || user.username}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
+          </div>
+        </div>
+
+        {/* Premium */}
+        <div>
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Plan</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => !user.isPremium && premiumMut.mutate()}
+              disabled={isPending || user.isPremium}
+              className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-all
+                ${!user.isPremium
+                  ? 'border-primary-500 bg-primary-500 text-white'
+                  : 'border-gray-200 dark:border-slate-600 text-gray-400 dark:text-gray-500'}`}
+            >
+              Free
+            </button>
+            <button
+              onClick={() => !user.isPremium ? premiumMut.mutate() : revokeMut.mutate()}
+              disabled={isPending}
+              className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-all
+                ${user.isPremium
+                  ? 'border-yellow-400 bg-yellow-400 text-white'
+                  : 'border-gray-200 dark:border-slate-600 text-gray-500 dark:text-gray-400 hover:border-yellow-400 hover:text-yellow-500'}`}
+            >
+              ⭐ Premium
+            </button>
+          </div>
+        </div>
+
+        {/* Role */}
+        <div>
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Rol</p>
+          <div className="flex gap-2">
+            {(['USER', 'ADMIN', 'SUPER_ADMIN'] as const).map((r) => (
+              <button
+                key={r}
+                onClick={() => user.role !== r && roleMut.mutate(r)}
+                disabled={isPending || user.role === r}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 transition-all flex items-center justify-center gap-1
+                  ${user.role === r
+                    ? 'border-blue-500 bg-blue-500 text-white'
+                    : 'border-gray-200 dark:border-slate-600 text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500'}`}
+              >
+                {r === 'USER' && <User size={11} />}
+                {r === 'ADMIN' && <Shield size={11} />}
+                {r === 'SUPER_ADMIN' && <Crown size={11} />}
+                {r === 'USER' ? 'User' : r === 'ADMIN' ? 'Admin' : 'Super'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Ban */}
+        <button
+          onClick={() => user.isBanned ? unbanMut.mutate() : banMut.mutate()}
+          disabled={isPending}
+          className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all
+            ${user.isBanned
+              ? 'bg-green-500 hover:bg-green-600 text-white'
+              : 'bg-red-50 hover:bg-red-500 text-red-500 hover:text-white dark:bg-red-950/20 dark:hover:bg-red-500 border border-red-200 dark:border-red-800'}`}
+        >
+          {user.isBanned ? '✓ Desbanear usuario' : '⛔ Banear usuario'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function UsersPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<UserRow | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-users', search, page],
     queryFn: () => adminApi.getUsers({ search, page: String(page), limit: '20' }),
-  });
-
-  const banMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => adminApi.banUser(id, reason),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
-  });
-
-  const premiumMutation = useMutation({
-    mutationFn: ({ id, days }: { id: string; days: number }) => adminApi.grantPremium(id, days),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
   });
 
   const users: UserRow[] = data?.data?.items ?? [];
@@ -42,6 +135,8 @@ export function UsersPage() {
 
   return (
     <div className="space-y-6">
+      {selected && <UserModal user={selected} onClose={() => setSelected(null)} />}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold dark:text-white">Usuarios</h1>
@@ -89,8 +184,8 @@ export function UsersPage() {
                     <tr key={u.id} className="border-b border-gray-50 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700/20 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 bg-primary-500/10 rounded-full flex items-center justify-center">
-                            <User size={14} className="text-primary-600" />
+                          <div className="w-7 h-7 bg-primary-500/10 rounded-full flex items-center justify-center text-primary-600 font-bold text-xs">
+                            {(u.displayName || u.username || '?')[0].toUpperCase()}
                           </div>
                           <span className="font-medium dark:text-white">{u.username}</span>
                         </div>
@@ -108,30 +203,16 @@ export function UsersPage() {
                       <td className="px-4 py-3 font-mono text-sm dark:text-gray-300">{u.predictionPoints.toLocaleString()}</td>
                       <td className="px-4 py-3">
                         {u.isBanned
-                          ? <span className="flex items-center gap-1 text-red-500 text-xs"><XCircle size={13} /> Baneado</span>
-                          : <span className="flex items-center gap-1 text-green-600 text-xs"><CheckCircle size={13} /> Activo</span>}
+                          ? <span className="text-red-500 text-xs font-medium">⛔ Baneado</span>
+                          : <span className="text-green-600 text-xs font-medium">✓ Activo</span>}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5">
-                          {!u.isBanned && (
-                            <button
-                              onClick={() => banMutation.mutate({ id: u.id, reason: 'Violación de términos' })}
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
-                              title="Banear usuario"
-                            >
-                              <Ban size={14} />
-                            </button>
-                          )}
-                          {!u.isPremium && u.role === 'USER' && (
-                            <button
-                              onClick={() => premiumMutation.mutate({ id: u.id, days: 30 })}
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-950/20 transition-colors"
-                              title="Dar 30 días Premium"
-                            >
-                              <Star size={14} />
-                            </button>
-                          )}
-                        </div>
+                        <button
+                          onClick={() => setSelected(u)}
+                          className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary-500/10 text-primary-600 hover:bg-primary-500 hover:text-white transition-all"
+                        >
+                          Gestionar
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -139,10 +220,9 @@ export function UsersPage() {
           </table>
         </div>
 
-        {/* Pagination */}
         {total > 20 && (
           <div className="px-4 py-3 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between">
-            <p className="text-sm text-gray-500">Página {page} de {Math.ceil(total / 20)}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Página {page} de {Math.ceil(total / 20)}</p>
             <div className="flex gap-2">
               <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
                 className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-slate-600 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-slate-700 dark:text-white transition-colors">

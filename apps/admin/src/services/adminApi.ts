@@ -49,11 +49,15 @@ export const adminApi = {
     return res.data;
   },
   banUser: async (userId: string, reason: string) =>
-    api.patch(`/admin/users/${userId}/ban`, { reason }),
+    api.post(`/admin/users/${userId}/ban`, { reason }),
   unbanUser: async (userId: string) =>
-    api.patch(`/admin/users/${userId}/unban`),
-  grantPremium: async (userId: string, days: number) =>
-    api.patch(`/admin/users/${userId}/premium`, { days }),
+    api.post(`/admin/users/${userId}/unban`),
+  grantPremium: async (userId: string, _days: number) =>
+    api.post(`/admin/users/${userId}/grant-premium`),
+  revokePremium: async (userId: string) =>
+    api.patch(`/admin/users/${userId}`, { isPremium: false, role: 'USER' }),
+  setRole: async (userId: string, role: string) =>
+    api.patch(`/admin/users/${userId}`, { role }),
 
   // Matches
   getMatches: async (params?: Record<string, string>) => {
