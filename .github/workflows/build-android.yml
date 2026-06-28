@@ -49,6 +49,17 @@ jobs:
           fi
           sed -i "s|</application>|        <meta-data android:name=\"com.google.android.gms.ads.APPLICATION_ID\" android:value=\"${APP_ID}\"/>\n        </application>|" "$MANIFEST"
 
+      - name: Disable ProGuard/R8 minification (crash diagnosis)
+        run: |
+          GRADLE="apps/mobile/android/app/build.gradle.kts"
+          if [ -f "$GRADLE" ]; then
+            sed -i 's/minifyEnabled = true/minifyEnabled = false/g' "$GRADLE"
+          fi
+          GRADLE2="apps/mobile/android/app/build.gradle"
+          if [ -f "$GRADLE2" ]; then
+            sed -i 's/minifyEnabled true/minifyEnabled false/g' "$GRADLE2"
+          fi
+
       - name: Restore release keystore
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode \
