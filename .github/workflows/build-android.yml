@@ -49,29 +49,6 @@ jobs:
           fi
           sed -i "s|</application>|        <meta-data android:name=\"com.google.android.gms.ads.APPLICATION_ID\" android:value=\"${APP_ID}\"/>\n        </application>|" "$MANIFEST"
 
-      - name: Replace App.tsx con version minima (diagnostico definitivo)
-        run: |
-          cat > apps/mobile/App.tsx << 'HEREDOC'
-          import React, { useEffect } from 'react';
-          import { View, Text, StyleSheet } from 'react-native';
-          import * as SplashScreen from 'expo-splash-screen';
-          SplashScreen.preventAutoHideAsync().catch(() => {});
-          export default function App() {
-            useEffect(() => { SplashScreen.hideAsync().catch(() => {}); }, []);
-            return (
-              <View style={styles.container}>
-                <Text style={styles.text}>ShinraFixture 2026</Text>
-                <Text style={styles.sub}>App iniciada correctamente</Text>
-              </View>
-            );
-          }
-          const styles = StyleSheet.create({
-            container: { flex: 1, backgroundColor: '#001489', justifyContent: 'center', alignItems: 'center' },
-            text: { color: '#FFFFFF', fontSize: 28, fontWeight: 'bold' },
-            sub: { color: '#94A3B8', fontSize: 16, marginTop: 8 },
-          });
-          HEREDOC
-
       - name: Restore release keystore
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode \
