@@ -38,8 +38,8 @@ import { initAds, loadInterstitial } from './src/services/ads';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-// Initialize AdMob on startup
-initAds().then(() => loadInterstitial()).catch(() => {});
+// Initialize AdMob on startup (disabled temporarily for crash diagnosis)
+// initAds().then(() => loadInterstitial()).catch(() => {});
 
 // Sincronizar TanStack Query online/offline con el estado real de la red
 onlineManager.setEventListener((setOnline) => {

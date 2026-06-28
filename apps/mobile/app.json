@@ -32,7 +32,7 @@
         "color": "#001489"
       },
       "package": "com.shinra.fixture2026",
-      "versionCode": 11,
+      "versionCode": 12,
       "blockedPermissions": [
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.READ_MEDIA_VIDEO",
