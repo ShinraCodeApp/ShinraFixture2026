@@ -43,7 +43,11 @@ jobs:
       - name: Inject AdMob App ID into AndroidManifest
         run: |
           MANIFEST="apps/mobile/android/app/src/main/AndroidManifest.xml"
-          sed -i 's|</application>|        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-1538025475616883~4097886048"/>\n        </application>|' "$MANIFEST"
+          APP_ID="${{ secrets.ADMOB_APP_ID }}"
+          if [ -z "$APP_ID" ]; then
+            APP_ID="ca-app-pub-3940256099942544~3347511713"
+          fi
+          sed -i "s|</application>|        <meta-data android:name=\"com.google.android.gms.ads.APPLICATION_ID\" android:value=\"${APP_ID}\"/>\n        </application>|" "$MANIFEST"
 
       - name: Restore release keystore
         run: |
