@@ -58,6 +58,7 @@
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
     "redis": "^4.6.13",
+    "resend": "^6.16.0",
     "sharp": "^0.33.2",
     "socket.io": "^4.7.4",
     "stripe": "^14.18.0",

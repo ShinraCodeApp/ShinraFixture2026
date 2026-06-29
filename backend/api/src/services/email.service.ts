@@ -1,24 +1,24 @@
-import sgMail from '@sendgrid/mail';
+import { Resend } from 'resend';
 import { config } from '../config';
 import { logger } from '../utils/logger';
 
-sgMail.setApiKey(config.sendgrid.apiKey);
+const resend = new Resend(config.email.resendApiKey);
 
 export class EmailService {
   private static async send(to: string, subject: string, html: string): Promise<void> {
-    if (!config.sendgrid.apiKey) {
-      logger.warn('SendGrid not configured, skipping email to:', to);
+    if (!config.email.resendApiKey) {
+      logger.warn('Resend not configured (RESEND_API_KEY missing), skipping email to:', to);
       return;
     }
     try {
-      await sgMail.send({
+      await resend.emails.send({
+        from: `${config.email.fromName} <${config.email.fromEmail}>`,
         to,
-        from: { email: config.sendgrid.fromEmail, name: config.sendgrid.fromName },
         subject,
         html,
       });
     } catch (err) {
-      logger.error('SendGrid error:', err);
+      logger.error('Resend error:', err);
     }
   }
 
@@ -41,12 +41,9 @@ export class EmailService {
             <li>🤖 Predicciones con IA</li>
             <li>🏆 Crea quinielas con amigos</li>
           </ul>
-          <a href="${config.clientUrl}" style="display: inline-block; background: #00C851; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
-            Ir a la plataforma
-          </a>
         </div>
         <p style="text-align: center; color: #999; font-size: 12px; padding: 20px;">
-          © 2026 ShinraFixture. Si no te registraste, ignora este email.
+          © 2026 ShinraFixture. Si no te registraste, ignorá este email.
         </p>
       </div>
       `
@@ -88,9 +85,6 @@ export class EmailService {
           <div style="color: #666;">puntos ganados</div>
         </div>
         <p>${correct} de ${total} predicciones correctas</p>
-        <a href="${config.clientUrl}/predictions" style="display: inline-block; background: #00C851; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none;">
-          Ver mis predicciones
-        </a>
       </div>
       `
     );

@@ -88,9 +88,9 @@ export const config = {
     apiFootballKey: process.env.API_FOOTBALL_KEY || '',
   },
 
-  sendgrid: {
-    apiKey: process.env.SENDGRID_API_KEY || '',
-    fromEmail: process.env.EMAIL_FROM || 'noreply@shinrafixture.com',
+  email: {
+    resendApiKey: process.env.RESEND_API_KEY || '',
+    fromEmail: process.env.EMAIL_FROM || 'onboarding@resend.dev',
     fromName: process.env.EMAIL_FROM_NAME || 'ShinraFixture 2026',
   },
 
