@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
 import { MatchStatus, NotificationType } from '@prisma/client';
 import { prisma } from '../config/database';
 import { ApiError } from '../utils/ApiError';
@@ -88,7 +89,7 @@ export class AdminController {
   }
 
   static async updateUser(req: Request, res: Response): Promise<void> {
-    const { role, isPremium, displayName, username, country, predictionPoints, xp, level } = req.body;
+    const { role, isPremium, displayName, username, country, predictionPoints, xp, level, password } = req.body;
     const data: Record<string, unknown> = {};
     if (role !== undefined) data.role = role;
     if (isPremium !== undefined) data.isPremium = isPremium;
@@ -98,12 +99,18 @@ export class AdminController {
     if (predictionPoints !== undefined) data.predictionPoints = Number(predictionPoints);
     if (xp !== undefined) data.xp = Number(xp);
     if (level !== undefined) data.level = Number(level);
+    if (password && password.length >= 6) data.passwordHash = await bcrypt.hash(password, 12);
     const user = await prisma.user.update({
       where: { id: req.params.id },
       data,
       select: { id: true, email: true, username: true, displayName: true, role: true, isPremium: true, predictionPoints: true, xp: true, level: true, country: true },
     });
     res.json({ success: true, data: user });
+  }
+
+  static async deleteUser(req: Request, res: Response): Promise<void> {
+    await prisma.user.delete({ where: { id: req.params.id } });
+    res.json({ success: true });
   }
 
   static async banUser(req: Request, res: Response): Promise<void> {

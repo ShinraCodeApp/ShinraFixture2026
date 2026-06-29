@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, X, User, Shield, Crown, Save, Edit2 } from 'lucide-react';
+import { Search, X, User, Shield, Crown, Save, Trash2 } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 
 interface UserRow {
@@ -33,7 +33,9 @@ function UserModal({ user, onClose }: { user: UserRow; onClose: () => void }) {
   const [points, setPoints] = useState(String(user.predictionPoints ?? 0));
   const [xp, setXp] = useState(String(user.xp ?? 0));
   const [level, setLevel] = useState(String(user.level ?? 1));
+  const [newPassword, setNewPassword] = useState('');
   const [savedProfile, setSavedProfile] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const refresh = { onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }) };
   const closeAfter = { onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); onClose(); } };
@@ -44,19 +46,29 @@ function UserModal({ user, onClose }: { user: UserRow; onClose: () => void }) {
   const revokeMut = useMutation({ mutationFn: () => adminApi.revokePremium(user.id), ...closeAfter });
   const roleMut = useMutation({ mutationFn: (role: string) => adminApi.setRole(user.id, role), ...closeAfter });
   const profileMut = useMutation({
-    mutationFn: () => adminApi.updateUser(user.id, {
-      displayName: displayName.trim() || undefined,
-      username: username.trim() || undefined,
-      country: country.trim() || undefined,
-      predictionPoints: Number(points),
-      xp: Number(xp),
-      level: Number(level),
-    }),
+    mutationFn: () => {
+      const data: Record<string, unknown> = {
+        displayName: displayName.trim() || undefined,
+        username: username.trim() || undefined,
+        country: country.trim() || undefined,
+        predictionPoints: Number(points),
+        xp: Number(xp),
+        level: Number(level),
+      };
+      if (newPassword.trim().length >= 6) data.password = newPassword.trim();
+      return adminApi.updateUser(user.id, data);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-users'] });
       setSavedProfile(true);
+      setNewPassword('');
       setTimeout(() => setSavedProfile(false), 2000);
     },
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: () => adminApi.deleteUser(user.id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); onClose(); },
   });
 
   const isPending = banMut.isPending || unbanMut.isPending || premiumMut.isPending || revokeMut.isPending || roleMut.isPending;
@@ -177,6 +189,16 @@ function UserModal({ user, onClose }: { user: UserRow; onClose: () => void }) {
                 />
               </div>
             ))}
+            <div>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Nueva contraseña (dejar vacío para no cambiar)</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Mín. 6 caracteres"
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
             <button
               onClick={() => profileMut.mutate()}
               disabled={profileMut.isPending}
@@ -184,6 +206,26 @@ function UserModal({ user, onClose }: { user: UserRow; onClose: () => void }) {
             >
               {savedProfile ? '✓ Guardado' : profileMut.isPending ? 'Guardando...' : <><Save size={14} /> Guardar cambios</>}
             </button>
+            <div className="pt-2 border-t border-gray-100 dark:border-slate-700">
+              {!confirmDelete ? (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="w-full py-2 rounded-xl border border-red-200 dark:border-red-900 text-red-500 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-950/20 flex items-center justify-center gap-2 transition-colors"
+                >
+                  <Trash2 size={14} /> Eliminar usuario
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-red-500 text-center font-semibold">¿Confirmar eliminación permanente?</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => setConfirmDelete(false)} className="flex-1 py-2 rounded-xl border border-gray-200 dark:border-slate-600 dark:text-white text-sm transition-colors hover:bg-gray-50 dark:hover:bg-slate-700">Cancelar</button>
+                    <button onClick={() => deleteMut.mutate()} disabled={deleteMut.isPending} className="flex-1 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-colors disabled:opacity-60">
+                      {deleteMut.isPending ? '...' : 'Eliminar'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

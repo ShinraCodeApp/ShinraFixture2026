@@ -550,6 +550,16 @@ export function LiveRadarScreen() {
     return () => clearInterval(interval);
   }, [match?.id]);
 
+  // Live seconds counter — must be before early return to satisfy rules of hooks
+  const liveMinute = liveScore?.minute ?? match?.minute ?? 0;
+  const isLiveStatus = match?.status === 'LIVE';
+  useEffect(() => {
+    if (!isLiveStatus) { setClockSec(0); return; }
+    setClockSec(0);
+    const id = setInterval(() => setClockSec(s => (s >= 59 ? 59 : s + 1)), 1000);
+    return () => clearInterval(id);
+  }, [liveMinute, isLiveStatus]);
+
   if (isLoading || !match) return (
     <View style={{ flex: 1, backgroundColor: '#0a0a1a', alignItems: 'center', justifyContent: 'center' }}>
       <ActivityIndicator color={colors.accent} size="large" />
@@ -560,14 +570,6 @@ export function LiveRadarScreen() {
   const homeScore = liveScore?.home ?? match.homeScore ?? 0;
   const awayScore = liveScore?.away ?? match.awayScore ?? 0;
   const minute = liveScore?.minute ?? match.minute ?? 0;
-
-  // Live seconds counter — resets each time the server pushes a new minute
-  useEffect(() => {
-    if (!isLive) { setClockSec(0); return; }
-    setClockSec(0);
-    const id = setInterval(() => setClockSec(s => (s >= 59 ? 59 : s + 1)), 1000);
-    return () => clearInterval(id);
-  }, [minute, isLive]);
 
   const minutePart = minute > 90 ? `90+${minute - 90}` : String(minute);
   const clockLabel = minute > 0 ? `${minutePart}:${String(clockSec).padStart(2, '0')}` : '';

@@ -90,6 +90,8 @@ export const adminApi = {
   },
   updateUser: async (userId: string, data: Record<string, unknown>) =>
     api.patch(`/admin/users/${userId}`, data),
+  deleteUser: async (userId: string) =>
+    api.delete(`/admin/users/${userId}`),
   banUser: async (userId: string, reason: string) =>
     api.post(`/admin/users/${userId}/ban`, { reason }),
   unbanUser: async (userId: string) =>
@@ -108,11 +110,11 @@ export const adminApi = {
     return res.data;
   },
   updateMatchScore: async (matchId: string, data: { homeScore: number; awayScore: number; status: string }) =>
-    api.patch(`/admin/matches/${matchId}/score`, data),
+    api.post(`/admin/matches/${matchId}/update-score`, data),
   startMatch: async (matchId: string) =>
-    api.patch(`/admin/matches/${matchId}/start`),
+    api.post(`/admin/matches/${matchId}/start`),
   finishMatch: async (matchId: string) =>
-    api.patch(`/admin/matches/${matchId}/finish`),
+    api.post(`/admin/matches/${matchId}/finish`),
 
   // Teams
   getTeams: async () => {

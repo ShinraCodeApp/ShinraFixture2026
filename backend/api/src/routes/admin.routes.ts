@@ -13,6 +13,7 @@ adminRoutes.get('/stats', AdminController.stats);
 adminRoutes.get('/users', AdminController.listUsers);
 adminRoutes.get('/users/:id', AdminController.getUser);
 adminRoutes.patch('/users/:id', AdminController.updateUser);
+adminRoutes.delete('/users/:id', AdminController.deleteUser);
 adminRoutes.post('/users/:id/ban', AdminController.banUser);
 adminRoutes.post('/users/:id/unban', AdminController.unbanUser);
 adminRoutes.post('/users/:id/grant-premium', AdminController.grantPremium);
