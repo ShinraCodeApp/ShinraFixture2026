@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, Image, StyleSheet,
   ActivityIndicator, TouchableOpacity, RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -125,6 +125,21 @@ function MatchCard({
   const cardY = cy - CH / 2;
   const finished = dbMatch?.status === 'FINISHED';
 
+  // Prefer actual DB team data over group standings resolution
+  function renderTeamSlot(slot: Slot, dbTeam?: { name: string; code: string; flagUrl?: string } | null) {
+    if (dbTeam) {
+      return (
+        <View style={s.teamRow}>
+          {dbTeam.flagUrl
+            ? <Image source={{ uri: dbTeam.flagUrl }} style={s.logo} resizeMode="contain" />
+            : <View style={[s.logoBox, { backgroundColor: appColors.surfaceSecondary }]} />}
+          <Text style={[s.codeTxt, { color: appColors.text }]} numberOfLines={1}>{dbTeam.code}</Text>
+        </View>
+      );
+    }
+    return <TeamRow slot={slot} gmap={gmap} appColors={appColors} />;
+  }
+
   return (
     <TouchableOpacity
       disabled={!dbMatch?.id}
@@ -145,9 +160,9 @@ function MatchCard({
       {!finished && (
         <Text style={[s.matchId, { color: appColors.textSecondary }]}>{match.id}</Text>
       )}
-      <TeamRow slot={match.home} gmap={gmap} appColors={appColors} />
+      {renderTeamSlot(match.home, dbMatch?.homeTeam)}
       <View style={[s.divider, { backgroundColor: appColors.border }]} />
-      <TeamRow slot={match.away} gmap={gmap} appColors={appColors} />
+      {renderTeamSlot(match.away, dbMatch?.awayTeam)}
     </TouchableOpacity>
   );
 }
@@ -309,6 +324,7 @@ const ROUND_COLS = [
 export function BracketScreen() {
   const nav = useNavigation<any>();
   const { appColors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const [gmap, setGmap] = useState<GroupMap>({});
   const [ko, setKo] = useState<KnockoutMap>({ r32: [], r16: [], qf: [], sf: [], fin: [] });
   const [loading, setLoading] = useState(true);
@@ -414,7 +430,7 @@ export function BracketScreen() {
           >
             <ScrollView
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 16 }}
+              contentContainerStyle={{ paddingBottom: 16 + insets.bottom }}
             >
               {/* Scroll hint */}
               <View style={[s.hint, { backgroundColor: appColors.surfaceSecondary }]}>

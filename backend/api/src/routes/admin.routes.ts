@@ -41,3 +41,6 @@ adminRoutes.get('/ads', AdminController.listAds);
 adminRoutes.post('/ads', AdminController.createAd);
 adminRoutes.patch('/ads/:id', AdminController.updateAd);
 adminRoutes.delete('/ads/:id', AdminController.deleteAd);
+
+// Migrations
+adminRoutes.post('/migrations/fix-r32-teams', AdminController.fixR32Teams);

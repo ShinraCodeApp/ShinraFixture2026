@@ -300,4 +300,56 @@ export class AdminController {
     await prisma.advertisement.delete({ where: { id: req.params.id } });
     res.json({ success: true });
   }
+
+  static async fixR32Teams(req: Request, res: Response): Promise<void> {
+    const R32_MATCHES = [
+      { round: 73, homeCode: 'RSA', awayCode: 'CAN', matchDate: '2026-06-28T17:00:00Z', venue: 'SoFi Stadium', city: 'Los Angeles', country: 'United States', status: 'FINISHED', homeScore: 0, awayScore: 1 },
+      { round: 74, homeCode: 'BRA', awayCode: 'JPN', matchDate: '2026-06-29T17:00:00Z', venue: 'NRG Stadium', city: 'Houston', country: 'United States', status: 'SCHEDULED', homeScore: null, awayScore: null },
+      { round: 75, homeCode: 'GER', awayCode: 'PAR', matchDate: '2026-06-29T20:30:00Z', venue: 'Gillette Stadium', city: 'Boston', country: 'United States', status: 'SCHEDULED', homeScore: null, awayScore: null },
+      { round: 76, homeCode: 'NED', awayCode: 'MAR', matchDate: '2026-06-30T01:00:00Z', venue: 'Estadio BBVA', city: 'Monterrey', country: 'Mexico', status: 'SCHEDULED', homeScore: null, awayScore: null },
+      { round: 77, homeCode: 'CIV', awayCode: 'NOR', matchDate: '2026-06-30T17:00:00Z', venue: 'AT&T Stadium', city: 'Dallas', country: 'United States', status: 'SCHEDULED', homeScore: null, awayScore: null },
+      { round: 78, homeCode: 'FRA', awayCode: 'SWE', matchDate: '2026-06-30T21:00:00Z', venue: 'MetLife Stadium', city: 'East Rutherford', country: 'United States', status: 'SCHEDULED', homeScore: null, awayScore: null },
+      { round: 79, homeCode: 'MEX', awayCode: 'ECU', matchDate: '2026-07-01T01:00:00Z', venue: 'Estadio Azteca', city: 'Ciudad de México', country: 'Mexico', status: 'SCHEDULED', homeScore: null, awayScore: null },
+      { round: 80, homeCode: 'ENG', awayCode: 'COD', matchDate: '2026-07-01T16:00:00Z', venue: 'Mercedes-Benz Stadium', city: 'Atlanta', country: 'United States', status: 'SCHEDULED', homeScore: null, awayScore: null },
+      { round: 81, homeCode: 'BEL', awayCode: 'SEN', matchDate: '2026-07-01T20:00:00Z', venue: 'Lumen Field', city: 'Seattle', country: 'United States', status: 'SCHEDULED', homeScore: null, awayScore: null },
+      { round: 82, homeCode: 'USA', awayCode: 'BIH', matchDate: '2026-07-02T00:00:00Z', venue: "Levi's Stadium", city: 'San Francisco', country: 'United States', status: 'SCHEDULED', homeScore: null, awayScore: null },
+      { round: 83, homeCode: 'ESP', awayCode: 'AUT', matchDate: '2026-07-02T19:00:00Z', venue: 'SoFi Stadium', city: 'Los Angeles', country: 'United States', status: 'SCHEDULED', homeScore: null, awayScore: null },
+      { round: 84, homeCode: 'POR', awayCode: 'CRO', matchDate: '2026-07-02T23:00:00Z', venue: 'BMO Field', city: 'Toronto', country: 'Canada', status: 'SCHEDULED', homeScore: null, awayScore: null },
+      { round: 85, homeCode: 'SUI', awayCode: 'ALG', matchDate: '2026-07-03T03:00:00Z', venue: 'BC Place', city: 'Vancouver', country: 'Canada', status: 'SCHEDULED', homeScore: null, awayScore: null },
+      { round: 86, homeCode: 'AUS', awayCode: 'EGY', matchDate: '2026-07-03T18:00:00Z', venue: 'AT&T Stadium', city: 'Dallas', country: 'United States', status: 'SCHEDULED', homeScore: null, awayScore: null },
+      { round: 87, homeCode: 'ARG', awayCode: 'CPV', matchDate: '2026-07-03T22:00:00Z', venue: 'Hard Rock Stadium', city: 'Miami', country: 'United States', status: 'SCHEDULED', homeScore: null, awayScore: null },
+      { round: 88, homeCode: 'COL', awayCode: 'GHA', matchDate: '2026-07-04T01:30:00Z', venue: 'Arrowhead Stadium', city: 'Kansas City', country: 'United States', status: 'SCHEDULED', homeScore: null, awayScore: null },
+    ];
+
+    const results: string[] = [];
+    for (const m of R32_MATCHES) {
+      const [homeTeam, awayTeam, match] = await Promise.all([
+        prisma.team.findUnique({ where: { code: m.homeCode } }),
+        prisma.team.findUnique({ where: { code: m.awayCode } }),
+        prisma.match.findFirst({ where: { stage: 'ROUND_OF_32', round: m.round } }),
+      ]);
+      if (!homeTeam || !awayTeam || !match) {
+        results.push(`SKIP round ${m.round}: team or match not found`);
+        continue;
+      }
+      await prisma.match.update({
+        where: { id: match.id },
+        data: {
+          homeTeamId: homeTeam.id,
+          awayTeamId: awayTeam.id,
+          homeLabel: homeTeam.code,
+          awayLabel: awayTeam.code,
+          matchDate: new Date(m.matchDate),
+          venue: m.venue,
+          city: m.city,
+          country: m.country,
+          status: m.status as any,
+          homeScore: m.homeScore,
+          awayScore: m.awayScore,
+        },
+      });
+      results.push(`OK round ${m.round}: ${homeTeam.name} vs ${awayTeam.name}`);
+    }
+    res.json({ success: true, results });
+  }
 }
