@@ -49,8 +49,13 @@ authRoutes.get('/g-refresh', queryToBody, validateBody(refreshSchema), AuthContr
 authRoutes.get('/g-logout', authenticate, AuthController.logout);
 authRoutes.post('/gift-code', authenticate, validateBody(giftCodeSchema), AuthController.giftCode);
 authRoutes.get('/g-gift-code', authenticate, queryToBody, validateBody(giftCodeSchema), AuthController.giftCode);
+const resetSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6).regex(/^\d{6}$/),
+  password: z.string().min(8),
+});
 authRoutes.post('/forgot-password', authRateLimiter, AuthController.forgotPassword);
-authRoutes.post('/reset-password', authRateLimiter, AuthController.resetPassword);
+authRoutes.post('/reset-password', authRateLimiter, validateBody(resetSchema), AuthController.resetPassword);
 authRoutes.post('/verify-email', AuthController.verifyEmail);
 authRoutes.get('/me', authenticate, AuthController.me);
 

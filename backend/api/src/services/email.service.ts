@@ -53,19 +53,24 @@ export class EmailService {
     );
   }
 
-  static async sendPasswordReset(email: string, token: string): Promise<void> {
-    const resetUrl = `${config.clientUrl}/auth/reset-password?token=${token}`;
+  static async sendPasswordReset(email: string, code: string): Promise<void> {
     await this.send(
       email,
       'Restablecer contraseña — ShinraFixture',
       `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px;">
-        <h2>Restablecer contraseña</h2>
-        <p>Recibimos una solicitud para restablecer tu contraseña. Este enlace expira en 1 hora.</p>
-        <a href="${resetUrl}" style="display: inline-block; background: #1565C0; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; margin: 20px 0;">
-          Restablecer contraseña
-        </a>
-        <p style="color: #999; font-size: 12px;">Si no solicitaste esto, ignora este email. Tu contraseña no cambiará.</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; background: #f9f9f9;">
+        <div style="background: linear-gradient(135deg, #001489, #1565C0); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">ShinraFixture 2026</h1>
+        </div>
+        <div style="background: white; padding: 40px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+          <h2 style="color: #1a1a2e; margin-top: 0;">Restablecer contraseña</h2>
+          <p style="color: #555;">Usá este código en la app para restablecer tu contraseña. Expira en <strong>15 minutos</strong>.</p>
+          <div style="background: #f0f4ff; border: 2px dashed #1565C0; border-radius: 12px; padding: 24px; text-align: center; margin: 24px 0;">
+            <p style="margin: 0 0 8px 0; color: #666; font-size: 14px;">Tu código de verificación</p>
+            <span style="font-size: 48px; font-weight: 900; letter-spacing: 12px; color: #1565C0;">${code}</span>
+          </div>
+          <p style="color: #999; font-size: 13px;">Si no solicitaste esto, ignorá este email. Tu contraseña no cambiará.</p>
+        </div>
       </div>
       `
     );

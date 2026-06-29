@@ -93,7 +93,7 @@ export class AuthService {
     };
 
     const user = await prisma.user.findUnique({
-      where: isEmail ? { email: identifier.toLowerCase() } : { username: identifier },
+      where: isEmail ? { email: identifier.toLowerCase() } : { username: identifier.toLowerCase() },
       select: userSelect,
     });
 
@@ -195,27 +195,31 @@ export class AuthService {
   }
 
   static async sendPasswordReset(email: string): Promise<void> {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
     if (!user) return; // Don't reveal if email exists
 
-    const token = uuidv4();
-    await cache.set(`password_reset:${token}`, user.id, 60 * 60); // 1 hour
+    const code = String(Math.floor(100000 + Math.random() * 900000)); // 6-digit code
+    await cache.set(`password_reset:${email.toLowerCase()}`, code, 15 * 60); // 15 minutes
 
-    await EmailService.sendPasswordReset(email, token);
+    await EmailService.sendPasswordReset(email, code);
   }
 
-  static async resetPassword(token: string, newPassword: string): Promise<void> {
-    const userId = await cache.get<string>(`password_reset:${token}`);
-    if (!userId) throw ApiError.badRequest('Invalid or expired reset token');
+  static async resetPassword(email: string, code: string, newPassword: string): Promise<void> {
+    const key = `password_reset:${email.toLowerCase()}`;
+    const stored = await cache.get<string>(key);
+    if (!stored || stored !== code) throw ApiError.badRequest('Código inválido o expirado');
+
+    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() }, select: { id: true } });
+    if (!user) throw ApiError.badRequest('Código inválido o expirado');
 
     const passwordHash = await bcrypt.hash(newPassword, 12);
     await prisma.user.update({
-      where: { id: userId },
+      where: { id: user.id },
       data: { passwordHash, tokenVersion: { increment: 1 } },
     });
 
-    await cache.del(`password_reset:${token}`);
-    await prisma.refreshToken.deleteMany({ where: { userId } });
+    await cache.del(key);
+    await prisma.refreshToken.deleteMany({ where: { userId: user.id } });
   }
 
   static async verifyEmail(token: string): Promise<void> {

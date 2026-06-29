@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
@@ -13,23 +13,46 @@ import { AppDispatch, RootState } from '../../store';
 import { login, setHasSeenOnboarding, clearError } from '../../store/slices/authSlice';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 
+type LoginMode = 'email' | 'username';
+
 export function LoginScreen() {
   const navigation = useNavigation<any>();
   const dispatch = useDispatch<AppDispatch>();
   const { isLoading, error } = useSelector((s: RootState) => s.auth);
+
+  const [mode, setMode] = useState<LoginMode>('email');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const identifierRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
 
   useEffect(() => {
     dispatch(clearError());
   }, []);
 
+  // Persist error locally so it doesn't disappear when user retries
+  useEffect(() => {
+    if (error) setLocalError(error);
+  }, [error]);
+
+  const switchMode = (newMode: LoginMode) => {
+    setMode(newMode);
+    setIdentifier('');
+    setLocalError(null);
+    dispatch(clearError());
+    setTimeout(() => identifierRef.current?.focus(), 100);
+  };
+
   const handleLogin = async () => {
     if (!identifier.trim() || !password) return;
+    setLocalError(null);
     await dispatch(login({ identifier: identifier.trim(), password, rememberMe }));
   };
+
+  const displayError = localError;
 
   return (
     <LinearGradient colors={['#0D47A1', '#1565C0', '#0F172A']} style={styles.container}>
@@ -49,37 +72,71 @@ export function LoginScreen() {
             <View style={styles.form}>
               <Text style={styles.formTitle}>Iniciar sesión</Text>
 
-              {error && (
+              {/* Mode toggle */}
+              <View style={styles.modeToggle}>
+                <TouchableOpacity
+                  style={[styles.modeTab, mode === 'email' && styles.modeTabActive]}
+                  onPress={() => switchMode('email')}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="mail-outline" size={14} color={mode === 'email' ? 'white' : 'rgba(255,255,255,0.5)'} />
+                  <Text style={[styles.modeTabText, mode === 'email' && styles.modeTabTextActive]}>Email</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modeTab, mode === 'username' && styles.modeTabActive]}
+                  onPress={() => switchMode('username')}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="at-outline" size={14} color={mode === 'username' ? 'white' : 'rgba(255,255,255,0.5)'} />
+                  <Text style={[styles.modeTabText, mode === 'username' && styles.modeTabTextActive]}>Usuario</Text>
+                </TouchableOpacity>
+              </View>
+
+              {displayError && (
                 <View style={styles.errorBox}>
                   <Ionicons name="alert-circle" size={16} color={colors.error} />
-                  <Text style={styles.errorText}>{error}</Text>
+                  <Text style={styles.errorText}>{displayError}</Text>
+                  <TouchableOpacity onPress={() => setLocalError(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name="close" size={14} color={colors.error} />
+                  </TouchableOpacity>
                 </View>
               )}
 
               <View style={styles.inputContainer}>
-                <Ionicons name="person-outline" size={18} color="rgba(255,255,255,0.5)" style={styles.inputIcon} />
+                <Ionicons
+                  name={mode === 'email' ? 'mail-outline' : 'at-outline'}
+                  size={18}
+                  color="rgba(255,255,255,0.5)"
+                  style={styles.inputIcon}
+                />
                 <TextInput
+                  ref={identifierRef}
                   style={styles.input}
-                  placeholder="Email o usuario"
+                  placeholder={mode === 'email' ? 'Correo electrónico' : 'Nombre de usuario'}
                   placeholderTextColor="rgba(255,255,255,0.4)"
                   value={identifier}
-                  onChangeText={setIdentifier}
-                  keyboardType="email-address"
+                  onChangeText={(t) => { setIdentifier(t); setLocalError(null); }}
+                  keyboardType={mode === 'email' ? 'email-address' : 'default'}
                   autoCapitalize="none"
-                  autoComplete="email"
+                  autoComplete={mode === 'email' ? 'email' : 'username'}
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordRef.current?.focus()}
                 />
               </View>
 
               <View style={styles.inputContainer}>
                 <Ionicons name="lock-closed-outline" size={18} color="rgba(255,255,255,0.5)" style={styles.inputIcon} />
                 <TextInput
+                  ref={passwordRef}
                   style={[styles.input, { flex: 1 }]}
                   placeholder="Contraseña"
                   placeholderTextColor="rgba(255,255,255,0.4)"
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={(t) => { setPassword(t); setLocalError(null); }}
                   secureTextEntry={!showPassword}
                   autoComplete="password"
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
                   <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color="rgba(255,255,255,0.5)" />
@@ -99,9 +156,9 @@ export function LoginScreen() {
               </View>
 
               <TouchableOpacity
-                style={[styles.loginButton, (isLoading || !identifier || !password) && styles.buttonDisabled]}
+                style={[styles.loginButton, (isLoading || !identifier.trim() || !password) && styles.buttonDisabled]}
                 onPress={handleLogin}
-                disabled={isLoading || !identifier || !password}
+                disabled={isLoading || !identifier.trim() || !password}
               >
                 {isLoading ? (
                   <ActivityIndicator color="white" />
@@ -153,14 +210,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
-  formTitle: { color: 'white', fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, marginBottom: spacing.lg },
+  formTitle: { color: 'white', fontSize: typography.fontSize.xl, fontFamily: typography.fontFamily.bold, marginBottom: spacing.base },
+  modeToggle: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: borderRadius.md,
+    padding: 3,
+    marginBottom: spacing.base,
+  },
+  modeTab: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: spacing.xs, paddingVertical: spacing.sm,
+    borderRadius: borderRadius.sm,
+  },
+  modeTabActive: { backgroundColor: colors.primary },
+  modeTabText: { color: 'rgba(255,255,255,0.5)', fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.medium },
+  modeTabTextActive: { color: 'white', fontFamily: typography.fontFamily.bold },
   errorBox: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
-    backgroundColor: 'rgba(239,68,68,0.15)', borderRadius: borderRadius.md,
+    backgroundColor: 'rgba(239,68,68,0.2)', borderRadius: borderRadius.md,
     padding: spacing.sm, marginBottom: spacing.base,
-    borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)',
+    borderWidth: 1, borderColor: 'rgba(239,68,68,0.5)',
   },
-  errorText: { color: colors.error, fontSize: typography.fontSize.sm, flex: 1 },
+  errorText: { color: '#fca5a5', fontSize: typography.fontSize.sm, flex: 1 },
   inputContainer: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.08)',

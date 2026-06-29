@@ -29,7 +29,7 @@ export class AuthController {
   }
 
   static async resetPassword(req: Request, res: Response): Promise<void> {
-    await AuthService.resetPassword(req.body.token, req.body.password);
+    await AuthService.resetPassword(req.body.email, req.body.code, req.body.password);
     res.json({ success: true, message: 'Password reset successfully' });
   }
 
