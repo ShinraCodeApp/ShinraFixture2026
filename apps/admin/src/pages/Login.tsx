@@ -6,6 +6,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -14,9 +15,14 @@ export function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const data = await adminApi.login(email, password);
+      const data = await adminApi.login(email, password, rememberMe);
       if (data.data?.accessToken) {
         localStorage.setItem('shinra_admin_token', data.data.accessToken);
+        if (rememberMe && data.data.refreshToken) {
+          localStorage.setItem('shinra_admin_refresh', data.data.refreshToken);
+        } else {
+          localStorage.removeItem('shinra_admin_refresh');
+        }
         navigate('/');
       } else {
         setError('Credenciales inválidas');
@@ -69,6 +75,20 @@ export function LoginPage() {
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
+
+          <label className="flex items-center gap-3 cursor-pointer select-none">
+            <div
+              onClick={() => setRememberMe(!rememberMe)}
+              className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors flex-shrink-0 ${rememberMe ? 'bg-primary-500 border-primary-500' : 'border-slate-600 bg-slate-800'}`}
+            >
+              {rememberMe && (
+                <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </div>
+            <span className="text-sm text-slate-400">Recordarme (30 días)</span>
+          </label>
 
           <button
             type="submit"

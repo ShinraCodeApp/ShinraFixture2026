@@ -14,21 +14,61 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (v: unknown) => void; reject: (e: unknown) => void }> = [];
+
+function processQueue(error: unknown, token: string | null) {
+  failedQueue.forEach(({ resolve, reject }) => error ? reject(error) : resolve(token));
+  failedQueue = [];
+}
+
 api.interceptors.response.use(
   (res) => res,
-  (error) => {
-    if (error.response?.status === 401) {
+  async (error) => {
+    const original = error.config;
+    if (error.response?.status !== 401 || original._retry) {
+      return Promise.reject(error);
+    }
+    const refreshToken = localStorage.getItem('shinra_admin_refresh');
+    if (!refreshToken) {
       localStorage.removeItem('shinra_admin_token');
       window.location.href = '/login';
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      }).then((token) => {
+        original.headers.Authorization = `Bearer ${token}`;
+        return api(original);
+      });
+    }
+    original._retry = true;
+    isRefreshing = true;
+    try {
+      const res = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
+      const { accessToken, refreshToken: newRefresh } = res.data.data;
+      localStorage.setItem('shinra_admin_token', accessToken);
+      if (newRefresh) localStorage.setItem('shinra_admin_refresh', newRefresh);
+      processQueue(null, accessToken);
+      original.headers.Authorization = `Bearer ${accessToken}`;
+      return api(original);
+    } catch (refreshError) {
+      processQueue(refreshError, null);
+      localStorage.removeItem('shinra_admin_token');
+      localStorage.removeItem('shinra_admin_refresh');
+      window.location.href = '/login';
+      return Promise.reject(refreshError);
+    } finally {
+      isRefreshing = false;
+    }
   }
 );
 
 export const adminApi = {
   // Auth
-  login: async (email: string, password: string) => {
-    const res = await api.post('/auth/login', { email, password });
+  login: async (email: string, password: string, rememberMe = false) => {
+    const res = await api.post('/auth/login', { email, password, rememberMe });
     return res.data;
   },
 
