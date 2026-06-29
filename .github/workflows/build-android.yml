@@ -49,21 +49,6 @@ jobs:
           fi
           sed -i "s|</application>|        <meta-data android:name=\"com.google.android.gms.ads.APPLICATION_ID\" android:value=\"${APP_ID}\"/>\n        </application>|" "$MANIFEST"
 
-      - name: Stub AdMob JS (eliminar imports de react-native-google-mobile-ads)
-        run: |
-          cat > apps/mobile/src/services/ads.ts << 'EOF'
-          export const BannerAdSize = { BANNER: 'BANNER', LEADERBOARD: 'LEADERBOARD', MEDIUM_RECTANGLE: 'MEDIUM_RECTANGLE', FULL_BANNER: 'FULL_BANNER', LARGE_BANNER: 'LARGE_BANNER' };
-          export const AD_UNIT_IDS = { banner: '', interstitial: '', rewarded: '' };
-          export async function initAds(): Promise<void> {}
-          export function loadInterstitial(): void {}
-          export function showInterstitial(): Promise<void> { return Promise.resolve(); }
-          export function showRewardedAd(): Promise<boolean> { return Promise.resolve(false); }
-          EOF
-          cat > apps/mobile/src/components/ads/AdBanner.tsx << 'EOF'
-          import React from 'react';
-          export function AdBanner(): null { return null; }
-          EOF
-
       - name: Restore release keystore
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode \

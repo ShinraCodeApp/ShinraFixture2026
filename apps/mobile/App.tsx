@@ -34,18 +34,21 @@ import { useAppTheme } from './src/hooks/useAppTheme';
 import { ThemeProvider } from './src/theme/ThemeProvider';
 import { LoadingScreen } from './src/screens/Loading/LoadingScreen';
 import { OfflineBanner } from './src/components/common/OfflineBanner';
-// import { initAds, loadInterstitial } from './src/services/ads';
+import { initAds, loadInterstitial } from './src/services/ads';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-// initAds + onlineManager desactivados para diagnostico - versionCode 16
-// setTimeout(() => { initAds().then(() => loadInterstitial()).catch(() => {}); }, 2000);
+// Inicializar AdMob con delay para no bloquear el startup de RN
+setTimeout(() => {
+  initAds().then(() => loadInterstitial()).catch(() => {});
+}, 3000);
 
-// onlineManager.setEventListener((setOnline) => {
-//   return NetInfo.addEventListener((state) => {
-//     setOnline(!!state.isConnected && !!state.isInternetReachable);
-//   });
-// });
+// Sincronizar TanStack Query online/offline con el estado real de la red
+onlineManager.setEventListener((setOnline) => {
+  return NetInfo.addEventListener((state) => {
+    setOnline(!!state.isConnected && !!state.isInternetReachable);
+  });
+});
 
 // ── Error Boundary ───────────────────────────────────────
 class ErrorBoundary extends Component<

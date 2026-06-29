@@ -1,9 +1,14 @@
 import React, { Component } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
-import { AD_UNIT_IDS } from '../../services/ads';
+import { AD_UNIT_IDS, BannerAdSize } from '../../services/ads';
+
+// Lazy-load BannerAd para evitar crash al importar react-native-google-mobile-ads
+let BannerAd: any = null;
+try {
+  BannerAd = require('react-native-google-mobile-ads').BannerAd;
+} catch {}
 
 class AdErrorBoundary extends Component<{ children: React.ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -12,13 +17,13 @@ class AdErrorBoundary extends Component<{ children: React.ReactNode }, { failed:
 }
 
 interface Props {
-  size?: BannerAdSize;
+  size?: string;
 }
 
 export function AdBanner({ size = BannerAdSize.BANNER }: Props) {
   const isPremium = useSelector((s: RootState) => s.auth.user?.isPremium ?? false);
 
-  if (isPremium) return null;
+  if (isPremium || !BannerAd) return null;
 
   return (
     <AdErrorBoundary>
