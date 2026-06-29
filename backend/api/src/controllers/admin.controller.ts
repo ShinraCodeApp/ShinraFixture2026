@@ -88,11 +88,20 @@ export class AdminController {
   }
 
   static async updateUser(req: Request, res: Response): Promise<void> {
-    const { role, isPremium } = req.body;
+    const { role, isPremium, displayName, username, country, predictionPoints, xp, level } = req.body;
+    const data: Record<string, unknown> = {};
+    if (role !== undefined) data.role = role;
+    if (isPremium !== undefined) data.isPremium = isPremium;
+    if (displayName !== undefined) data.displayName = displayName;
+    if (username !== undefined) data.username = username;
+    if (country !== undefined) data.country = country;
+    if (predictionPoints !== undefined) data.predictionPoints = Number(predictionPoints);
+    if (xp !== undefined) data.xp = Number(xp);
+    if (level !== undefined) data.level = Number(level);
     const user = await prisma.user.update({
       where: { id: req.params.id },
-      data: { role, isPremium },
-      select: { id: true, email: true, username: true, role: true, isPremium: true },
+      data,
+      select: { id: true, email: true, username: true, displayName: true, role: true, isPremium: true, predictionPoints: true, xp: true, level: true, country: true },
     });
     res.json({ success: true, data: user });
   }

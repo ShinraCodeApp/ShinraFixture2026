@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, X, User, Shield, Crown } from 'lucide-react';
+import { Search, X, User, Shield, Crown, Save, Edit2 } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 
 interface UserRow {
@@ -14,28 +14,59 @@ interface UserRow {
   isVerified: boolean;
   totalPredictions: number;
   predictionPoints: number;
+  xp?: number;
+  level?: number;
+  country?: string;
   createdAt: string;
 }
 
+type ModalTab = 'actions' | 'profile';
+
 function UserModal({ user, onClose }: { user: UserRow; onClose: () => void }) {
   const qc = useQueryClient();
-  const opts = { onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); onClose(); } };
+  const [tab, setTab] = useState<ModalTab>('actions');
 
-  const banMut = useMutation({ mutationFn: () => adminApi.banUser(user.id, 'Violación de términos'), ...opts });
-  const unbanMut = useMutation({ mutationFn: () => adminApi.unbanUser(user.id), ...opts });
-  const premiumMut = useMutation({ mutationFn: () => adminApi.grantPremium(user.id, 30), ...opts });
-  const revokeMut = useMutation({ mutationFn: () => adminApi.revokePremium(user.id), ...opts });
-  const roleMut = useMutation({ mutationFn: (role: string) => adminApi.setRole(user.id, role), ...opts });
+  // Profile edit state
+  const [displayName, setDisplayName] = useState(user.displayName || '');
+  const [username, setUsername] = useState(user.username || '');
+  const [country, setCountry] = useState(user.country || '');
+  const [points, setPoints] = useState(String(user.predictionPoints ?? 0));
+  const [xp, setXp] = useState(String(user.xp ?? 0));
+  const [level, setLevel] = useState(String(user.level ?? 1));
+  const [savedProfile, setSavedProfile] = useState(false);
+
+  const refresh = { onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }) };
+  const closeAfter = { onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); onClose(); } };
+
+  const banMut = useMutation({ mutationFn: () => adminApi.banUser(user.id, 'Violación de términos'), ...closeAfter });
+  const unbanMut = useMutation({ mutationFn: () => adminApi.unbanUser(user.id), ...closeAfter });
+  const premiumMut = useMutation({ mutationFn: () => adminApi.grantPremium(user.id, 30), ...closeAfter });
+  const revokeMut = useMutation({ mutationFn: () => adminApi.revokePremium(user.id), ...closeAfter });
+  const roleMut = useMutation({ mutationFn: (role: string) => adminApi.setRole(user.id, role), ...closeAfter });
+  const profileMut = useMutation({
+    mutationFn: () => adminApi.updateUser(user.id, {
+      displayName: displayName.trim() || undefined,
+      username: username.trim() || undefined,
+      country: country.trim() || undefined,
+      predictionPoints: Number(points),
+      xp: Number(xp),
+      level: Number(level),
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-users'] });
+      setSavedProfile(true);
+      setTimeout(() => setSavedProfile(false), 2000);
+    },
+  });
 
   const isPending = banMut.isPending || unbanMut.isPending || premiumMut.isPending || revokeMut.isPending || roleMut.isPending;
-
   const initials = (user.displayName || user.username || '?')[0].toUpperCase();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
-        className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-5"
+        className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
@@ -53,67 +84,108 @@ function UserModal({ user, onClose }: { user: UserRow; onClose: () => void }) {
           </div>
         </div>
 
-        {/* Premium */}
-        <div>
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Plan</p>
-          <div className="flex gap-2">
+        {/* Tabs */}
+        <div className="flex rounded-xl overflow-hidden border border-gray-200 dark:border-slate-600 text-sm font-semibold">
+          {([['actions', 'Gestionar'], ['profile', 'Editar Perfil']] as const).map(([key, label]) => (
             <button
-              onClick={() => !user.isPremium && premiumMut.mutate()}
-              disabled={isPending || user.isPremium}
-              className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-all
-                ${!user.isPremium
-                  ? 'border-primary-500 bg-primary-500 text-white'
-                  : 'border-gray-200 dark:border-slate-600 text-gray-400 dark:text-gray-500'}`}
+              key={key}
+              onClick={() => setTab(key)}
+              className={`flex-1 py-2 transition-colors ${tab === key ? 'bg-primary-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
             >
-              Free
+              {label}
             </button>
+          ))}
+        </div>
+
+        {tab === 'actions' && (
+          <>
+            {/* Premium */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Plan</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => !user.isPremium && premiumMut.mutate()}
+                  disabled={isPending || user.isPremium}
+                  className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-all
+                    ${!user.isPremium ? 'border-primary-500 bg-primary-500 text-white' : 'border-gray-200 dark:border-slate-600 text-gray-400 dark:text-gray-500'}`}
+                >
+                  Free
+                </button>
+                <button
+                  onClick={() => !user.isPremium ? premiumMut.mutate() : revokeMut.mutate()}
+                  disabled={isPending}
+                  className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-all
+                    ${user.isPremium ? 'border-yellow-400 bg-yellow-400 text-white' : 'border-gray-200 dark:border-slate-600 text-gray-500 dark:text-gray-400 hover:border-yellow-400 hover:text-yellow-500'}`}
+                >
+                  ⭐ Premium
+                </button>
+              </div>
+            </div>
+
+            {/* Role */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Rol</p>
+              <div className="flex gap-2">
+                {(['USER', 'ADMIN', 'SUPER_ADMIN'] as const).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => user.role !== r && roleMut.mutate(r)}
+                    disabled={isPending || user.role === r}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 transition-all flex items-center justify-center gap-1
+                      ${user.role === r ? 'border-blue-500 bg-blue-500 text-white' : 'border-gray-200 dark:border-slate-600 text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500'}`}
+                  >
+                    {r === 'USER' && <User size={11} />}
+                    {r === 'ADMIN' && <Shield size={11} />}
+                    {r === 'SUPER_ADMIN' && <Crown size={11} />}
+                    {r === 'USER' ? 'User' : r === 'ADMIN' ? 'Admin' : 'Super'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Ban */}
             <button
-              onClick={() => !user.isPremium ? premiumMut.mutate() : revokeMut.mutate()}
+              onClick={() => user.isBanned ? unbanMut.mutate() : banMut.mutate()}
               disabled={isPending}
-              className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-all
-                ${user.isPremium
-                  ? 'border-yellow-400 bg-yellow-400 text-white'
-                  : 'border-gray-200 dark:border-slate-600 text-gray-500 dark:text-gray-400 hover:border-yellow-400 hover:text-yellow-500'}`}
+              className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all
+                ${user.isBanned
+                  ? 'bg-green-500 hover:bg-green-600 text-white'
+                  : 'bg-red-50 hover:bg-red-500 text-red-500 hover:text-white dark:bg-red-950/20 dark:hover:bg-red-500 border border-red-200 dark:border-red-800'}`}
             >
-              ⭐ Premium
+              {user.isBanned ? '✓ Desbanear usuario' : '⛔ Banear usuario'}
+            </button>
+          </>
+        )}
+
+        {tab === 'profile' && (
+          <div className="space-y-3">
+            {[
+              { label: 'Nombre visible', value: displayName, set: setDisplayName, type: 'text' },
+              { label: 'Username', value: username, set: setUsername, type: 'text' },
+              { label: 'País (código, ej: AR)', value: country, set: setCountry, type: 'text' },
+              { label: 'Puntos de predicción', value: points, set: setPoints, type: 'number' },
+              { label: 'XP', value: xp, set: setXp, type: 'number' },
+              { label: 'Nivel', value: level, set: setLevel, type: 'number' },
+            ].map(({ label, value, set, type }) => (
+              <div key={label}>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{label}</label>
+                <input
+                  type={type}
+                  value={value}
+                  onChange={(e) => set(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            ))}
+            <button
+              onClick={() => profileMut.mutate()}
+              disabled={profileMut.isPending}
+              className="w-full py-2.5 rounded-xl bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
+            >
+              {savedProfile ? '✓ Guardado' : profileMut.isPending ? 'Guardando...' : <><Save size={14} /> Guardar cambios</>}
             </button>
           </div>
-        </div>
-
-        {/* Role */}
-        <div>
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Rol</p>
-          <div className="flex gap-2">
-            {(['USER', 'ADMIN', 'SUPER_ADMIN'] as const).map((r) => (
-              <button
-                key={r}
-                onClick={() => user.role !== r && roleMut.mutate(r)}
-                disabled={isPending || user.role === r}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 transition-all flex items-center justify-center gap-1
-                  ${user.role === r
-                    ? 'border-blue-500 bg-blue-500 text-white'
-                    : 'border-gray-200 dark:border-slate-600 text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500'}`}
-              >
-                {r === 'USER' && <User size={11} />}
-                {r === 'ADMIN' && <Shield size={11} />}
-                {r === 'SUPER_ADMIN' && <Crown size={11} />}
-                {r === 'USER' ? 'User' : r === 'ADMIN' ? 'Admin' : 'Super'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Ban */}
-        <button
-          onClick={() => user.isBanned ? unbanMut.mutate() : banMut.mutate()}
-          disabled={isPending}
-          className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all
-            ${user.isBanned
-              ? 'bg-green-500 hover:bg-green-600 text-white'
-              : 'bg-red-50 hover:bg-red-500 text-red-500 hover:text-white dark:bg-red-950/20 dark:hover:bg-red-500 border border-red-200 dark:border-red-800'}`}
-        >
-          {user.isBanned ? '✓ Desbanear usuario' : '⛔ Banear usuario'}
-        </button>
+        )}
       </div>
     </div>
   );

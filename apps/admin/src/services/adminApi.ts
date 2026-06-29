@@ -48,6 +48,8 @@ export const adminApi = {
     const res = await api.get(`/admin/users${q}`);
     return res.data;
   },
+  updateUser: async (userId: string, data: Record<string, unknown>) =>
+    api.patch(`/admin/users/${userId}`, data),
   banUser: async (userId: string, reason: string) =>
     api.post(`/admin/users/${userId}/ban`, { reason }),
   unbanUser: async (userId: string) =>
