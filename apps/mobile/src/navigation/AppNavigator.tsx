@@ -26,7 +26,7 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function AppNavigator() {
-  const { isAuthenticated, hasSeenOnboarding, isLoading } = useSelector(
+  const { isAuthenticated, hasSeenOnboarding, isLoading, guestMode } = useSelector(
     (state: RootState) => state.auth
   );
   // Safety: never stay on splash longer than 3 seconds
@@ -43,7 +43,7 @@ export function AppNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
       {!hasSeenOnboarding ? (
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-      ) : !isAuthenticated ? (
+      ) : !isAuthenticated && !guestMode ? (
         <Stack.Screen name="Auth" component={AuthNavigator} />
       ) : (
         <Stack.Screen name="Main" component={MainNavigator} />

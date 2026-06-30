@@ -11,6 +11,9 @@ import { apiService } from '../../services/api';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
+import { GuestLockScreen } from '../../components/common/GuestLockScreen';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
 
 const PRESET_PRIZES = [
   { label: '🥩 Asado', value: 'Asado' },
@@ -24,6 +27,7 @@ export function QuinielaScreen() {
   const { appColors } = useAppTheme();
   const queryClient = useQueryClient();
   const navigation = useNavigation<any>();
+  const { user } = useSelector((state: RootState) => state.auth);
 
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
@@ -84,6 +88,17 @@ export function QuinielaScreen() {
       url: link,
     });
   };
+
+  if (!user) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>
+        <GuestLockScreen
+          title="Quinielas"
+          message="Creá o unite a quinielas con amigos para el Mundial 2026. ¡Necesitás una cuenta!"
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>

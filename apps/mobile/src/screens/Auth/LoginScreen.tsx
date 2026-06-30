@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { AppDispatch, RootState } from '../../store';
-import { login, setHasSeenOnboarding, clearError } from '../../store/slices/authSlice';
+import { login, setHasSeenOnboarding, clearError, setGuestMode } from '../../store/slices/authSlice';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 
 type LoginMode = 'email' | 'username';
@@ -179,8 +179,8 @@ export function LoginScreen() {
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.guestLink} onPress={() => dispatch(setHasSeenOnboarding())}>
-                <Text style={styles.guestText}>Continuar sin cuenta</Text>
+              <TouchableOpacity style={styles.guestLink} onPress={() => dispatch(setGuestMode())}>
+                <Text style={styles.guestText}>Continuar sin cuenta →</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>

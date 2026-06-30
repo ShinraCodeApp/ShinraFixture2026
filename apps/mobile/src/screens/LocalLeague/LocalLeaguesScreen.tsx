@@ -11,6 +11,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { apiService } from '../../services/api';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme';
+import { GuestLockScreen } from '../../components/common/GuestLockScreen';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
 
 type LeagueType = 'LIGA' | 'TORNEO' | 'COPA';
 
@@ -88,6 +91,7 @@ export function LocalLeaguesScreen() {
   const navigation = useNavigation<any>();
   const qc = useQueryClient();
   const { appColors } = useAppTheme();
+  const { user } = useSelector((state: RootState) => state.auth);
   const [showCreate, setShowCreate] = useState(false);
 
   const { data: leagues = [], isLoading } = useQuery({
@@ -117,6 +121,17 @@ export function LocalLeaguesScreen() {
       { text: 'Eliminar', style: 'destructive', onPress: () => deleteMutation.mutate(id) },
     ]);
   };
+
+  if (!user) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>
+        <GuestLockScreen
+          title="Ligas locales"
+          message="Organizá tu propia liga con amigos. Necesitás una cuenta para crear o unirte."
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>

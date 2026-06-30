@@ -51,6 +51,7 @@ interface AuthState {
   isLoading: boolean;
   hasSeenOnboarding: boolean;
   error: string | null;
+  guestMode: boolean;
 }
 
 const initialState: AuthState = {
@@ -61,6 +62,7 @@ const initialState: AuthState = {
   isLoading: false,
   hasSeenOnboarding: false,
   error: null,
+  guestMode: false,
 };
 
 export const login = createAsyncThunk(
@@ -135,6 +137,12 @@ const authSlice = createSlice({
     setHasSeenOnboarding(state) {
       state.hasSeenOnboarding = true;
     },
+    setGuestMode(state) {
+      state.guestMode = true;
+    },
+    clearGuest(state) {
+      state.guestMode = false;
+    },
     clearError(state) {
       state.error = null;
     },
@@ -159,6 +167,7 @@ const authSlice = createSlice({
         state.accessToken = action.payload.accessToken;
         state.refreshToken = action.payload.refreshToken;
         state.isAuthenticated = true;
+        state.guestMode = false;
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
@@ -172,6 +181,7 @@ const authSlice = createSlice({
         state.accessToken = action.payload.accessToken;
         state.refreshToken = action.payload.refreshToken;
         state.isAuthenticated = true;
+        state.guestMode = false;
       })
       .addCase(register.rejected, (state, action) => {
         state.isLoading = false;
@@ -202,5 +212,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setTokens, setUser, clearAuth, setHasSeenOnboarding, clearError, updateUserPoints } = authSlice.actions;
+export const { setTokens, setUser, clearAuth, setHasSeenOnboarding, clearError, updateUserPoints, setGuestMode, clearGuest } = authSlice.actions;
 export default authSlice.reducer;

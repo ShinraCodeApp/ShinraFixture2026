@@ -25,7 +25,14 @@ export function RegisterScreen() {
     dispatch(clearError());
   }, []);
 
-  const isValid = form.email && form.username && form.displayName && form.password.length >= 8 && form.password === form.confirmPassword;
+  const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,38}$/;
+  const usernameValid = form.username.length === 0 || USERNAME_REGEX.test(form.username);
+  const isValid =
+    form.email &&
+    USERNAME_REGEX.test(form.username) &&
+    form.displayName.length >= 2 &&
+    form.password.length >= 8 &&
+    form.password === form.confirmPassword;
 
   const handleRegister = async () => {
     if (!isValid) return;
@@ -54,24 +61,47 @@ export function RegisterScreen() {
               </View>
             )}
 
-            {[
-              { key: 'email', label: 'Correo electrónico', icon: 'mail-outline', keyboard: 'email-address', autocap: 'none' },
-              { key: 'username', label: 'Nombre de usuario', icon: 'at-outline', keyboard: 'default', autocap: 'none' },
-              { key: 'displayName', label: 'Nombre para mostrar', icon: 'person-outline', keyboard: 'default', autocap: 'words' },
-            ].map(({ key, label, icon, keyboard, autocap }) => (
-              <View key={key} style={styles.inputContainer}>
-                <Ionicons name={icon as any} size={18} color="rgba(255,255,255,0.5)" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder={label}
-                  placeholderTextColor="rgba(255,255,255,0.4)"
-                  value={form[key as keyof typeof form]}
-                  onChangeText={update(key as keyof typeof form)}
-                  keyboardType={keyboard as any}
-                  autoCapitalize={autocap as any}
-                />
-              </View>
-            ))}
+            <View style={styles.inputContainer}>
+              <Ionicons name="mail-outline" size={18} color="rgba(255,255,255,0.5)" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Correo electrónico"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                value={form.email}
+                onChangeText={update('email')}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Ionicons name="at-outline" size={18} color="rgba(255,255,255,0.5)" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Nombre de usuario"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                value={form.username}
+                onChangeText={update('username')}
+                autoCapitalize="none"
+              />
+            </View>
+            {form.username.length > 0 && !usernameValid && (
+              <Text style={styles.fieldHint}>
+                Solo letras, números y guion bajo (_) · mínimo 3 caracteres
+              </Text>
+            )}
+
+            <View style={styles.inputContainer}>
+              <Ionicons name="person-outline" size={18} color="rgba(255,255,255,0.5)" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Nombre para mostrar"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                value={form.displayName}
+                onChangeText={update('displayName')}
+                autoCapitalize="words"
+              />
+            </View>
 
             {[
               { key: 'password', label: 'Contraseña (min. 8 caracteres)' },
@@ -145,6 +175,7 @@ const styles = StyleSheet.create({
     color: 'white', fontSize: typography.fontSize.base,
   },
   matchError: { color: colors.error, fontSize: typography.fontSize.xs, marginBottom: spacing.sm, marginLeft: spacing.xs },
+  fieldHint: { color: 'rgba(255,180,0,0.9)', fontSize: typography.fontSize.xs, marginBottom: spacing.sm, marginLeft: spacing.xs },
   button: {
     backgroundColor: colors.primary, borderRadius: borderRadius.lg,
     paddingVertical: spacing.md, alignItems: 'center', marginTop: spacing.base,

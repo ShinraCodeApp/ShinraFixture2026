@@ -12,6 +12,7 @@ import { useAppTheme } from '../../hooks/useAppTheme';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
 import { logout } from '../../store/slices/authSlice';
+import { GuestLockScreen } from '../../components/common/GuestLockScreen';
 import { setProfilePhoto } from '../../store/slices/settingsSlice';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme';
@@ -140,6 +141,17 @@ export function ProfileScreen() {
     { icon: 'cog', label: 'Configuración', onPress: () => navigation.navigate('Settings') },
     { icon: 'help-circle', label: 'Ayuda y soporte', onPress: () => navigation.navigate('AppGuide') },
   ];
+
+  if (!user) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>
+        <GuestLockScreen
+          title="Tu perfil te espera"
+          message="Creá tu cuenta para guardar predicciones, subir de nivel y competir en quinielas."
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>

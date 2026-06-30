@@ -19,6 +19,7 @@ import { MatchCard } from '../../components/match/MatchCard';
 import { PredictionHistoryCard } from '../../components/predictions/PredictionHistoryCard';
 import { RankingCard } from '../../components/predictions/RankingCard';
 import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
+import { GuestLockScreen } from '../../components/common/GuestLockScreen';
 
 type Tab = 'predict' | 'history' | 'ranking';
 
@@ -78,6 +79,17 @@ export function PredictionsScreen() {
     { key: 'history', label: 'Historial', icon: 'history' },
     { key: 'ranking', label: 'Ranking', icon: 'trophy' },
   ];
+
+  if (!user) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>
+        <GuestLockScreen
+          title="Predicciones"
+          message="Predecí los resultados del Mundial y competí con otros fanáticos. ¡Creá tu cuenta gratis!"
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>
