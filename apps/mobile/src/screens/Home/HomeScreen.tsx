@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, RefreshControl,
-  TouchableOpacity, Dimensions, Image,
+  TouchableOpacity, Dimensions, Image, Platform,
 } from 'react-native';
 import { AdBanner } from '../../components/ads/AdBanner';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -33,6 +33,72 @@ import { TopPredictorsWidget } from '../../components/predictions/TopPredictorsW
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const WC_START_DATE = new Date('2026-06-11T16:00:00Z');
+
+// ── 16vos de Final card ───────────────────────────────
+function R32MatchCard({ match, navigation, appColors }: { match: any; navigation: any; appColors: any }) {
+  const isFinished = match.status === 'FINISHED';
+  const isLive = match.status === 'LIVE';
+  return (
+    <TouchableOpacity
+      style={[r32s.card, {
+        backgroundColor: appColors.surface,
+        borderColor: isLive ? '#00C851' : isFinished ? colors.success + '50' : appColors.border,
+      }]}
+      onPress={() => navigation.navigate('MatchDetail', { matchId: match.id })}
+      activeOpacity={0.8}
+    >
+      <View style={r32s.teamSlot}>
+        {match.homeTeam?.flagUrl
+          ? <Image source={{ uri: match.homeTeam.flagUrl }} style={r32s.flag} resizeMode="contain" />
+          : <View style={[r32s.flag, { backgroundColor: appColors.surfaceSecondary }]} />}
+        <Text style={[r32s.code, { color: appColors.text }]} numberOfLines={1}>
+          {match.homeTeam?.code ?? '?'}
+        </Text>
+      </View>
+      <View style={r32s.center}>
+        {isFinished ? (
+          <Text style={[r32s.score, { color: appColors.text }]}>{match.homeScore}-{match.awayScore}</Text>
+        ) : isLive ? (
+          <>
+            <View style={r32s.liveRow}>
+              <View style={r32s.liveDot} />
+              <Text style={r32s.liveTxt}>LIVE</Text>
+            </View>
+            <Text style={[r32s.score, { color: '#00C851' }]}>{match.homeScore ?? 0}-{match.awayScore ?? 0}</Text>
+          </>
+        ) : (
+          <Text style={[r32s.vs, { color: appColors.textSecondary }]}>vs</Text>
+        )}
+      </View>
+      <View style={r32s.teamSlot}>
+        {match.awayTeam?.flagUrl
+          ? <Image source={{ uri: match.awayTeam.flagUrl }} style={r32s.flag} resizeMode="contain" />
+          : <View style={[r32s.flag, { backgroundColor: appColors.surfaceSecondary }]} />}
+        <Text style={[r32s.code, { color: appColors.text }]} numberOfLines={1}>
+          {match.awayTeam?.code ?? '?'}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+const r32s = StyleSheet.create({
+  card: {
+    flexDirection: 'row', alignItems: 'center',
+    borderRadius: borderRadius.lg, borderWidth: 1,
+    paddingVertical: spacing.sm, paddingHorizontal: spacing.sm,
+    gap: 6, width: 152,
+  },
+  teamSlot: { alignItems: 'center', gap: 4, flex: 1 },
+  flag: { width: 30, height: 20, borderRadius: 3 },
+  code: { fontSize: 11, fontFamily: typography.fontFamily.semiBold, textAlign: 'center' },
+  center: { alignItems: 'center', width: 44, minHeight: 40, justifyContent: 'center' },
+  score: { fontSize: 16, fontFamily: typography.fontFamily.bold },
+  vs: { fontSize: 12, fontFamily: typography.fontFamily.regular },
+  liveRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 2 },
+  liveDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#00C851' },
+  liveTxt: { color: '#00C851', fontSize: 8, fontFamily: typography.fontFamily.bold },
+});
 
 // ── Colores y datos por tipo de torneo ────────────────
 const TOURNAMENT_THEME: Record<string, { emoji: string; colors: [string, string]; label: string }> = {
@@ -154,6 +220,16 @@ export function HomeScreen() {
 
   const isWorldCupStarted = new Date() >= WC_START_DATE;
 
+  const { data: r32Matches = [] } = useQuery({
+    queryKey: ['home-r32'],
+    queryFn: async () => {
+      const res = await apiService.get('/matches/stage/ROUND_OF_32?tournamentType=WORLD_CUP');
+      return res.data.data ?? [];
+    },
+    staleTime: 60_000 * 5,
+    enabled: isWorldCupStarted,
+  });
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>
       <ScrollView
@@ -236,6 +312,32 @@ export function HomeScreen() {
             </View>
           </View>
         </LinearGradient>
+
+        {/* ── 16vos de Final ──────────────────────── */}
+        {isWorldCupStarted && (r32Matches as any[]).length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={[styles.sectionTitle, { color: appColors.text }]}>16vos de Final</Text>
+                <View style={{ backgroundColor: colors.primary + '25', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
+                  <Text style={{ color: colors.primary, fontSize: 10, fontFamily: typography.fontFamily.bold }}>R32</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => navigation.navigate('FixtureTab', { screen: 'Bracket' })}>
+                <Text style={[styles.seeAll, { color: colors.primary }]}>Ver bracket</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: spacing.sm, paddingRight: spacing.screen }}
+            >
+              {(r32Matches as any[]).map((match: any) => (
+                <R32MatchCard key={match.id} match={match} navigation={navigation} appColors={appColors} />
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* ── Elegir torneo para predecir ─────────── */}
         {tournaments.length > 0 && (

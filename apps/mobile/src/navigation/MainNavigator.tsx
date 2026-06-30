@@ -186,9 +186,17 @@ export function MainNavigator() {
           backgroundColor: appColors.surface,
           borderTopColor: appColors.border,
           borderTopWidth: StyleSheet.hairlineWidth,
-          paddingBottom: insets.bottom > 0 ? insets.bottom - 4 : 8,
+          paddingBottom: Platform.select({
+            android: insets.bottom > 0 ? insets.bottom : 12,
+            ios: insets.bottom > 0 ? 0 : 8,
+            default: 8,
+          }),
           paddingTop: 8,
-          height: 60 + (insets.bottom > 0 ? insets.bottom - 4 : 8),
+          height: Platform.select({
+            android: 60 + (insets.bottom > 0 ? insets.bottom : 12),
+            ios: 60 + (insets.bottom > 0 ? insets.bottom : 8),
+            default: 68,
+          }),
         },
         tabBarLabelStyle: {
           fontSize: 11,
