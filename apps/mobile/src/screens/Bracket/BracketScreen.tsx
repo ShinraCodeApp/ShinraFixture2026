@@ -405,13 +405,17 @@ export function BracketScreen() {
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {/* Header */}
         <View style={[s.header, { backgroundColor: appColors.surface, borderBottomColor: appColors.border }]}>
-          <TouchableOpacity onPress={() => nav.goBack()} style={s.backBtn}>
-            <Ionicons name="arrow-back" size={22} color={appColors.text} />
-          </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={[s.title, { color: appColors.text }]}>Llaves del Mundial</Text>
+            <Text style={[s.title, { color: appColors.text }]}>⚽ Llaves del Mundial</Text>
             <Text style={[s.sub, { color: appColors.textSecondary }]}>Copa Mundial 2026 · Fase eliminatoria</Text>
           </View>
+          <TouchableOpacity
+            onPress={() => nav.navigate('Fixture')}
+            style={[s.fixtureBtn, { borderColor: appColors.border }]}
+          >
+            <Ionicons name="calendar-outline" size={14} color={appColors.text} />
+            <Text style={[s.fixtureBtnText, { color: appColors.text }]}>Fixture</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={() => nav.navigate('BracketPredictor')}
             style={s.predictBtn}
@@ -599,7 +603,12 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.screen, paddingVertical: spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  backBtn: { padding: 4 },
+  fixtureBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    borderRadius: borderRadius.full, borderWidth: 1,
+    paddingHorizontal: spacing.sm, paddingVertical: 6,
+  },
+  fixtureBtnText: { fontSize: 11, fontFamily: typography.fontFamily.semiBold },
   predictBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: colors.primary, borderRadius: borderRadius.full,

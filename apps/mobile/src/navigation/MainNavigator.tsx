@@ -80,13 +80,13 @@ function HomeStack() {
 function FixtureStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Bracket" component={BracketScreen} />
       <Stack.Screen name="Fixture" component={FixtureScreen} />
       <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
       <Stack.Screen name="MatchDetail" component={MatchDetailScreen} />
       <Stack.Screen name="LiveRadar" component={LiveRadarScreen} />
       <Stack.Screen name="Teams" component={TeamsScreen} />
       <Stack.Screen name="TeamDetail" component={TeamDetailScreen} />
-      <Stack.Screen name="Bracket" component={BracketScreen} />
       <Stack.Screen name="BracketPredictor" component={BracketPredictorScreen} />
     </Stack.Navigator>
   );
@@ -147,7 +147,7 @@ function HomeIcon({ focused, color, size }: TabIconProps) {
   return <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={color} />;
 }
 function FixtureIcon({ focused, color, size }: TabIconProps) {
-  return <MaterialCommunityIcons name={focused ? 'soccer' : 'soccer'} size={size} color={color} />;
+  return <MaterialCommunityIcons name={focused ? 'tournament' : 'tournament'} size={size} color={color} />;
 }
 function PredictionsIcon({ focused, color, size }: TabIconProps) {
   return <MaterialCommunityIcons name={focused ? 'lightning-bolt' : 'lightning-bolt-outline'} size={size} color={color} />;
@@ -213,7 +213,7 @@ export function MainNavigator() {
       <Tab.Screen
         name="FixtureTab"
         component={FixtureStack}
-        options={{ tabBarLabel: 'Fixture', tabBarIcon: FixtureIcon }}
+        options={{ tabBarLabel: 'Llaves', tabBarIcon: FixtureIcon }}
       />
       <Tab.Screen
         name="MatchesTab"

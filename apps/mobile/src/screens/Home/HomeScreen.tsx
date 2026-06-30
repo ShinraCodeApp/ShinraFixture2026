@@ -324,8 +324,8 @@ export function HomeScreen() {
                   <Text style={{ color: colors.primary, fontSize: 10, fontFamily: typography.fontFamily.bold }}>R32</Text>
                 </View>
               </View>
-              <TouchableOpacity onPress={() => navigation.navigate('FixtureTab', { screen: 'Bracket' })}>
-                <Text style={[styles.seeAll, { color: colors.primary }]}>Ver bracket</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('FixtureTab')}>
+                <Text style={[styles.seeAll, { color: colors.primary }]}>Ver bracket →</Text>
               </TouchableOpacity>
             </View>
             <ScrollView
