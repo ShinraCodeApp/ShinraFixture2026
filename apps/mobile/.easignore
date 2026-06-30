@@ -1,3 +1,4 @@
+# ── Monorepo: otros proyectos ────────────────────────
 ../../backend
 ../../apps/web
 ../../apps/admin
@@ -6,10 +7,47 @@
 ../../docker-compose.yml
 ../../ARCHITECTURE.md
 ../../README.md
+../../node_modules
+../../package-lock.json
+
+# ── Node modules ─────────────────────────────────────
 node_modules
+
+# ── Android build artifacts ──────────────────────────
 android/.gradle
 android/build
 android/app/build
 android/.idea
+android/.cxx
+android/app/.cxx
+android/captures
+android/local.properties
+
+# ── iOS ──────────────────────────────────────────────
+ios/build
+ios/Pods
+ios/DerivedData
+
+# ── Expo / Metro ─────────────────────────────────────
+.expo
+dist
 dist-android
+.metro-cache
+.metro-health-check*
+
+# ── Logs y archivos temporales ───────────────────────
+*.log
 eas-build.log
+eas-build-*.log
+npm-debug.log
+yarn-debug.log
+
+# ── Archivos sensibles locales (EAS usa sus propias credenciales)
+shinra-release.keystore
+shinra-release.keystore.b64.txt
+
+# ── Archivos de desarrollo ───────────────────────────
+Untitled-1.json
+*.json.bak
+.env
+.env.local

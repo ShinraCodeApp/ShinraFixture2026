@@ -387,6 +387,7 @@ model Player {
   substitutionsIn  MatchEvent[] @relation("SubstitutionIn")
   substitutionsOut MatchEvent[] @relation("SubstitutionOut")
 
+  @@unique([teamId, number])
   @@index([teamId])
   @@index([position])
 }

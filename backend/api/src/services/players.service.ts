@@ -2,7 +2,7 @@ import { Prisma, PlayerPosition } from '@prisma/client';
 import { prisma } from '../config/database';
 import { CacheService } from '../config/redis';
 
-const cache = new CacheService(600);
+const cache = new CacheService(60);
 
 const playerSelect = {
   id: true, name: true, shortName: true, position: true,
@@ -69,7 +69,7 @@ export class PlayerService {
       take: limit,
     });
 
-    await cache.set(cacheKey, stats, 300);
+    await cache.set(cacheKey, stats, 60);
     return stats;
   }
 
@@ -95,7 +95,7 @@ export class PlayerService {
       take: limit,
     });
 
-    await cache.set(cacheKey, stats, 300);
+    await cache.set(cacheKey, stats, 60);
     return stats;
   }
 
