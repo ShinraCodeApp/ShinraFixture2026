@@ -226,7 +226,8 @@ export function HomeScreen() {
       const res = await apiService.get('/matches/stage/ROUND_OF_32?tournamentType=WORLD_CUP');
       return res.data.data ?? [];
     },
-    staleTime: 60_000 * 5,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
     enabled: isWorldCupStarted,
   });
 

@@ -371,7 +371,11 @@ export function BracketScreen() {
     }
   }, []);
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => {
+    fetchAll();
+    const interval = setInterval(fetchAll, 60_000);
+    return () => clearInterval(interval);
+  }, [fetchAll]);
 
   const onRefresh = () => { setRefreshing(true); fetchAll(); };
 

@@ -18,6 +18,38 @@ function mapESPNStatus(state: string): 'SCHEDULED' | 'LIVE' | 'FINISHED' {
   return 'SCHEDULED';
 }
 
+function detectWCStage(event: any): string {
+  const notes: any[] = event.competitions?.[0]?.notes ?? event.notes ?? [];
+  const headline = (notes[0]?.headline ?? notes[0]?.text ?? '').toLowerCase();
+  if (headline.includes('round of 32') || headline.includes('16vos') || headline.includes('round of sixteen')) return 'ROUND_OF_32';
+  if (headline.includes('quarter') || headline.includes('8vos') || headline.includes('cuarto')) return 'QUARTER_FINAL';
+  if (headline.includes('semi')) return 'SEMI_FINAL';
+  if (headline.includes('third') || headline.includes('tercer') || headline.includes('3rd')) return 'THIRD_PLACE';
+  if (headline.includes('final')) return 'FINAL';
+  // Date-based fallback for WC 2026
+  const d = new Date(event.date);
+  if (d >= new Date('2026-06-28') && d <= new Date('2026-07-04T23:59:59Z')) return 'ROUND_OF_32';
+  if (d >= new Date('2026-07-05') && d <= new Date('2026-07-10T23:59:59Z')) return 'QUARTER_FINAL';
+  if (d >= new Date('2026-07-11') && d <= new Date('2026-07-15T23:59:59Z')) return 'SEMI_FINAL';
+  if (d >= new Date('2026-07-16') && d <= new Date('2026-07-18T23:59:59Z')) return 'THIRD_PLACE';
+  if (d >= new Date('2026-07-19')) return 'FINAL';
+  return 'GROUP';
+}
+
+function extractPenaltyScore(competitor: any): number | null {
+  const linescores: any[] = competitor.linescores ?? [];
+  // ESPN shows shootout as the last linescore with period type 'shootout' or period >= 5
+  for (const ls of linescores) {
+    const abbr = (ls.type?.abbreviation ?? ls.period?.abbreviation ?? '').toUpperCase();
+    const desc = (ls.type?.description ?? ls.period?.type?.description ?? '').toLowerCase();
+    if (abbr === 'P' || abbr === 'SO' || desc.includes('shoot') || desc.includes('penalty')) {
+      const val = parseInt(ls.value ?? ls.displayValue ?? '-1');
+      return val >= 0 ? val : null;
+    }
+  }
+  return null;
+}
+
 function mapApiFootballEvent(type: string, detail: string): string | null {
   if (type === 'Goal') {
     if (detail === 'Own Goal') return 'OWN_GOAL';
@@ -272,7 +304,7 @@ matchRoutes.post('/espn-sync', async (req, res) => {
       const leagueSlug = (event.leagues?.[0]?.slug ?? '').toUpperCase();
       const isWC = event._isWcSource || leagueSlug.includes('FIFA.WORLD') || leagueSlug.includes('FIFA.WC');
       const tournamentType = isWC ? 'WORLD_CUP' : 'FRIENDLY';
-      const stage = isWC ? 'GROUP' : 'FRIENDLY';
+      const stage = isWC ? detectWCStage(event) : 'FRIENDLY';
 
       // For WC matches, find existing WC tournament; for friendlies, upsert FRIENDLY
       let tournament;
@@ -302,6 +334,8 @@ matchRoutes.post('/espn-sync', async (req, res) => {
       const minute = status === 'LIVE' ? Math.min(150, Math.round(clockSeconds / 60)) : null;
       const homeScore = status !== 'SCHEDULED' ? (parseInt(homeComp.score ?? '0') || 0) : null;
       const awayScore = status !== 'SCHEDULED' ? (parseInt(awayComp.score ?? '0') || 0) : null;
+      const homePenalties = extractPenaltyScore(homeComp);
+      const awayPenalties = extractPenaltyScore(awayComp);
 
       // Scope externalId search to this tournament so WC matches don't collide with friendlies
       let match = await prisma.match.findFirst({ where: { externalId: event.id, tournamentId: tournament.id } });
@@ -342,6 +376,8 @@ matchRoutes.post('/espn-sync', async (req, res) => {
             homeScore,
             awayScore,
             minute,
+            ...(homePenalties !== null && { homePenalties }),
+            ...(awayPenalties !== null && { awayPenalties }),
             ...(match.externalId == null && { externalId: event.id }),
           },
         });
