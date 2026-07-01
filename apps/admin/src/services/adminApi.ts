@@ -81,6 +81,10 @@ export const adminApi = {
     const res = await api.get('/admin/activity');
     return res.data?.data ?? null;
   },
+  getTournamentStatus: async () => {
+    const res = await api.get('/admin/tournament-status');
+    return res.data?.data ?? null;
+  },
 
   // Users
   getUsers: async (params?: Record<string, string>) => {
@@ -111,6 +115,8 @@ export const adminApi = {
   },
   updateMatchScore: async (matchId: string, data: { homeScore: number; awayScore: number; status: string }) =>
     api.post(`/admin/matches/${matchId}/update-score`, data),
+  editMatchFull: async (matchId: string, data: Record<string, unknown>) =>
+    api.patch(`/admin/matches/${matchId}`, data),
   startMatch: async (matchId: string) =>
     api.post(`/admin/matches/${matchId}/start`),
   finishMatch: async (matchId: string) =>

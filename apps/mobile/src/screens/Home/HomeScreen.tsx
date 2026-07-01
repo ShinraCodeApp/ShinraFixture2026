@@ -231,6 +231,29 @@ export function HomeScreen() {
     enabled: isWorldCupStarted,
   });
 
+  const { data: wcSummary } = useQuery({
+    queryKey: ['home-wc-summary'],
+    queryFn: async () => {
+      const res = await apiService.get('/stats/wc-summary');
+      return res.data.data ?? null;
+    },
+    staleTime: 2 * 60_000,
+    refetchInterval: 5 * 60_000,
+    enabled: isWorldCupStarted,
+  });
+
+  const { data: wcScorers } = useQuery({
+    queryKey: ['home-wc-scorers'],
+    queryFn: async () => {
+      const res = await apiService.get('/stats/wc-scorers');
+      const leaders = res.data.data?.categories?.[0]?.leaders ?? [];
+      return leaders.slice(0, 5) as any[];
+    },
+    staleTime: 5 * 60_000,
+    refetchInterval: 10 * 60_000,
+    enabled: isWorldCupStarted,
+  });
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>
       <ScrollView
@@ -311,6 +334,23 @@ export function HomeScreen() {
                 </View>
               ))}
             </View>
+
+            {/* WC Summary Stats */}
+            {isWorldCupStarted && wcSummary && (
+              <View style={styles.wcSummaryRow}>
+                {[
+                  { label: 'Partidos', value: wcSummary.matchesPlayed, icon: 'soccer' },
+                  { label: 'Goles', value: wcSummary.totalGoals, icon: 'soccer-field' },
+                  { label: 'Prom/partido', value: wcSummary.avgGoals, icon: 'trending-up' },
+                ].map((s) => (
+                  <View key={s.label} style={styles.wcStatItem}>
+                    <MaterialCommunityIcons name={s.icon as any} size={14} color="rgba(255,255,255,0.7)" />
+                    <Text style={styles.wcStatValue}>{s.value}</Text>
+                    <Text style={styles.wcStatLabel}>{s.label}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         </LinearGradient>
 
@@ -337,6 +377,38 @@ export function HomeScreen() {
                 <R32MatchCard key={match.id} match={match} navigation={navigation} appColors={appColors} />
               ))}
             </ScrollView>
+          </View>
+        )}
+
+        {/* ── Goleadores del Mundial ───────────────── */}
+        {isWorldCupStarted && wcScorers && wcScorers.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: appColors.text }]}>⚽ Goleadores</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Stats')}>
+                <Text style={[styles.seeAll, { color: colors.primary }]}>Ver más</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={[scorerStyles.container, { backgroundColor: appColors.surface, borderColor: appColors.border }]}>
+              {wcScorers.map((p: any, i: number) => (
+                <View key={i} style={[scorerStyles.row, i < wcScorers.length - 1 && { borderBottomWidth: 1, borderBottomColor: appColors.border }]}>
+                  <Text style={[scorerStyles.pos, { color: appColors.textSecondary }]}>{i + 1}</Text>
+                  {p.photo ? (
+                    <Image source={{ uri: p.photo }} style={scorerStyles.photo} />
+                  ) : (
+                    <View style={[scorerStyles.photo, { backgroundColor: appColors.surfaceSecondary }]} />
+                  )}
+                  <View style={scorerStyles.info}>
+                    <Text style={[scorerStyles.name, { color: appColors.text }]} numberOfLines={1}>{p.name}</Text>
+                    <Text style={[scorerStyles.team, { color: appColors.textSecondary }]} numberOfLines={1}>{p.team?.name ?? ''}</Text>
+                  </View>
+                  <View style={scorerStyles.goals}>
+                    <Text style={scorerStyles.goalsNum}>{p.goals}</Text>
+                    <Text style={[scorerStyles.goalsLabel, { color: appColors.textSecondary }]}>goles</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
           </View>
         )}
 
@@ -618,4 +690,27 @@ const styles = StyleSheet.create({
   },
   duelAlertTitle: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.bold },
   duelAlertSub: { fontSize: 11, fontFamily: typography.fontFamily.regular },
+  wcSummaryRow: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: borderRadius.md,
+    marginTop: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  wcStatItem: { flex: 1, alignItems: 'center', gap: 2 },
+  wcStatValue: { color: 'white', fontSize: typography.fontSize.md, fontFamily: typography.fontFamily.bold },
+  wcStatLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 9, fontFamily: typography.fontFamily.regular, textTransform: 'uppercase', letterSpacing: 0.3 },
+});
+
+const scorerStyles = StyleSheet.create({
+  container: { borderRadius: borderRadius.lg, borderWidth: 1, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.base, paddingVertical: spacing.sm, gap: spacing.sm },
+  pos: { width: 16, fontSize: 12, fontFamily: typography.fontFamily.bold, textAlign: 'center' },
+  photo: { width: 36, height: 36, borderRadius: 18 },
+  info: { flex: 1 },
+  name: { fontSize: typography.fontSize.sm, fontFamily: typography.fontFamily.semiBold },
+  team: { fontSize: 11, fontFamily: typography.fontFamily.regular, marginTop: 1 },
+  goals: { alignItems: 'center' },
+  goalsNum: { fontSize: 20, fontFamily: typography.fontFamily.black, color: colors.primary },
+  goalsLabel: { fontSize: 9, fontFamily: typography.fontFamily.regular, textTransform: 'uppercase', letterSpacing: 0.3 },
 });

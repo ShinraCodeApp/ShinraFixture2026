@@ -317,6 +317,77 @@ export class AdminController {
     res.json({ success: true });
   }
 
+  static async activityData(_req: Request, res: Response): Promise<void> {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [allUsers, allPredictions] = await Promise.all([
+      prisma.user.findMany({ where: { createdAt: { gte: thirtyDaysAgo } }, select: { createdAt: true } }),
+      prisma.prediction.findMany({ where: { createdAt: { gte: thirtyDaysAgo } }, select: { createdAt: true } }),
+    ]);
+    const usersByDay: Record<string, number> = {};
+    const predsByDay: Record<string, number> = {};
+    for (const u of allUsers) {
+      const key = u.createdAt.toISOString().slice(0, 10);
+      usersByDay[key] = (usersByDay[key] ?? 0) + 1;
+    }
+    for (const p of allPredictions) {
+      const key = p.createdAt.toISOString().slice(0, 10);
+      predsByDay[key] = (predsByDay[key] ?? 0) + 1;
+    }
+    const result = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      result.push({
+        date: d.toLocaleDateString('es-AR', { month: 'short', day: 'numeric' }),
+        users: usersByDay[key] ?? 0,
+        predictions: predsByDay[key] ?? 0,
+      });
+    }
+    res.json({ success: true, data: result });
+  }
+
+  static async tournamentStatus(_req: Request, res: Response): Promise<void> {
+    const now = new Date();
+    const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    const STAGE_LABELS: Record<string, string> = {
+      GROUP: 'Fase de Grupos', ROUND_OF_32: '16vos de Final',
+      ROUND_OF_16: 'Octavos de Final', QUARTER_FINAL: 'Cuartos de Final',
+      SEMI_FINAL: 'Semifinales', FINAL: 'Final',
+    };
+    const [liveMatches, nextMatches, staleMatches, matchesPlayed, totalMatches] = await Promise.all([
+      prisma.match.findMany({
+        where: { status: { in: ['LIVE', 'HALF_TIME'] }, tournament: { type: 'WORLD_CUP' } },
+        include: { homeTeam: { select: { name: true, code: true, flagUrl: true } }, awayTeam: { select: { name: true, code: true, flagUrl: true } } },
+      }),
+      prisma.match.findMany({
+        where: { status: 'SCHEDULED', tournament: { type: 'WORLD_CUP' } },
+        include: { homeTeam: { select: { code: true, name: true } }, awayTeam: { select: { code: true, name: true } } },
+        orderBy: { matchDate: 'asc' },
+        take: 5,
+      }),
+      prisma.match.findMany({
+        where: { status: 'SCHEDULED', matchDate: { lt: threeHoursAgo }, tournament: { type: 'WORLD_CUP' } },
+        select: { id: true, round: true, matchDate: true, stage: true, homeTeam: { select: { code: true } }, awayTeam: { select: { code: true } } },
+      }),
+      prisma.match.count({ where: { status: 'FINISHED', tournament: { type: 'WORLD_CUP' } } }),
+      prisma.match.count({ where: { tournament: { type: 'WORLD_CUP' } } }),
+    ]);
+    const currentStage = liveMatches[0]?.stage ?? nextMatches[0]?.stage ?? 'ROUND_OF_32';
+    res.json({
+      success: true,
+      data: {
+        currentPhase: STAGE_LABELS[currentStage] ?? currentStage,
+        matchesPlayed,
+        totalMatches,
+        liveCount: liveMatches.length,
+        liveMatches,
+        nextMatches,
+        staleMatches,
+      },
+    });
+  }
+
   static async fixR32Teams(req: Request, res: Response): Promise<void> {
     const R32_MATCHES = [
       { round: 73, homeCode: 'RSA', awayCode: 'CAN', matchDate: '2026-06-28T17:00:00Z', venue: 'SoFi Stadium', city: 'Los Angeles', country: 'United States', status: 'FINISHED', homeScore: 0, awayScore: 1 },

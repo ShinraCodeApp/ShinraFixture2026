@@ -8,6 +8,8 @@ adminRoutes.use(authenticate, requireRole('ADMIN', 'SUPER_ADMIN'));
 // Dashboard
 adminRoutes.get('/dashboard', AdminController.dashboard);
 adminRoutes.get('/stats', AdminController.stats);
+adminRoutes.get('/activity', AdminController.activityData);
+adminRoutes.get('/tournament-status', AdminController.tournamentStatus);
 
 // Users
 adminRoutes.get('/users', AdminController.listUsers);

@@ -396,6 +396,30 @@ statsRoutes.get('/liga-argentina', async (_req, res) => {
   }
 });
 
+// ─── WC2026 summary stats ── total goals, matches played, avg goals ─────────
+statsRoutes.get('/wc-summary', async (_req, res) => {
+  const cached = cacheGet('wc-summary');
+  if (cached) return res.json({ success: true, source: 'cache', data: cached });
+  try {
+    const result = await prisma.match.aggregate({
+      where: { status: 'FINISHED', tournament: { type: 'WORLD_CUP' } },
+      _sum: { homeScore: true, awayScore: true },
+      _count: { id: true },
+    });
+    const totalGoals = (result._sum.homeScore ?? 0) + (result._sum.awayScore ?? 0);
+    const matchesPlayed = result._count.id;
+    const data = {
+      totalGoals,
+      matchesPlayed,
+      avgGoals: matchesPlayed > 0 ? (totalGoals / matchesPlayed).toFixed(1) : '0.0',
+    };
+    cacheSet('wc-summary', data, 2 * 60_000);
+    return res.json({ success: true, source: 'db', data });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ─── Cache clear ───────────────────────────────────────────────────────────
 statsRoutes.get('/cache-clear', (_req, res) => {
   _cache.clear();

@@ -383,10 +383,26 @@ export function BracketScreen() {
   const HEADER_H = 36;
   const totalH = BH + HEADER_H + 32;
 
-  // Match knockout matches to bracket positions by array index (ordered by matchDate)
-  // Left half: positions 0-7 for R32, Right half: positions 8-15
-  const getR32 = (isLeft: boolean, i: number) =>
-    isLeft ? ko.r32[i] : ko.r32[8 + i];
+  // Match R32 DB matches to bracket slots by team codes from group standings.
+  // The FIFA schedule does NOT play slots in visual bracket order, so index-based
+  // mapping is wrong. Instead we find the match whose teams match the slot.
+  const getR32Match = useCallback((slot: BMatch): DbMatch | undefined => {
+    const homeResolved = resolveTeam(slot.home, gmap);
+    const awayResolved = resolveTeam(slot.away, gmap);
+    // Need at least one resolved team to match
+    if (!homeResolved && !awayResolved) return undefined;
+    return ko.r32.find(m => {
+      const h = m.homeTeam?.code;
+      const a = m.awayTeam?.code;
+      if (!h || !a) return false;
+      if (homeResolved && awayResolved) {
+        return (h === homeResolved.code && a === awayResolved.code) ||
+               (h === awayResolved.code && a === homeResolved.code);
+      }
+      if (homeResolved) return h === homeResolved.code || a === homeResolved.code;
+      return h === awayResolved!.code || a === awayResolved!.code;
+    });
+  }, [gmap, ko.r32]);
 
   // R16: left 0-3, right 4-7
   const getR16 = (isLeft: boolean, i: number) =>
@@ -484,7 +500,7 @@ export function BracketScreen() {
                       slotIdx={i}
                       appColors={appColors}
                       lineColor={lc}
-                      dbMatch={getR32(true, i)}
+                      dbMatch={getR32Match(m)}
                       nav={nav}
                     />
                   ))}
@@ -499,7 +515,7 @@ export function BracketScreen() {
                       slotIdx={i}
                       appColors={appColors}
                       lineColor={lc}
-                      dbMatch={getR32(false, i)}
+                      dbMatch={getR32Match(m)}
                       nav={nav}
                     />
                   ))}
