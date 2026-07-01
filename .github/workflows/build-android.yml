@@ -40,6 +40,11 @@ jobs:
           EXPO_PUBLIC_PROJECT_ID: ca54987c-9913-406b-b6ca-6903fb0f507e
         run: npx expo prebuild --platform android --clean --no-install
 
+      - name: Patch Kotlin version for react-native-google-mobile-ads v16
+        run: |
+          sed -i "s/kotlinVersion = findProperty('android.kotlinVersion') ?: '1.9.23'/kotlinVersion = findProperty('android.kotlinVersion') ?: '2.1.0'/" \
+            apps/mobile/android/build.gradle
+
       - name: Inject AdMob App ID into AndroidManifest
         run: |
           MANIFEST="apps/mobile/android/app/src/main/AndroidManifest.xml"
