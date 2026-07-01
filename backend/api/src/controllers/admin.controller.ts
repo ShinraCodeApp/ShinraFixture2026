@@ -388,6 +388,46 @@ export class AdminController {
     });
   }
 
+  static async listPredictions(req: Request, res: Response): Promise<void> {
+    const limit = parseInt(req.query.limit as string) || 50;
+    const page = parseInt(req.query.page as string) || 1;
+    const skip = (page - 1) * limit;
+    const [predictions, total] = await Promise.all([
+      prisma.prediction.findMany({
+        skip, take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: { select: { id: true, username: true, email: true } },
+          match: { include: { homeTeam: { select: { code: true, name: true } }, awayTeam: { select: { code: true, name: true } } } },
+        },
+      }),
+      prisma.prediction.count(),
+    ]);
+    res.json({ success: true, data: { predictions, total, page, limit } });
+  }
+
+  static async resolvePredictions(req: Request, res: Response): Promise<void> {
+    const { matchId } = req.params;
+    await PredictionService.resolveMatchPredictions(matchId);
+    res.json({ success: true, message: `Predicciones del partido ${matchId} resueltas` });
+  }
+
+  static async getConfig(_req: Request, res: Response): Promise<void> {
+    const configs = await prisma.appConfig.findMany({ orderBy: { key: 'asc' } });
+    res.json({ success: true, data: configs });
+  }
+
+  static async updateConfig(req: Request, res: Response): Promise<void> {
+    const { key } = req.params;
+    const { value } = req.body;
+    const config = await prisma.appConfig.upsert({
+      where: { key },
+      update: { value: String(value) },
+      create: { key, value: String(value) },
+    });
+    res.json({ success: true, data: config });
+  }
+
   static async fixR32Teams(req: Request, res: Response): Promise<void> {
     const R32_MATCHES = [
       { round: 73, homeCode: 'RSA', awayCode: 'CAN', matchDate: '2026-06-28T17:00:00Z', venue: 'SoFi Stadium', city: 'Los Angeles', country: 'United States', status: 'FINISHED', homeScore: 0, awayScore: 1 },

@@ -45,5 +45,13 @@ adminRoutes.post('/ads', AdminController.createAd);
 adminRoutes.patch('/ads/:id', AdminController.updateAd);
 adminRoutes.delete('/ads/:id', AdminController.deleteAd);
 
+// Predictions
+adminRoutes.get('/predictions', AdminController.listPredictions);
+adminRoutes.post('/predictions/resolve/:matchId', AdminController.resolvePredictions);
+
+// App Config
+adminRoutes.get('/config', AdminController.getConfig);
+adminRoutes.patch('/config/:key', AdminController.updateConfig);
+
 // Migrations
 adminRoutes.post('/migrations/fix-r32-teams', AdminController.fixR32Teams);
