@@ -78,7 +78,7 @@ function UserModal({ user, onClose }: { user: UserRow; onClose: () => void }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
-        className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4"
+        className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-5 space-y-3"
         onClick={(e) => e.stopPropagation()}
       >
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
@@ -170,33 +170,57 @@ function UserModal({ user, onClose }: { user: UserRow; onClose: () => void }) {
         )}
 
         {tab === 'profile' && (
-          <div className="space-y-3">
-            {[
-              { label: 'Nombre visible', value: displayName, set: setDisplayName, type: 'text' },
-              { label: 'Username', value: username, set: setUsername, type: 'text' },
-              { label: 'País (código, ej: AR)', value: country, set: setCountry, type: 'text' },
-              { label: 'Puntos de predicción', value: points, set: setPoints, type: 'number' },
-              { label: 'XP', value: xp, set: setXp, type: 'number' },
-              { label: 'Nivel', value: level, set: setLevel, type: 'number' },
-            ].map(({ label, value, set, type }) => (
-              <div key={label}>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{label}</label>
-                <input
-                  type={type}
-                  value={value}
-                  onChange={(e) => set(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-            ))}
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: 'Nombre visible', value: displayName, set: setDisplayName },
+                { label: 'Username', value: username, set: setUsername },
+              ].map(({ label, value, set }) => (
+                <div key={label}>
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-0.5">{label}</label>
+                  <input
+                    type="text"
+                    value={value}
+                    onChange={(e) => set(e.target.value)}
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              ))}
+            </div>
             <div>
-              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Nueva contraseña (dejar vacío para no cambiar)</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-0.5">País (ej: AR)</label>
+              <input
+                type="text"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: 'Puntos', value: points, set: setPoints },
+                { label: 'XP', value: xp, set: setXp },
+                { label: 'Nivel', value: level, set: setLevel },
+              ].map(({ label, value, set }) => (
+                <div key={label}>
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-0.5">{label}</label>
+                  <input
+                    type="number"
+                    value={value}
+                    onChange={(e) => set(e.target.value)}
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              ))}
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-0.5">Nueva contraseña (vacío = no cambiar)</label>
               <input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Mín. 6 caracteres"
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
             <button
