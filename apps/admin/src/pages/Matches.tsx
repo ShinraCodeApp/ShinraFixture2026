@@ -183,12 +183,15 @@ export function MatchesPage() {
 
   const allMatches: MatchRow[] = data?.data?.items ?? [];
   const matches = search
-    ? allMatches.filter((m) =>
-        m.homeTeam.code.toLowerCase().includes(search.toLowerCase()) ||
-        m.awayTeam.code.toLowerCase().includes(search.toLowerCase()) ||
-        m.homeTeam.name.toLowerCase().includes(search.toLowerCase()) ||
-        m.awayTeam.name.toLowerCase().includes(search.toLowerCase())
-      )
+    ? allMatches.filter((m) => {
+        const q = search.toLowerCase();
+        return (
+          m.homeTeam?.code.toLowerCase().includes(q) ||
+          m.awayTeam?.code.toLowerCase().includes(q) ||
+          m.homeTeam?.name.toLowerCase().includes(q) ||
+          m.awayTeam?.name.toLowerCase().includes(q)
+        );
+      })
     : allMatches;
 
   const filters = ['ALL', 'SCHEDULED', 'LIVE', 'FINISHED'];
