@@ -78,9 +78,7 @@ function AdminSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: (
     <aside className={`flex flex-col bg-slate-900 text-white transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
       {/* Logo */}
       <div className="flex items-center gap-3 p-4 border-b border-slate-700">
-        <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center flex-shrink-0">
-          <span className="font-black text-sm">S</span>
-        </div>
+        <img src="/logo.png" alt="ShinraFixture" className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
         {!collapsed && (
           <div>
             <div className="font-bold text-sm">ShinraFixture</div>

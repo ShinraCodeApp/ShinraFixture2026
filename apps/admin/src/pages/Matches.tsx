@@ -6,8 +6,8 @@ import { adminApi } from '../services/adminApi';
 
 interface MatchRow {
   id: string;
-  homeTeam: { name: string; code: string; flagUrl?: string };
-  awayTeam: { name: string; code: string; flagUrl?: string };
+  homeTeam: { name: string; code: string; flagUrl?: string } | null;
+  awayTeam: { name: string; code: string; flagUrl?: string } | null;
   homeScore?: number;
   awayScore?: number;
   homePenalties?: number;
@@ -67,7 +67,7 @@ function EditMatchModal({ match, onClose }: { match: MatchRow; onClose: () => vo
       <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-xl" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold dark:text-white mb-1">Editar Partido</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-          {match.homeTeam.code} vs {match.awayTeam.code}
+          {match.homeTeam?.code ?? 'TBD'} vs {match.awayTeam?.code ?? 'TBD'}
           {match.round ? ` · R${match.round}` : ''}
           {' · '}{dayjs(match.matchDate).format('D MMM HH:mm')}
         </p>
@@ -94,7 +94,7 @@ function EditMatchModal({ match, onClose }: { match: MatchRow; onClose: () => vo
           <label className="block text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider mb-2">Marcador</label>
           <div className="flex items-center gap-3">
             <div className="flex-1 text-center">
-              <p className="text-xs text-gray-400 mb-1">{match.homeTeam.code}</p>
+              <p className="text-xs text-gray-400 mb-1">{match.homeTeam?.code ?? 'TBD'}</p>
               <input
                 type="number" min="0" value={homeScore}
                 onChange={(e) => setHomeScore(e.target.value)}
@@ -103,7 +103,7 @@ function EditMatchModal({ match, onClose }: { match: MatchRow; onClose: () => vo
             </div>
             <span className="text-gray-400 font-bold text-xl">-</span>
             <div className="flex-1 text-center">
-              <p className="text-xs text-gray-400 mb-1">{match.awayTeam.code}</p>
+              <p className="text-xs text-gray-400 mb-1">{match.awayTeam?.code ?? 'TBD'}</p>
               <input
                 type="number" min="0" value={awayScore}
                 onChange={(e) => setAwayScore(e.target.value)}
@@ -249,9 +249,9 @@ export function MatchesPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
                           {m.homeTeam?.flagUrl && <img src={m.homeTeam.flagUrl} className="w-5 h-3.5 object-contain rounded" />}
-                          <span className="font-bold dark:text-white">{m.homeTeam.code}</span>
+                          <span className="font-bold dark:text-white">{m.homeTeam?.code ?? 'TBD'}</span>
                           <span className="text-gray-400 text-xs">vs</span>
-                          <span className="font-bold dark:text-white">{m.awayTeam.code}</span>
+                          <span className="font-bold dark:text-white">{m.awayTeam?.code ?? 'TBD'}</span>
                           {m.awayTeam?.flagUrl && <img src={m.awayTeam.flagUrl} className="w-5 h-3.5 object-contain rounded" />}
                         </div>
                       </td>
