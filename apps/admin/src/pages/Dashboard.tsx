@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Users, TrendingUp, AlertTriangle, Activity,
-  ArrowUpRight, ArrowDownRight, Swords, Star, CheckCircle, Clock,
+  ArrowUpRight, ArrowDownRight, Swords, Star, CheckCircle, Clock, Trophy, Shield,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -275,6 +275,94 @@ export function Dashboard() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* ── Predicciones + Top Predictores ────────────────── */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Desglose de predicciones */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-6">
+          <h2 className="text-lg font-semibold dark:text-white mb-4 flex items-center gap-2">
+            <TrendingUp size={18} className="text-blue-500" />
+            Predicciones
+          </h2>
+          <div className="space-y-3">
+            {[
+              { label: 'Correctas', value: stats?.predictionsWon ?? 0, total: stats?.totalPredictions ?? 1, color: 'bg-green-500', text: 'text-green-600 dark:text-green-400' },
+              { label: 'Incorrectas', value: stats?.predictionsLost ?? 0, total: stats?.totalPredictions ?? 1, color: 'bg-red-500', text: 'text-red-500 dark:text-red-400' },
+              { label: 'Pendientes', value: stats?.predictionsPending ?? 0, total: stats?.totalPredictions ?? 1, color: 'bg-yellow-400', text: 'text-yellow-600 dark:text-yellow-400' },
+            ].map((s) => {
+              const pct = stats?.totalPredictions ? Math.round((s.value / stats.totalPredictions) * 100) : 0;
+              return (
+                <div key={s.label}>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="dark:text-gray-300">{s.label}</span>
+                    <span className={`font-bold ${s.text}`}>{s.value.toLocaleString()} <span className="text-gray-400 font-normal">({pct}%)</span></span>
+                  </div>
+                  <div className="h-2 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div className={`h-full ${s.color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+            <div className="pt-2 border-t border-gray-100 dark:border-slate-700 flex justify-between text-sm">
+              <span className="text-gray-500 dark:text-gray-400">Total</span>
+              <span className="font-bold dark:text-white">{(stats?.totalPredictions ?? 0).toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Top 5 predictores */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
+          <div className="p-4 border-b border-gray-100 dark:border-slate-700 flex items-center gap-2">
+            <Trophy size={16} className="text-yellow-500" />
+            <h2 className="font-semibold dark:text-white">Top Predictores</h2>
+          </div>
+          {(stats?.topPredictors ?? []).length === 0 ? (
+            <div className="p-6 text-center text-gray-400 text-sm">Sin predicciones aún</div>
+          ) : (
+            <div className="divide-y divide-gray-50 dark:divide-slate-700/50">
+              {(stats?.topPredictors ?? []).map((u: any, i: number) => (
+                <div key={u.id} className="px-4 py-3 flex items-center gap-3">
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0
+                    ${i === 0 ? 'bg-yellow-400 text-yellow-900' : i === 1 ? 'bg-gray-300 text-gray-700' : i === 2 ? 'bg-orange-400 text-orange-900' : 'bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400'}`}>
+                    {i + 1}
+                  </span>
+                  <div className="w-7 h-7 rounded-full bg-primary-500/20 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs font-bold text-primary-600 dark:text-primary-400">
+                      {(u.displayName ?? u.username ?? '?')[0].toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold dark:text-white truncate">{u.displayName ?? u.username}</p>
+                    <p className="text-xs text-gray-400">{u.totalPredictions} predicciones</p>
+                  </div>
+                  <span className="text-sm font-black text-primary-600 dark:text-primary-400">{u.predictionPoints.toLocaleString()} pts</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Equipos eliminados ─────────────────────────────── */}
+      {stats?.eliminatedTeams !== undefined && (
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <Shield size={18} className="text-red-500" />
+            <h2 className="font-semibold dark:text-white">Selecciones eliminadas</h2>
+            <span className="ml-auto text-2xl font-black text-red-500">{stats.eliminatedTeams}</span>
+            <span className="text-gray-400 text-sm">/ 48</span>
+          </div>
+          <div className="h-3 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-full transition-all"
+              style={{ width: `${Math.round((stats.eliminatedTeams / 48) * 100)}%` }}
+            />
+          </div>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+            {48 - stats.eliminatedTeams} selecciones aún en competencia
+          </p>
         </div>
       )}
 

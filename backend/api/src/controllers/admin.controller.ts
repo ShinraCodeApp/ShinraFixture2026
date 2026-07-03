@@ -31,7 +31,8 @@ export class AdminController {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const [total, premium, newToday, newLast7, newLast30, totalPredictions, totalDuels, totalTournaments] = await Promise.all([
+    const [total, premium, newToday, newLast7, newLast30, totalPredictions, totalDuels, totalTournaments,
+      predictionsWon, predictionsLost, topPredictors, eliminatedTeams] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { isPremium: true } }),
       prisma.user.count({ where: { createdAt: { gte: startOfToday } } }),
@@ -40,16 +41,28 @@ export class AdminController {
       prisma.prediction.count(),
       prisma.matchDuel.count(),
       prisma.friendTournament.count(),
+      prisma.prediction.count({ where: { status: 'WON' } }),
+      prisma.prediction.count({ where: { status: 'LOST' } }),
+      prisma.user.findMany({
+        where: { predictionPoints: { gt: 0 } },
+        select: { id: true, username: true, displayName: true, predictionPoints: true, totalPredictions: true, country: true },
+        orderBy: { predictionPoints: 'desc' },
+        take: 5,
+      }),
+      prisma.team.count({ where: { isEliminated: true } }),
     ]);
+
+    const predictionsPending = totalPredictions - predictionsWon - predictionsLost;
 
     res.json({
       success: true,
-      data: { total, premium, newToday, newLast7, newLast30, totalPredictions, totalDuels, totalTournaments },
+      data: { total, premium, newToday, newLast7, newLast30, totalPredictions, totalDuels, totalTournaments,
+        predictionsWon, predictionsLost, predictionsPending, topPredictors, eliminatedTeams },
     });
   }
 
   static async listUsers(req: Request, res: Response): Promise<void> {
-    const { page = '1', limit = '20', search, role, isPremium } = req.query;
+    const { page = '1', limit = '20', search, role, isPremium, sortBy, sortOrder } = req.query;
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
     const where: any = {};
     if (search) where.OR = [
@@ -59,6 +72,10 @@ export class AdminController {
     if (role) where.role = role;
     if (isPremium !== undefined) where.isPremium = isPremium === 'true';
 
+    const ALLOWED_SORT = ['createdAt', 'predictionPoints', 'xp', 'level', 'totalPredictions'];
+    const orderByField = ALLOWED_SORT.includes(sortBy as string) ? (sortBy as string) : 'createdAt';
+    const orderByDir = sortOrder === 'asc' ? 'asc' : 'desc';
+
     const [items, total] = await Promise.all([
       prisma.user.findMany({
         where,
@@ -67,7 +84,7 @@ export class AdminController {
           role: true, isPremium: true, isBanned: true, isVerified: true,
           predictionPoints: true, totalPredictions: true, createdAt: true,
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { [orderByField]: orderByDir },
         skip,
         take: parseInt(limit as string),
       }),
