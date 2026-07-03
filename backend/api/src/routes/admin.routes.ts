@@ -53,5 +53,8 @@ adminRoutes.post('/predictions/resolve/:matchId', AdminController.resolvePredict
 adminRoutes.get('/config', AdminController.getConfig);
 adminRoutes.patch('/config/:key', AdminController.updateConfig);
 
+// Teams
+adminRoutes.patch('/teams/:id', AdminController.updateTeam);
+
 // Migrations
 adminRoutes.post('/migrations/fix-r32-teams', AdminController.fixR32Teams);

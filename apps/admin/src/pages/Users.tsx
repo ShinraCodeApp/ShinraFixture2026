@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, X, User, Shield, Crown, Save, Trash2 } from 'lucide-react';
+import { Search, X, User, Shield, Crown, Save, Trash2, Eye, EyeOff } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 
 interface UserRow {
@@ -34,6 +34,7 @@ function UserModal({ user, onClose }: { user: UserRow; onClose: () => void }) {
   const [xp, setXp] = useState(String(user.xp ?? 0));
   const [level, setLevel] = useState(String(user.level ?? 1));
   const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [savedProfile, setSavedProfile] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -215,13 +216,22 @@ function UserModal({ user, onClose }: { user: UserRow; onClose: () => void }) {
             </div>
             <div>
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-0.5">Nueva contraseña (vacío = no cambiar)</label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Mín. 6 caracteres"
-                className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Mín. 6 caracteres"
+                  className="w-full px-2.5 py-1.5 pr-8 rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                >
+                  {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                </button>
+              </div>
             </div>
             <button
               onClick={() => profileMut.mutate()}

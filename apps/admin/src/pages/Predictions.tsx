@@ -26,7 +26,7 @@ export function PredictionsPage() {
   });
 
   const predictions = data?.data?.predictions ?? [];
-  const matches = finishedMatches?.data ?? [];
+  const matches = finishedMatches?.data?.items ?? [];
 
   const stats = {
     total: data?.data?.total ?? 0,

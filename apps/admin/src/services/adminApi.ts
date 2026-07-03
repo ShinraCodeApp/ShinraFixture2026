@@ -110,7 +110,7 @@ export const adminApi = {
   // Matches
   getMatches: async (params?: Record<string, string>) => {
     const q = params ? `?${new URLSearchParams(params)}` : '';
-    const res = await api.get(`/matches${q}`);
+    const res = await api.get(`/admin/matches${q}`);
     return res.data;
   },
   updateMatchScore: async (matchId: string, data: { homeScore: number; awayScore: number; status: string }) =>
@@ -127,6 +127,8 @@ export const adminApi = {
     const res = await api.get('/teams');
     return res.data;
   },
+  updateTeam: async (teamId: string, data: Record<string, unknown>) =>
+    api.patch(`/admin/teams/${teamId}`, data),
 
   // Predictions
   getPredictions: async (params?: Record<string, string>) => {

@@ -428,6 +428,18 @@ export class AdminController {
     res.json({ success: true, data: config });
   }
 
+  static async updateTeam(req: Request, res: Response): Promise<void> {
+    const { isEliminated, fifaRanking, group, name, shortName } = req.body;
+    const data: Record<string, unknown> = {};
+    if (isEliminated !== undefined) data.isEliminated = Boolean(isEliminated);
+    if (fifaRanking !== undefined) data.fifaRanking = fifaRanking === null ? null : Number(fifaRanking);
+    if (group !== undefined) data.group = group;
+    if (name !== undefined) data.name = name;
+    if (shortName !== undefined) data.shortName = shortName;
+    const team = await prisma.team.update({ where: { id: req.params.id }, data });
+    res.json({ success: true, data: team });
+  }
+
   static async fixR32Teams(req: Request, res: Response): Promise<void> {
     const R32_MATCHES = [
       { round: 73, homeCode: 'RSA', awayCode: 'CAN', matchDate: '2026-06-28T17:00:00Z', venue: 'SoFi Stadium', city: 'Los Angeles', country: 'United States', status: 'FINISHED', homeScore: 0, awayScore: 1 },

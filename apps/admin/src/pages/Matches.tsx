@@ -181,7 +181,7 @@ export function MatchesPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-matches'] }),
   });
 
-  const allMatches: MatchRow[] = data?.data ?? [];
+  const allMatches: MatchRow[] = data?.data?.items ?? [];
   const matches = search
     ? allMatches.filter((m) =>
         m.homeTeam.code.toLowerCase().includes(search.toLowerCase()) ||
