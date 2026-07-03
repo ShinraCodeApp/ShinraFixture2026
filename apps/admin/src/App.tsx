@@ -1,7 +1,35 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import React, { useState, Component, ErrorInfo } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './components/ThemeProvider';
+
+class ErrorBoundary extends Component<{ children: React.ReactNode }, { error: Error | null }> {
+  state = { error: null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  componentDidCatch(_error: Error, _info: ErrorInfo) {}
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full gap-4 p-8 text-center">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-950/30 rounded-2xl flex items-center justify-center">
+            <span className="text-3xl">⚠️</span>
+          </div>
+          <div>
+            <h2 className="text-lg font-bold dark:text-white mb-1">Error al cargar esta sección</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 font-mono">{(this.state.error as Error).message}</p>
+            <button
+              onClick={() => this.setState({ error: null })}
+              className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl text-sm font-bold transition-colors"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { Dashboard } from './pages/Dashboard';
 import { UsersPage } from './pages/Users';
 import { MatchesPage } from './pages/Matches';
@@ -38,6 +66,13 @@ const NAV_ITEMS = [
 
 function AdminSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('shinra_admin_token');
+    localStorage.removeItem('shinra_admin_refresh');
+    navigate('/login');
+  };
 
   return (
     <aside className={`flex flex-col bg-slate-900 text-white transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
@@ -81,7 +116,7 @@ function AdminSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: (
 
       {/* Footer */}
       <div className="p-2 border-t border-slate-700">
-        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-950/20 transition-colors">
+        <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-950/20 transition-colors">
           <LogOut size={18} className="flex-shrink-0" />
           {!collapsed && <span className="text-sm font-medium">Cerrar Sesión</span>}
         </button>
@@ -118,7 +153,9 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-6">
+          <ErrorBoundary>{children}</ErrorBoundary>
+        </main>
       </div>
     </div>
   );
