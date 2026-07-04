@@ -56,5 +56,8 @@ adminRoutes.patch('/config/:key', AdminController.updateConfig);
 // Teams
 adminRoutes.patch('/teams/:id', AdminController.updateTeam);
 
+// Sync
+adminRoutes.post('/sync/wc-results', AdminController.syncWCResults);
+
 // Migrations
 adminRoutes.post('/migrations/fix-r32-teams', AdminController.fixR32Teams);

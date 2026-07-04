@@ -85,6 +85,10 @@ export const adminApi = {
     const res = await api.get('/admin/tournament-status');
     return res.data?.data ?? null;
   },
+  syncWCResults: async () => {
+    const res = await api.post('/admin/sync/wc-results');
+    return res.data;
+  },
 
   // Users
   getUsers: async (params?: Record<string, string>) => {

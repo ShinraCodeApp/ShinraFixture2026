@@ -1,8 +1,8 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Users, TrendingUp, AlertTriangle, Activity,
-  ArrowUpRight, ArrowDownRight, Swords, Star, CheckCircle, Clock, Trophy, Shield,
+  ArrowUpRight, ArrowDownRight, Swords, Star, CheckCircle, Clock, Trophy, Shield, RefreshCw,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -43,6 +43,28 @@ function StatCard({ title, value, change, icon, color, sub }: StatCardProps) {
 }
 
 export function Dashboard() {
+  const qc = useQueryClient();
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncMsg(null);
+    try {
+      const result = await adminApi.syncWCResults();
+      const count = result?.data?.synced ?? 0;
+      setSyncMsg(`✓ ${count} partido${count !== 1 ? 's' : ''} sincronizado${count !== 1 ? 's' : ''}`);
+      qc.invalidateQueries({ queryKey: ['admin-tournament-status'] });
+      qc.invalidateQueries({ queryKey: ['admin-stats'] });
+      qc.invalidateQueries({ queryKey: ['admin-bracket'] });
+    } catch {
+      setSyncMsg('Error al sincronizar');
+    } finally {
+      setSyncing(false);
+      setTimeout(() => setSyncMsg(null), 4000);
+    }
+  };
+
   const { data: stats } = useQuery({ queryKey: ['admin-stats'], queryFn: adminApi.getDashboardStats });
   const { data: activityData } = useQuery({ queryKey: ['admin-activity'], queryFn: adminApi.getActivityData, refetchInterval: 5 * 60_000 });
   const { data: tournament } = useQuery({ queryKey: ['admin-tournament-status'], queryFn: adminApi.getTournamentStatus, refetchInterval: 60_000 });
@@ -57,9 +79,26 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold dark:text-white">Dashboard</h1>
-        <p className="text-gray-500 dark:text-gray-400">Panel de control ShinraFixture 2026</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold dark:text-white">Dashboard</h1>
+          <p className="text-gray-500 dark:text-gray-400">Panel de control ShinraFixture 2026</p>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {syncMsg && (
+            <span className={`text-xs font-medium px-3 py-1.5 rounded-lg ${syncMsg.startsWith('✓') ? 'bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400' : 'bg-red-100 text-red-700'}`}>
+              {syncMsg}
+            </span>
+          )}
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+            {syncing ? 'Sincronizando...' : 'Sync resultados'}
+          </button>
+        </div>
       </div>
 
       {/* ── Alertas operativas ─────────────────────────────── */}

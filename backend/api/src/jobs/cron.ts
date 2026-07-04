@@ -49,6 +49,13 @@ export function startCronJobs(): void {
     await triggerLiveSyncIfNeeded();
   });
 
+  // ── WC results daily sync (every 2h, unconditional) ──────────────────────
+  // Picks up results from the last 7 days even when no active matches exist.
+  // This keeps the knockout bracket updated between match rounds.
+  cron.schedule('0 */2 * * *', async () => {
+    await triggerWCDailySync();
+  });
+
   // ── Legacy live match updates (kept as fallback with externalId) ──────────
   cron.schedule('*/30 * * * * *', async () => {
     await updateLiveMatches();
@@ -312,4 +319,16 @@ async function warmupCache(): Promise<void> {
   // Warmup frequently accessed cache keys
   await cache.del('matches:live');
   await cache.del('matches:today');
+}
+
+// Syncs WC results unconditionally — runs even when no match is live.
+// Uses a 7-day lookback so knockout results are never missed between rounds.
+async function triggerWCDailySync(): Promise<void> {
+  try {
+    const port = parseInt(process.env.PORT ?? '4000', 10);
+    await axios.post(`http://localhost:${port}/api/v1/matches/espn-sync`, { lookback: 7 }, { timeout: 60_000 });
+    logger.info('WC daily sync completed');
+  } catch (err: any) {
+    logger.warn('WC daily sync error:', err.message);
+  }
 }

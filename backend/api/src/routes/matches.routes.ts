@@ -9,6 +9,7 @@ import { PredictionService } from '../services/predictions.service';
 import { resolveDuelsForMatch } from './duels.routes';
 import { updateTournamentPointsForMatch } from './friend-tournaments.routes';
 import { PlayerStatsService } from '../services/playerStats.service';
+import { BracketService } from '../services/bracket.service';
 
 export const matchRoutes = Router();
 
@@ -216,20 +217,25 @@ function mapESPNEventType(text: string): string | null {
 matchRoutes.post('/espn-sync', async (req, res) => {
   try {
     const today = dayjs().format('YYYYMMDD');
+    const lookbackDays = typeof req.body?.lookback === 'number' ? Math.min(req.body.lookback, 14) : 1;
 
-    // Build date range: today + 6 days ahead
-    const dates: string[] = [];
-    for (let i = 0; i < 7; i++) {
-      dates.push(dayjs().add(i, 'day').format('YYYYMMDD'));
+    // Build date range: lookback days + today + 6 days ahead
+    const pastDates: string[] = [];
+    for (let i = lookbackDays; i >= 1; i--) {
+      pastDates.push(dayjs().subtract(i, 'day').format('YYYYMMDD'));
     }
-
-    const yesterday = dayjs().subtract(1, 'day').format('YYYYMMDD');
-    const allDates = [yesterday, ...dates];
+    const futureDates: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      futureDates.push(dayjs().add(i, 'day').format('YYYYMMDD'));
+    }
+    const allDates = [...pastDates, ...futureDates];
 
     const urls = [
       `https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.WORLD/scoreboard`,
       `https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.WORLD/scoreboard?dates=${today}&limit=50`,
-      // General soccer scoreboard for yesterday + today + next 6 days
+      // WC scoreboard for all past dates (extended lookback for daily sync)
+      ...pastDates.map(d => `https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.WORLD/scoreboard?dates=${d}&limit=50`),
+      // General soccer scoreboard for all dates
       ...allDates.map(d => `https://site.api.espn.com/apis/site/v2/sports/soccer/scoreboard?dates=${d}&limit=100`),
       // International friendly specific endpoints
       ...allDates.slice(0, 3).map(d => `https://site.api.espn.com/apis/site/v2/sports/soccer/international.friendly/scoreboard?dates=${d}&limit=100`),
@@ -386,6 +392,7 @@ matchRoutes.post('/espn-sync', async (req, res) => {
           PredictionService.resolveMatchPredictions(match.id).catch(() => {});
           resolveDuelsForMatch(match.id).catch(() => {});
           updateTournamentPointsForMatch(match.id).catch(() => {});
+          BracketService.propagateWinner(match.id).catch(() => {});
           // Sync player stats from ESPN match summary
           if (event.id && tournament?.id) {
             PlayerStatsService.syncMatchPlayerStats(event.id, tournament.id).catch(() => {});
