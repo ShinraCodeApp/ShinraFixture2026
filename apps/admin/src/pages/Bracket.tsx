@@ -1,7 +1,19 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Swords, RefreshCw } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 import { BracketCircle } from './BracketCircle';
+
+const R16_ACTUAL = [
+  { round: 89, homeCode: 'CAN', awayCode: 'MAR', matchDate: '2026-07-04T17:00:00Z' },
+  { round: 90, homeCode: 'PAR', awayCode: 'FRA', matchDate: '2026-07-04T21:00:00Z' },
+  { round: 91, homeCode: 'BRA', awayCode: 'NOR', matchDate: '2026-07-05T20:00:00Z' },
+  { round: 92, homeCode: 'MEX', awayCode: 'ENG', matchDate: '2026-07-06T00:00:00Z' },
+  { round: 93, homeCode: 'POR', awayCode: 'ESP', matchDate: '2026-07-06T19:00:00Z' },
+  { round: 94, homeCode: 'USA', awayCode: 'BEL', matchDate: '2026-07-07T00:00:00Z' },
+  { round: 95, homeCode: 'ARG', awayCode: 'EGY', matchDate: '2026-07-07T16:00:00Z' },
+  { round: 96, homeCode: 'SUI', awayCode: 'COL', matchDate: '2026-07-07T20:00:00Z' },
+];
 
 interface BMatch {
   id: string;
@@ -131,7 +143,28 @@ function BracketColumn({ label, pairs, byRound, compact }: {
 }
 
 export function BracketPage() {
+  const qc = useQueryClient();
   const [view, setView] = useState<'linear' | 'circular'>('circular');
+  const [fixingR16, setFixingR16] = useState(false);
+  const [fixMsg, setFixMsg] = useState<string | null>(null);
+
+  const handleFixR16 = async () => {
+    setFixingR16(true);
+    setFixMsg(null);
+    try {
+      const result = await adminApi.fixKnockoutTeams(R16_ACTUAL);
+      const ok = result?.results?.filter((r: string) => r.startsWith('OK')).length ?? 0;
+      setFixMsg(`✓ ${ok}/8 octavos corregidos`);
+      qc.invalidateQueries({ queryKey: ['admin-bracket'] });
+      qc.invalidateQueries({ queryKey: ['admin-bracket-circular'] });
+      qc.invalidateQueries({ queryKey: ['admin-tournament-status'] });
+    } catch {
+      setFixMsg('Error al corregir');
+    } finally {
+      setFixingR16(false);
+      setTimeout(() => setFixMsg(null), 5000);
+    }
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-bracket'],
@@ -158,23 +191,39 @@ export function BracketPage() {
           <h1 className="text-2xl font-bold dark:text-white">Llaves del Mundial 2026</h1>
           <p className="text-slate-500 text-sm">Fase eliminatoria — 48 equipos</p>
         </div>
-        <div className="flex gap-1 bg-slate-800 rounded-xl p-1 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {fixMsg && (
+            <span className={`text-xs font-medium px-3 py-1.5 rounded-lg ${fixMsg.startsWith('✓') ? 'bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400' : 'bg-red-100 text-red-700'}`}>
+              {fixMsg}
+            </span>
+          )}
           <button
-            onClick={() => setView('circular')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
-              view === 'circular' ? 'bg-primary-500 text-white' : 'text-slate-400 hover:text-white'
-            }`}
+            onClick={handleFixR16}
+            disabled={fixingR16}
+            title="Asigna los equipos reales a los octavos (R89-R96) y elimina duplicados"
+            className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
           >
-            🌐 Circular
+            <Swords size={14} />
+            {fixingR16 ? 'Corrigiendo...' : 'Fix Octavos'}
           </button>
-          <button
-            onClick={() => setView('linear')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
-              view === 'linear' ? 'bg-primary-500 text-white' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            ≡ Lista
-          </button>
+          <div className="flex gap-1 bg-slate-800 rounded-xl p-1">
+            <button
+              onClick={() => setView('circular')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                view === 'circular' ? 'bg-primary-500 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              🌐 Circular
+            </button>
+            <button
+              onClick={() => setView('linear')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                view === 'linear' ? 'bg-primary-500 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              ≡ Lista
+            </button>
+          </div>
         </div>
       </div>
 
