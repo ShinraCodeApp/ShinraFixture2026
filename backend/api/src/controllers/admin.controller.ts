@@ -541,4 +541,47 @@ export class AdminController {
     }
     res.json({ success: true, results });
   }
+
+  // Fix knockout round team assignments when bracket propagation placed wrong teams
+  // Body: { matches: [{ round, homeCode, awayCode, matchDate? }] }
+  static async fixKnockoutTeams(req: Request, res: Response): Promise<void> {
+    const { matches } = req.body as {
+      matches: { round: number; homeCode: string; awayCode: string; matchDate?: string }[];
+    };
+    if (!Array.isArray(matches) || matches.length === 0) {
+      res.status(400).json({ success: false, error: 'matches array required' });
+      return;
+    }
+
+    const results: string[] = [];
+    for (const m of matches) {
+      const [homeTeam, awayTeam, match] = await Promise.all([
+        prisma.team.findUnique({ where: { code: m.homeCode.toUpperCase() } }),
+        prisma.team.findUnique({ where: { code: m.awayCode.toUpperCase() } }),
+        prisma.match.findFirst({ where: { round: m.round } }),
+      ]);
+      if (!homeTeam || !awayTeam) {
+        results.push(`SKIP R${m.round}: team not found (${m.homeCode}, ${m.awayCode})`);
+        continue;
+      }
+      if (!match) {
+        results.push(`SKIP R${m.round}: match not found in DB`);
+        continue;
+      }
+      const updateData: Record<string, unknown> = {
+        homeTeamId: homeTeam.id,
+        awayTeamId: awayTeam.id,
+        homeLabel: homeTeam.code,
+        awayLabel: awayTeam.code,
+      };
+      if (m.matchDate) updateData.matchDate = new Date(m.matchDate);
+      await prisma.match.update({ where: { id: match.id }, data: updateData });
+      await cache.delPattern(`match:${match.id}*`);
+      results.push(`OK R${m.round}: ${homeTeam.name} vs ${awayTeam.name}`);
+    }
+
+    // Invalidate bracket cache
+    await cache.delPattern('tournament:*');
+    res.json({ success: true, results });
+  }
 }

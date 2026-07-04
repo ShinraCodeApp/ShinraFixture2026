@@ -59,5 +59,6 @@ adminRoutes.patch('/teams/:id', AdminController.updateTeam);
 // Sync
 adminRoutes.post('/sync/wc-results', AdminController.syncWCResults);
 
-// Migrations
+// Migrations / one-time fixes
 adminRoutes.post('/migrations/fix-r32-teams', AdminController.fixR32Teams);
+adminRoutes.post('/migrations/fix-knockout-teams', AdminController.fixKnockoutTeams);

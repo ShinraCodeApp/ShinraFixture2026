@@ -44,8 +44,39 @@ function StatCard({ title, value, change, icon, color, sub }: StatCardProps) {
 
 export function Dashboard() {
   const qc = useQueryClient();
-  const [syncing, setSyncing] = useState(false);
-  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const [syncing, setSyncing]   = useState(false);
+  const [syncMsg, setSyncMsg]   = useState<string | null>(null);
+  const [fixingR16, setFixingR16] = useState(false);
+
+  // Actual WC2026 R16 matchups — run once to fix DB after wrong bracket propagation
+  const R16_ACTUAL = [
+    { round: 89, homeCode: 'CAN', awayCode: 'MAR', matchDate: '2026-07-04T17:00:00Z' },
+    { round: 90, homeCode: 'PAR', awayCode: 'FRA', matchDate: '2026-07-04T21:00:00Z' },
+    { round: 91, homeCode: 'BRA', awayCode: 'NOR', matchDate: '2026-07-05T20:00:00Z' },
+    { round: 92, homeCode: 'MEX', awayCode: 'ENG', matchDate: '2026-07-06T00:00:00Z' },
+    { round: 93, homeCode: 'POR', awayCode: 'ESP', matchDate: '2026-07-06T19:00:00Z' },
+    { round: 94, homeCode: 'USA', awayCode: 'BEL', matchDate: '2026-07-07T00:00:00Z' },
+    { round: 95, homeCode: 'ARG', awayCode: 'EGY', matchDate: '2026-07-07T16:00:00Z' },
+    { round: 96, homeCode: 'SUI', awayCode: 'COL', matchDate: '2026-07-07T20:00:00Z' },
+  ];
+
+  const handleFixR16 = async () => {
+    setFixingR16(true);
+    setSyncMsg(null);
+    try {
+      const result = await adminApi.fixKnockoutTeams(R16_ACTUAL);
+      const ok = result?.results?.filter((r: string) => r.startsWith('OK')).length ?? 0;
+      setSyncMsg(`✓ ${ok}/8 octavos corregidos`);
+      qc.invalidateQueries({ queryKey: ['admin-tournament-status'] });
+      qc.invalidateQueries({ queryKey: ['admin-bracket'] });
+      qc.invalidateQueries({ queryKey: ['admin-bracket-circular'] });
+    } catch {
+      setSyncMsg('Error al corregir octavos');
+    } finally {
+      setFixingR16(false);
+      setTimeout(() => setSyncMsg(null), 5000);
+    }
+  };
 
   const handleSync = async () => {
     setSyncing(true);
@@ -90,6 +121,15 @@ export function Dashboard() {
               {syncMsg}
             </span>
           )}
+          <button
+            onClick={handleFixR16}
+            disabled={fixingR16}
+            title="Asigna los equipos reales a los octavos de final (R89-R96)"
+            className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            <Swords size={14} />
+            {fixingR16 ? 'Corrigiendo...' : 'Fix Octavos'}
+          </button>
           <button
             onClick={handleSync}
             disabled={syncing}

@@ -1,5 +1,5 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../services/adminApi';
 
 interface BMatch {
@@ -14,17 +14,15 @@ interface BMatch {
   status: string;
 }
 
-// ── Layout constants ────────────────────────────────────────────────────────
-const S = 880;          // SVG size
-const CX = S / 2;
-const CY = S / 2;
-
-// Radius and node size per layer (0=outermost R32, 4=finalists)
+// ── Layout ──────────────────────────────────────────────────────────────────
+const S       = 880;
+const CX      = S / 2;
+const CY      = S / 2;
 const RADII    = [398, 310, 228, 154, 88];
-const NODE_R   = [ 18,  21,  25,  29, 34];
-const SLOT_CNT = [ 32,  16,   8,   4,  2]; // teams per layer
+// Outer ring is largest so teams are prominent; winner nodes shrink inward
+const NODE_R   = [ 26,  22,  20,  24, 30];
+const SLOT_CNT = [ 32,  16,   8,   4,  2];
 
-// Rounds mapped to each layer (layer 1–4 only; layer 0 is special)
 const LAYER_ROUNDS: Record<number, number[]> = {
   1: [89, 90, 91, 92, 93, 94, 95, 96],
   2: [97, 98, 99, 100],
@@ -32,16 +30,24 @@ const LAYER_ROUNDS: Record<number, number[]> = {
   4: [104],
 };
 
-// ── Math helpers ────────────────────────────────────────────────────────────
+const STAGE_LABELS = ['16avos', 'Octavos', 'Cuartos', 'Semis', 'Final'];
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
 function slotXY(layer: number, slot: number): [number, number] {
   const outerSpan   = Math.pow(2, layer);
   const outerCenter = slot * outerSpan + (outerSpan - 1) / 2;
-  const deg         = outerCenter * (360 / 32) - 90; // 0° = top, clockwise
+  const deg         = outerCenter * (360 / 32) - 90;
   const rad         = (deg * Math.PI) / 180;
   return [CX + RADII[layer] * Math.cos(rad), CY + RADII[layer] * Math.sin(rad)];
 }
 
-function winner(m: BMatch | undefined): 'home' | 'away' | null {
+function matchRoundFor(layer: number, slot: number): number {
+  return layer === 0
+    ? 73 + Math.floor(slot / 2)
+    : LAYER_ROUNDS[layer][Math.floor(slot / 2)];
+}
+
+function winnerSide(m: BMatch | undefined): 'home' | 'away' | null {
   if (!m || m.status !== 'FINISHED') return null;
   if (m.homePenalties != null && m.awayPenalties != null)
     return m.homePenalties > m.awayPenalties ? 'home' : 'away';
@@ -52,49 +58,180 @@ function winner(m: BMatch | undefined): 'home' | 'away' | null {
   return null;
 }
 
-// ── Node type ───────────────────────────────────────────────────────────────
 interface NodeInfo {
   team: BMatch['homeTeam'] | null;
   won: boolean;
   lost: boolean;
+  matchRound: number;
 }
 
-function buildNodeInfo(
-  layer: number,
-  slot: number,
-  byRound: Record<number, BMatch>
-): NodeInfo {
-  let m: BMatch | undefined;
-  let side: 'home' | 'away';
+function buildNode(layer: number, slot: number, byRound: Record<number, BMatch>): NodeInfo {
+  const round = matchRoundFor(layer, slot);
+  const side  = slot % 2 === 0 ? 'home' : 'away';
+  const m     = byRound[round];
+  const team  = m ? (side === 'home' ? m.homeTeam : m.awayTeam) : null;
+  const w     = winnerSide(m);
+  const fin   = m?.status === 'FINISHED';
+  return { team, won: fin && w === side, lost: fin && w !== null && w !== side, matchRound: round };
+}
 
-  if (layer === 0) {
-    // R32 participants: rounds 73–88, 2 teams each
-    const round = 73 + Math.floor(slot / 2);
-    side = slot % 2 === 0 ? 'home' : 'away';
-    m = byRound[round];
-  } else {
-    const rounds = LAYER_ROUNDS[layer];
-    const round  = rounds[Math.floor(slot / 2)];
-    side = slot % 2 === 0 ? 'home' : 'away';
-    m = byRound[round];
-  }
+// ── Edit Modal ───────────────────────────────────────────────────────────────
+function EditModal({ match, onClose, onSaved }: {
+  match: BMatch;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [homeScore, setHomeScore] = useState(match.homeScore ?? 0);
+  const [awayScore, setAwayScore] = useState(match.awayScore ?? 0);
+  const [status, setStatus]       = useState(match.status);
+  const [hasPen, setHasPen]       = useState(match.homePenalties != null);
+  const [homePen, setHomePen]     = useState(match.homePenalties ?? 0);
+  const [awayPen, setAwayPen]     = useState(match.awayPenalties ?? 0);
 
-  const team    = m ? (side === 'home' ? m.homeTeam : m.awayTeam) : null;
-  const w       = winner(m);
-  const finished = m?.status === 'FINISHED';
+  const qc = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      adminApi.editMatchFull(match.id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-bracket-circular'] });
+      qc.invalidateQueries({ queryKey: ['admin-bracket'] });
+      qc.invalidateQueries({ queryKey: ['admin-tournament-status'] });
+      onSaved();
+    },
+  });
 
-  return {
-    team,
-    won:  finished && w === side,
-    lost: finished && w !== null && w !== side,
+  const save = () => {
+    const payload: Record<string, unknown> = {
+      status,
+      homeScore: status !== 'SCHEDULED' ? homeScore : null,
+      awayScore: status !== 'SCHEDULED' ? awayScore : null,
+      homePenalties: hasPen ? homePen : null,
+      awayPenalties: hasPen ? awayPen : null,
+    };
+    mutation.mutate(payload);
   };
+
+  const inputCls = 'w-full rounded-lg bg-slate-900 border border-slate-700 text-white text-center text-xl font-bold py-2 focus:outline-none focus:border-primary-500';
+  const smInputCls = 'w-20 rounded-lg bg-slate-900 border border-slate-700 text-white text-center font-bold py-1.5 text-base focus:outline-none focus:border-primary-500';
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-5" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="text-center">
+          <p className="text-xs text-slate-400 uppercase tracking-widest mb-1">
+            R{match.round} · {STAGE_LABELS.find((_, i) => {
+              const layerRounds = [[], [89,90,91,92,93,94,95,96],[97,98,99,100],[101,102],[104]];
+              return layerRounds[i]?.includes(match.round) || (match.round >= 73 && match.round <= 88 && i === 0);
+            }) ?? ''}
+            {match.round >= 73 && match.round <= 88 ? '16avos' :
+             match.round >= 89 && match.round <= 96 ? 'Octavos' :
+             match.round >= 97 && match.round <= 100 ? 'Cuartos' :
+             match.round >= 101 && match.round <= 102 ? 'Semis' : 'Final'}
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            {match.homeTeam?.flagUrl && <img src={match.homeTeam.flagUrl} className="w-8 h-6 object-contain rounded" />}
+            <span className="font-black text-white text-lg">{match.homeTeam?.code ?? 'TBD'}</span>
+            <span className="text-slate-500 text-sm">vs</span>
+            <span className="font-black text-white text-lg">{match.awayTeam?.code ?? 'TBD'}</span>
+            {match.awayTeam?.flagUrl && <img src={match.awayTeam.flagUrl} className="w-8 h-6 object-contain rounded" />}
+          </div>
+        </div>
+
+        {/* Status */}
+        <div>
+          <label className="text-xs text-slate-400 block mb-1.5 font-medium">Estado</label>
+          <div className="grid grid-cols-4 gap-1.5">
+            {['SCHEDULED', 'LIVE', 'HALF_TIME', 'FINISHED'].map(s => (
+              <button key={s}
+                onClick={() => setStatus(s)}
+                className={`py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                  status === s
+                    ? s === 'FINISHED' ? 'bg-green-600 text-white'
+                      : s === 'LIVE' || s === 'HALF_TIME' ? 'bg-red-600 text-white'
+                      : 'bg-primary-600 text-white'
+                    : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                }`}
+              >
+                {s === 'SCHEDULED' ? 'Prog' : s === 'HALF_TIME' ? 'Desc' : s === 'LIVE' ? 'Vivo' : 'Final'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Score */}
+        {status !== 'SCHEDULED' && (
+          <div>
+            <label className="text-xs text-slate-400 block mb-1.5 font-medium">Marcador</label>
+            <div className="flex items-center gap-3">
+              <input type="number" min={0} max={99} value={homeScore}
+                onChange={e => setHomeScore(+e.target.value)}
+                className={inputCls}
+              />
+              <span className="text-slate-500 font-bold text-lg flex-shrink-0">–</span>
+              <input type="number" min={0} max={99} value={awayScore}
+                onChange={e => setAwayScore(+e.target.value)}
+                className={inputCls}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Penalties */}
+        {status === 'FINISHED' && (
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer mb-2">
+              <input type="checkbox" checked={hasPen} onChange={e => setHasPen(e.target.checked)}
+                className="w-4 h-4 rounded accent-primary-500"
+              />
+              <span className="text-xs text-slate-300 font-medium">Definido por penales</span>
+            </label>
+            {hasPen && (
+              <div className="flex items-center gap-3 justify-center mt-2">
+                <div className="text-center">
+                  <p className="text-[10px] text-slate-500 mb-1">{match.homeTeam?.code ?? 'Local'}</p>
+                  <input type="number" min={0} max={20} value={homePen}
+                    onChange={e => setHomePen(+e.target.value)}
+                    className={smInputCls}
+                  />
+                </div>
+                <span className="text-slate-500 text-sm font-bold mt-4">–</span>
+                <div className="text-center">
+                  <p className="text-[10px] text-slate-500 mb-1">{match.awayTeam?.code ?? 'Visit'}</p>
+                  <input type="number" min={0} max={20} value={awayPen}
+                    onChange={e => setAwayPen(+e.target.value)}
+                    className={smInputCls}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Actions */}
+        {mutation.isError && (
+          <p className="text-red-400 text-xs text-center">Error al guardar</p>
+        )}
+        <div className="flex gap-2">
+          <button onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">
+            Cancelar
+          </button>
+          <button onClick={save} disabled={mutation.isPending}
+            className="flex-1 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white text-sm font-bold transition-colors">
+            {mutation.isPending ? 'Guardando...' : 'Guardar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-// ── Stage ring labels ───────────────────────────────────────────────────────
-const STAGE_LABELS = ['16avos', 'Octavos', 'Cuartos', 'Semis', 'Final'];
-
-// ── Component ───────────────────────────────────────────────────────────────
+// ── Main Component ───────────────────────────────────────────────────────────
 export function BracketCircle() {
+  const [editingMatch, setEditingMatch] = useState<BMatch | null>(null);
+  const [hoveredRound, setHoveredRound] = useState<number | null>(null);
+
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['admin-bracket-circular'],
     queryFn:  () => adminApi.getMatches({ stage: 'knockout', limit: '200' }),
@@ -107,72 +244,121 @@ export function BracketCircle() {
   for (const m of matches) byRound[m.round] = m;
 
   if (isLoading) return (
-    <div className="flex items-center justify-center h-64 text-slate-400">
-      Cargando bracket...
-    </div>
+    <div className="flex items-center justify-center h-64 text-slate-400">Cargando bracket...</div>
   );
 
-  // ── Build node info ─────────────────────────────────────────────────────
+  // Build all nodes
   const nodes: Record<string, NodeInfo> = {};
-  for (let layer = 0; layer <= 4; layer++) {
-    for (let slot = 0; slot < SLOT_CNT[layer]; slot++) {
-      nodes[`${layer}-${slot}`] = buildNodeInfo(layer, slot, byRound);
-    }
-  }
+  for (let layer = 0; layer <= 4; layer++)
+    for (let slot = 0; slot < SLOT_CNT[layer]; slot++)
+      nodes[`${layer}-${slot}`] = buildNode(layer, slot, byRound);
 
-  // ── SVG elements ────────────────────────────────────────────────────────
   const clipDefs: React.ReactNode[] = [];
   const lines:    React.ReactNode[] = [];
   const circles:  React.ReactNode[] = [];
+  const hitAreas: React.ReactNode[] = [];
+  const scoreLabels: React.ReactNode[] = [];
 
-  // Connector lines (layers 0–3 → parent in layer+1, plus layer 4 → center)
+  // ── Lines ─────────────────────────────────────────────────────────────────
   for (let layer = 0; layer <= 4; layer++) {
-    const pairs = SLOT_CNT[layer] / 2;
-    for (let pair = 0; pair < pairs; pair++) {
-      const sA = pair * 2;
-      const sB = pair * 2 + 1;
-
+    for (let pair = 0; pair < SLOT_CNT[layer] / 2; pair++) {
+      const sA = pair * 2, sB = pair * 2 + 1;
       const [ax, ay] = slotXY(layer, sA);
       const [bx, by] = slotXY(layer, sB);
+      const [px, py] = layer < 4 ? slotXY(layer + 1, pair) : [CX, CY];
 
       const nA = nodes[`${layer}-${sA}`];
       const nB = nodes[`${layer}-${sB}`];
+      const matchRound = nA.matchRound;
+      const isHovered  = hoveredRound === matchRound;
 
-      let px: number, py: number;
-      if (layer < 4) {
-        [px, py] = slotXY(layer + 1, pair);
-      } else {
-        // Final → trophy center
-        px = CX; py = CY;
-      }
-
-      const colorA  = nA.won ? '#22c55e' : nA.lost ? '#1f2937' : '#334155';
-      const colorB  = nB.won ? '#22c55e' : nB.lost ? '#1f2937' : '#334155';
-      const opacA   = nA.lost ? 0.35 : 1;
-      const opacB   = nB.lost ? 0.35 : 1;
-      const strokeA = nA.won ? 2 : 1.5;
-      const strokeB = nB.won ? 2 : 1.5;
+      const cA = nA.won ? '#22c55e' : nA.lost ? '#1f2937' : isHovered ? '#64748b' : '#334155';
+      const cB = nB.won ? '#22c55e' : nB.lost ? '#1f2937' : isHovered ? '#64748b' : '#334155';
 
       lines.push(
-        <line key={`la-${layer}-${pair}`}
-          x1={ax} y1={ay} x2={px} y2={py}
-          stroke={colorA} strokeWidth={strokeA} opacity={opacA}
+        <line key={`la-${layer}-${pair}`} x1={ax} y1={ay} x2={px} y2={py}
+          stroke={cA} strokeWidth={nA.won ? 2.5 : 1.5} opacity={nA.lost ? 0.3 : 1}
         />,
-        <line key={`lb-${layer}-${pair}`}
-          x1={bx} y1={by} x2={px} y2={py}
-          stroke={colorB} strokeWidth={strokeB} opacity={opacB}
+        <line key={`lb-${layer}-${pair}`} x1={bx} y1={by} x2={px} y2={py}
+          stroke={cB} strokeWidth={nB.won ? 2.5 : 1.5} opacity={nB.lost ? 0.3 : 1}
         />
       );
+
+      // Outer pair bracket arc — visually groups the two opponents
+      if (layer === 0) {
+        const arcR = RADII[0] + NODE_R[0] + 10;
+        const degA = (pair * 2)     * (360 / 32) - 90;
+        const degB = (pair * 2 + 1) * (360 / 32) - 90;
+        const radA = (degA * Math.PI) / 180;
+        const radB = (degB * Math.PI) / 180;
+        const x1 = CX + arcR * Math.cos(radA), y1 = CY + arcR * Math.sin(radA);
+        const x2 = CX + arcR * Math.cos(radB), y2 = CY + arcR * Math.sin(radB);
+        const arcColor = nA.won || nB.won ? '#22c55e' : isHovered ? '#3b82f6' : '#1e3a5f';
+        lines.push(
+          <path key={`arc-${pair}`}
+            d={`M ${x1} ${y1} A ${arcR} ${arcR} 0 0 1 ${x2} ${y2}`}
+            fill="none" stroke={arcColor} strokeWidth={2}
+            opacity={(nA.lost && nB.lost) ? 0.2 : 0.7}
+          />
+        );
+      }
+
+      // Score label at midpoint between the two opponents
+      const m = byRound[matchRound];
+      if (m && m.homeScore != null && m.status !== 'SCHEDULED') {
+        const mx = (ax + bx) / 2;
+        const my = (ay + by) / 2;
+        const scoreText = m.homePenalties != null
+          ? `${m.homeScore}-${m.awayScore} (${m.homePenalties}-${m.awayPenalties}p)`
+          : `${m.homeScore}-${m.awayScore}`;
+        scoreLabels.push(
+          <text key={`sc-${layer}-${pair}`} x={mx} y={my}
+            textAnchor="middle"
+            fontSize={layer === 0 ? 8 : layer === 1 ? 9.5 : 11}
+            fill={m.status === 'LIVE' ? '#f87171' : '#94a3b8'}
+            fontFamily="monospace" fontWeight="bold"
+          >
+            {scoreText}
+          </text>
+        );
+      }
+
+      // Clickable hit area: transparent circle at midpoint of the two opponents
+      if (m) {
+        const mx  = (ax + bx) / 2;
+        const my  = (ay + by) / 2;
+        const hitR = layer === 0 ? 18 : layer === 1 ? 22 : 26;
+        hitAreas.push(
+          <circle key={`hit-${layer}-${pair}`} cx={mx} cy={my} r={hitR}
+            fill="transparent"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setEditingMatch(m)}
+            onMouseEnter={() => setHoveredRound(matchRound)}
+            onMouseLeave={() => setHoveredRound(null)}
+          />
+        );
+        // Edit pencil indicator on hover or finished
+        if (isHovered) {
+          circles.push(
+            <g key={`pen-${layer}-${pair}`} style={{ pointerEvents: 'none' }}>
+              <circle cx={mx} cy={my} r={9} fill="#1e40af" opacity={0.9} />
+              <text x={mx} y={my + 3.5} textAnchor="middle" fontSize={11} fill="white">✎</text>
+            </g>
+          );
+        }
+      }
     }
   }
 
-  // Nodes
+  // ── Nodes ─────────────────────────────────────────────────────────────────
   for (let layer = 0; layer <= 4; layer++) {
     const r = NODE_R[layer];
     for (let slot = 0; slot < SLOT_CNT[layer]; slot++) {
       const [x, y] = slotXY(layer, slot);
       const info   = nodes[`${layer}-${slot}`];
       const cpId   = `cp-${layer}-${slot}`;
+      const isH    = hoveredRound === info.matchRound;
+      const m      = byRound[info.matchRound];
 
       clipDefs.push(
         <clipPath key={cpId} id={cpId}>
@@ -180,43 +366,44 @@ export function BracketCircle() {
         </clipPath>
       );
 
-      const bg      = !info.team ? '#0f172a' : info.lost ? '#131c2e' : '#1e293b';
-      const border  = info.won   ? '#22c55e' : info.lost ? '#1e293b' : info.team ? '#3f5068' : '#1e293b';
-      const bWidth  = info.won   ? 2.5 : 1.5;
-      const imgOpac = info.lost  ? 0.22 : 1;
+      const bg     = !info.team ? '#0f172a' : info.lost ? '#131c2e' : '#1e293b';
+      const border = info.won ? '#22c55e' : isH ? '#3b82f6' : info.lost ? '#1e293b' : info.team ? '#3f5068' : '#1e293b';
+      const bw     = info.won || isH ? 2.5 : 1.5;
 
-      // Outer glow for winners
       if (info.won) {
         circles.push(
-          <circle key={`glow-${layer}-${slot}`} cx={x} cy={y} r={r + 4}
+          <circle key={`glow-${layer}-${slot}`} cx={x} cy={y} r={r + 5}
             fill="none" stroke="#22c55e" strokeWidth={1.5} opacity={0.3}
           />
         );
       }
 
       circles.push(
-        <g key={`n-${layer}-${slot}`}>
-          <circle cx={x} cy={y} r={r} fill={bg} stroke={border} strokeWidth={bWidth} />
+        <g key={`n-${layer}-${slot}`}
+          style={{ cursor: m ? 'pointer' : 'default' }}
+          onClick={() => m && setEditingMatch(m)}
+          onMouseEnter={() => m && setHoveredRound(info.matchRound)}
+          onMouseLeave={() => setHoveredRound(null)}
+        >
+          <circle cx={x} cy={y} r={r} fill={bg} stroke={border} strokeWidth={bw} />
           {info.team?.flagUrl && (
-            <image
-              href={info.team.flagUrl}
+            <image href={info.team.flagUrl}
               x={x - r + 1} y={y - r + 1}
               width={(r - 1) * 2} height={(r - 1) * 2}
               clipPath={`url(#${cpId})`}
               preserveAspectRatio="xMidYMid slice"
-              opacity={imgOpac}
+              opacity={info.lost ? 0.2 : 1}
             />
           )}
           {!info.team && (
-            <text x={x} y={y + 3} textAnchor="middle" fill="#334155" fontSize={8} fontFamily="monospace">?</text>
+            <text x={x} y={y + 4} textAnchor="middle" fill="#334155" fontSize={10} fontFamily="monospace">?</text>
           )}
-          {/* Team code label: shown on outer 2 layers */}
-          {info.team && layer <= 1 && (
-            <text
-              x={x} y={y + r + 10}
+          {/* Team code label */}
+          {info.team && layer <= 2 && (
+            <text x={x} y={y + r + 13}
               textAnchor="middle"
-              fontSize={layer === 0 ? 6.5 : 7.5}
-              fill={info.lost ? '#2d3748' : info.won ? '#86efac' : '#7a8fa6'}
+              fontSize={layer === 0 ? 9 : layer === 1 ? 10.5 : 11}
+              fill={info.lost ? '#2d3748' : info.won ? '#86efac' : '#8ca5c2'}
               fontFamily="monospace"
               fontWeight={info.won ? 'bold' : 'normal'}
             >
@@ -228,15 +415,15 @@ export function BracketCircle() {
     }
   }
 
-  // Stage labels (placed at upper-left of each ring)
-  const stageLabelEls = RADII.map((r, layer) => {
-    const deg = -135; // upper-left diagonal
+  // ── Stage labels ──────────────────────────────────────────────────────────
+  const stageEls = RADII.map((r, layer) => {
+    const deg = -135;
     const rad = (deg * Math.PI) / 180;
-    const lx  = CX + (r - NODE_R[layer] - 12) * Math.cos(rad);
-    const ly  = CY + (r - NODE_R[layer] - 12) * Math.sin(rad);
+    const lx  = CX + (r - NODE_R[layer] - 14) * Math.cos(rad);
+    const ly  = CY + (r - NODE_R[layer] - 14) * Math.sin(rad);
     return (
       <text key={`sl-${layer}`} x={lx} y={ly}
-        textAnchor="middle" fontSize={8}
+        textAnchor="middle" fontSize={10}
         fill="#475569" fontFamily="sans-serif" fontWeight="bold" letterSpacing={0.8}
       >
         {STAGE_LABELS[layer]}
@@ -244,106 +431,62 @@ export function BracketCircle() {
     );
   });
 
-  // Score labels on the bracket lines: show score on the outer rings' match pairs
-  const scoreLabels: React.ReactNode[] = [];
-  for (let layer = 0; layer <= 3; layer++) {
-    const pairs = SLOT_CNT[layer] / 2;
-    for (let pair = 0; pair < pairs; pair++) {
-      const sA = pair * 2;
-      const sB = pair * 2 + 1;
-
-      // The match info is in the parent layer's match
-      // For layer 0: match is round 73 + pair (pair 0..7 = R73..R80, pair 8..15 = R81..R88)
-      let matchRound: number;
-      if (layer === 0) {
-        matchRound = 73 + pair;
-      } else {
-        matchRound = LAYER_ROUNDS[layer][pair];
-      }
-
-      const m = byRound[matchRound];
-      if (!m || m.status !== 'FINISHED' || m.homeScore == null) continue;
-
-      const [ax, ay] = slotXY(layer, sA);
-      const [bx, by] = slotXY(layer, sB);
-      const midX = (ax + bx) / 2;
-      const midY = (ay + by) / 2;
-
-      const scoreText = m.homePenalties != null
-        ? `${m.homeScore}-${m.awayScore} (${m.homePenalties}-${m.awayPenalties}p)`
-        : `${m.homeScore}-${m.awayScore}`;
-
-      scoreLabels.push(
-        <text key={`score-${layer}-${pair}`}
-          x={midX} y={midY}
-          textAnchor="middle"
-          fontSize={layer === 0 ? 6 : 7}
-          fill="#64748b"
-          fontFamily="monospace"
-        >
-          {scoreText}
-        </text>
-      );
-    }
-  }
-
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-slate-500">Se actualiza automáticamente · auto-refresh 2 min</p>
-        <button
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="text-xs px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition-colors disabled:opacity-50"
-        >
-          {isFetching ? 'Actualizando...' : 'Actualizar ahora'}
-        </button>
+    <>
+      {editingMatch && (
+        <EditModal
+          match={editingMatch}
+          onClose={() => setEditingMatch(null)}
+          onSaved={() => setEditingMatch(null)}
+        />
+      )}
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-slate-500">
+            Tocá cualquier partido para editar · auto-refresh 2 min
+          </p>
+          <button onClick={() => refetch()} disabled={isFetching}
+            className="text-xs px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition-colors disabled:opacity-50">
+            {isFetching ? 'Actualizando...' : 'Actualizar'}
+          </button>
+        </div>
+
+        <div className="bg-slate-950 rounded-2xl overflow-hidden">
+          <svg viewBox={`0 0 ${S} ${S}`} style={{ width: '100%', maxHeight: '85vh', display: 'block' }}>
+            <defs>{clipDefs}</defs>
+
+            <rect width={S} height={S} fill="#020617" />
+
+            {/* Ring bands */}
+            {RADII.map((r, i) => (
+              <circle key={`band-${i}`} cx={CX} cy={CY} r={r}
+                fill="none" stroke="#0d1829" strokeWidth={NODE_R[i] * 2 + 10}
+              />
+            ))}
+            {RADII.map((r, i) => (
+              <circle key={`ring-${i}`} cx={CX} cy={CY} r={r}
+                fill="none" stroke="#1e293b" strokeWidth={0.75}
+              />
+            ))}
+
+            {lines}
+            {scoreLabels}
+            {stageEls}
+            {circles}
+            {hitAreas}
+
+            {/* Center trophy */}
+            <circle cx={CX} cy={CY} r={44} fill="#0a1220" stroke="#78350f" strokeWidth={1.5} />
+            <circle cx={CX} cy={CY} r={39} fill="#0f172a" stroke="#d97706" strokeWidth={1} />
+            <text x={CX} y={CY - 4} textAnchor="middle" fontSize={26}>🏆</text>
+            <text x={CX} y={CY + 17} textAnchor="middle" fill="#d97706"
+              fontSize={9} fontWeight="bold" fontFamily="sans-serif" letterSpacing={1.5}>
+              2026
+            </text>
+          </svg>
+        </div>
       </div>
-
-      <div className="bg-slate-950 rounded-2xl overflow-hidden">
-        <svg
-          viewBox={`0 0 ${S} ${S}`}
-          style={{ width: '100%', maxHeight: '82vh', display: 'block' }}
-        >
-          <defs>{clipDefs}</defs>
-
-          {/* Dark field */}
-          <rect width={S} height={S} fill="#020617" />
-
-          {/* Subtle ring guides */}
-          {RADII.map((r, i) => (
-            <circle key={`ring-${i}`} cx={CX} cy={CY} r={r}
-              fill="none" stroke="#0f1c2e" strokeWidth={NODE_R[i] * 2 + 8}
-            />
-          ))}
-          {RADII.map((r, i) => (
-            <circle key={`ring-line-${i}`} cx={CX} cy={CY} r={r}
-              fill="none" stroke="#1e293b" strokeWidth={0.75}
-            />
-          ))}
-
-          {/* Lines behind nodes */}
-          {lines}
-
-          {/* Score labels */}
-          {scoreLabels}
-
-          {/* Stage labels */}
-          {stageLabelEls}
-
-          {/* Team nodes */}
-          {circles}
-
-          {/* Trophy center */}
-          <circle cx={CX} cy={CY} r={42} fill="#0a1220" stroke="#78350f" strokeWidth={1.5} />
-          <circle cx={CX} cy={CY} r={38} fill="#0f1c2e" stroke="#d97706" strokeWidth={1} />
-          <text x={CX} y={CY - 5} textAnchor="middle" fontSize={24}>🏆</text>
-          <text x={CX} y={CY + 15} textAnchor="middle" fill="#d97706"
-            fontSize={8} fontWeight="bold" fontFamily="sans-serif" letterSpacing={1.5}>
-            MUNDIAL
-          </text>
-        </svg>
-      </div>
-    </div>
+    </>
   );
 }
