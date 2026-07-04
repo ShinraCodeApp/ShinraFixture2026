@@ -59,6 +59,27 @@ export function BracketPredictorScreen() {
     staleTime: 10 * 60_000,
   });
 
+  const { data: r16Matches = [] } = useQuery({
+    queryKey: ['r16-matches-predictor'],
+    queryFn: async () => {
+      const r = await apiService.get('/matches/stage/ROUND_OF_16?tournamentType=WORLD_CUP');
+      return r.data.data ?? [];
+    },
+    staleTime: 2 * 60_000,
+  });
+
+  const displayTeams = useMemo(() => {
+    const matches = r16Matches as any[];
+    if (!matches.length) return allTeams as any[];
+    const codes = new Set<string>();
+    matches.forEach((m: any) => {
+      if (m.homeTeam?.code) codes.add(m.homeTeam.code);
+      if (m.awayTeam?.code) codes.add(m.awayTeam.code);
+    });
+    if (codes.size < 8) return allTeams as any[];
+    return (allTeams as any[]).filter((t: any) => codes.has(t.code));
+  }, [allTeams, r16Matches]);
+
   const { data: savedPick, isLoading: pickLoading, refetch } = useQuery({
     queryKey: ['bracket-pick', wcTournament?.id],
     queryFn: async () => {
@@ -262,7 +283,7 @@ export function BracketPredictorScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={teamsLoading || pickLoading} onRefresh={refetch} tintColor={colors.primary} />}
       >
-        {(allTeams as any[]).map((team: any) => {
+        {displayTeams.map((team: any) => {
           const selected = isSelected(team.code, activeRound);
           return (
             <TouchableOpacity

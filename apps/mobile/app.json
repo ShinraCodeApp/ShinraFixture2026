@@ -2,7 +2,7 @@
   "expo": {
     "name": "ShinraFixture 2026",
     "slug": "shinrafixture-2026",
-    "version": "1.0.3",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/branding/SCFixture1.png",
     "userInterfaceStyle": "automatic",
@@ -32,7 +32,7 @@
         "color": "#001489"
       },
       "package": "com.shinra.fixture2026",
-      "versionCode": 21,
+      "versionCode": 23,
       "navigationBarColor": "#001489",
       "blockedPermissions": [
         "android.permission.READ_MEDIA_IMAGES",
