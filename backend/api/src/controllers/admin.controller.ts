@@ -573,11 +573,23 @@ export class AdminController {
         awayTeamId: awayTeam.id,
         homeLabel: homeTeam.code,
         awayLabel: awayTeam.code,
+        stage: 'ROUND_OF_16',
       };
       if (m.matchDate) updateData.matchDate = new Date(m.matchDate);
       await prisma.match.update({ where: { id: match.id }, data: updateData });
       await cache.delPattern(`match:${match.id}*`);
-      results.push(`OK R${m.round}: ${homeTeam.name} vs ${awayTeam.name}`);
+
+      // Delete ESPN-synced duplicates with same teams but no round number
+      const deleted = await prisma.match.deleteMany({
+        where: {
+          round: null,
+          homeTeamId: homeTeam.id,
+          awayTeamId: awayTeam.id,
+          id: { not: match.id },
+        },
+      });
+      const deletedMsg = deleted.count > 0 ? ` (borró ${deleted.count} duplicado/s)` : '';
+      results.push(`OK R${m.round}: ${homeTeam.name} vs ${awayTeam.name}${deletedMsg}`);
     }
 
     // Invalidate bracket cache
