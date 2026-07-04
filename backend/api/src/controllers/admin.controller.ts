@@ -153,7 +153,7 @@ export class AdminController {
   }
 
   static async listMatches(req: Request, res: Response): Promise<void> {
-    const { status, stage, page = '1', limit = '20' } = req.query;
+    const { status, stage, worldcup, page = '1', limit = '20' } = req.query;
     const where: any = {};
     if (status) where.status = status;
     if (stage === 'knockout') {
@@ -161,6 +161,7 @@ export class AdminController {
     } else if (stage) {
       where.stage = stage;
     }
+    if (worldcup === 'true') where.tournament = { type: 'WORLD_CUP' };
 
     const [items, total] = await Promise.all([
       prisma.match.findMany({

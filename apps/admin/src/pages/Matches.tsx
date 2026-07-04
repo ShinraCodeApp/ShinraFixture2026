@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Play, CheckSquare, Edit3, Search } from 'lucide-react';
+import { Play, CheckSquare, Edit3, Search, ChevronDown } from 'lucide-react';
 import dayjs from 'dayjs';
 import { adminApi } from '../services/adminApi';
 
@@ -159,15 +159,40 @@ function EditMatchModal({ match, onClose }: { match: MatchRow; onClose: () => vo
   );
 }
 
+const STAGES = [
+  { value: '', label: 'Todas las fases' },
+  { value: 'GROUP', label: 'Fase de Grupos' },
+  { value: 'ROUND_OF_32', label: '16avos de Final' },
+  { value: 'ROUND_OF_16', label: 'Octavos de Final' },
+  { value: 'QUARTER_FINAL', label: 'Cuartos de Final' },
+  { value: 'SEMI_FINAL', label: 'Semifinales' },
+  { value: 'FINAL', label: 'Final' },
+];
+
 export function MatchesPage() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState('ALL');
+  const [stage, setStage] = useState('');
   const [search, setSearch] = useState('');
   const [editMatch, setEditMatch] = useState<MatchRow | null>(null);
+  const [stageOpen, setStageOpen] = useState(false);
+  const stageRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (stageRef.current && !stageRef.current.contains(e.target as Node)) setStageOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const params: Record<string, string> = { worldcup: 'true', limit: '200' };
+  if (filter !== 'ALL') params.status = filter;
+  if (stage) params.stage = stage;
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-matches', filter],
-    queryFn: () => adminApi.getMatches(filter !== 'ALL' ? { status: filter } : {}),
+    queryKey: ['admin-matches', filter, stage],
+    queryFn: () => adminApi.getMatches(params),
     refetchInterval: 30_000,
   });
 
@@ -195,6 +220,7 @@ export function MatchesPage() {
     : allMatches;
 
   const filters = ['ALL', 'SCHEDULED', 'LIVE', 'FINISHED'];
+  const stageLabel = STAGES.find(s => s.value === stage)?.label ?? 'Todas las fases';
 
   return (
     <div className="space-y-6">
@@ -202,7 +228,7 @@ export function MatchesPage() {
 
       <div>
         <h1 className="text-2xl font-bold dark:text-white">Partidos</h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm">Gestión y actualización de resultados</p>
+        <p className="text-gray-500 dark:text-gray-400 text-sm">Copa del Mundo 2026 — Gestión y resultados</p>
       </div>
 
       <div className="flex flex-wrap gap-2 items-center">
@@ -213,6 +239,34 @@ export function MatchesPage() {
             {f === 'ALL' ? 'Todos' : f}
           </button>
         ))}
+
+        {/* Dropdown Fase */}
+        <div className="relative" ref={stageRef}>
+          <button
+            onClick={() => setStageOpen(!stageOpen)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-colors
+              ${stage ? 'bg-primary-500 text-white border-primary-500' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+          >
+            {stageLabel}
+            <ChevronDown size={14} className={`transition-transform ${stageOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {stageOpen && (
+            <div className="absolute top-full left-0 mt-1 w-52 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-lg z-20 overflow-hidden">
+              {STAGES.map((s) => (
+                <button
+                  key={s.value}
+                  onClick={() => { setStage(s.value); setStageOpen(false); }}
+                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors
+                    ${stage === s.value
+                      ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400 font-semibold'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="relative ml-auto">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
