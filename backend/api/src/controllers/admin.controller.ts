@@ -452,7 +452,7 @@ export class AdminController {
       prisma.match.findMany({
         where: { stage: 'ROUND_OF_16', tournament: { type: 'WORLD_CUP' } },
         include: { homeTeam: { select: { code: true, name: true, flagUrl: true } }, awayTeam: { select: { code: true, name: true, flagUrl: true } } },
-        orderBy: { round: 'asc' },
+        orderBy: { matchDate: 'asc' },
       }),
     ]);
     const currentStage = liveMatches[0]?.stage ?? nextMatches[0]?.stage ?? 'ROUND_OF_32';

@@ -288,50 +288,49 @@ export function Dashboard() {
               {tournament.r16Matches.filter((m: any) => m.status === 'FINISHED').length} / {tournament.r16Matches.length} jugados
             </span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 dark:divide-slate-700">
-            {tournament.r16Matches.map((m: any) => {
+          <div className="divide-y divide-gray-100 dark:divide-slate-700">
+            {[...tournament.r16Matches].sort((a: any, b: any) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime()).map((m: any) => {
               const finished = m.status === 'FINISHED';
               const live = m.status === 'LIVE' || m.status === 'HALF_TIME';
+              const homeWins = finished && (m.homePenalties != null ? m.homePenalties > m.awayPenalties : m.homeScore > m.awayScore);
+              const awayWins = finished && (m.homePenalties != null ? m.awayPenalties > m.homePenalties : m.awayScore > m.homeScore);
               return (
-                <div key={m.id} className={`p-4 ${live ? 'bg-red-50 dark:bg-red-950/10' : ''}`}>
-                  <div className="flex items-center justify-between gap-2">
-                    {/* Home */}
-                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                      {m.homeTeam?.flagUrl
-                        ? <img src={m.homeTeam.flagUrl} className="w-6 h-4 object-contain rounded flex-shrink-0" />
-                        : <div className="w-6 h-4 bg-gray-200 dark:bg-slate-600 rounded flex-shrink-0" />}
-                      <span className={`text-sm font-bold truncate ${finished && m.homeScore > m.awayScore ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
-                        {m.homeTeam?.code ?? 'TBD'}
-                      </span>
-                    </div>
-                    {/* Score */}
-                    <div className="text-center flex-shrink-0 px-1">
-                      {finished ? (
-                        <span className="text-sm font-black dark:text-white tabular-nums">
-                          {m.homeScore} - {m.awayScore}
-                          {m.homePenalties != null && (
-                            <span className="text-[10px] text-gray-400 block">({m.homePenalties}-{m.awayPenalties}p)</span>
-                          )}
-                        </span>
-                      ) : live ? (
-                        <span className="text-xs font-bold text-red-500 animate-pulse">EN VIVO</span>
-                      ) : (
-                        <span className="text-xs text-gray-400">vs</span>
-                      )}
-                    </div>
-                    {/* Away */}
-                    <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
-                      <span className={`text-sm font-bold truncate ${finished && m.awayScore > m.homeScore ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
-                        {m.awayTeam?.code ?? 'TBD'}
-                      </span>
-                      {m.awayTeam?.flagUrl
-                        ? <img src={m.awayTeam.flagUrl} className="w-6 h-4 object-contain rounded flex-shrink-0" />
-                        : <div className="w-6 h-4 bg-gray-200 dark:bg-slate-600 rounded flex-shrink-0" />}
-                    </div>
+                <div key={m.id} className={`px-5 py-3 flex items-center gap-3 ${live ? 'bg-red-50 dark:bg-red-950/10' : ''}`}>
+                  <span className="text-[10px] text-gray-400 font-mono w-8 flex-shrink-0">R{m.round}</span>
+                  {/* Home */}
+                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                    {m.homeTeam?.flagUrl
+                      ? <img src={m.homeTeam.flagUrl} className="w-6 h-4 object-contain rounded flex-shrink-0" />
+                      : <div className="w-6 h-4 bg-gray-200 dark:bg-slate-600 rounded flex-shrink-0" />}
+                    <span className={`text-sm font-bold truncate ${homeWins ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+                      {m.homeTeam?.code ?? 'TBD'}
+                    </span>
                   </div>
-                  <p className="text-center text-[10px] text-gray-400 mt-1.5">
-                    {dayjs(m.matchDate).format('D MMM · HH:mm')}
-                  </p>
+                  {/* Score */}
+                  <div className="text-center flex-shrink-0 w-20">
+                    {finished ? (
+                      <span className="text-sm font-black dark:text-white tabular-nums">
+                        {m.homeScore} - {m.awayScore}
+                        {m.homePenalties != null && (
+                          <span className="text-[10px] text-gray-400 ml-1">({m.homePenalties}-{m.awayPenalties}p)</span>
+                        )}
+                      </span>
+                    ) : live ? (
+                      <span className="text-xs font-bold text-red-500 animate-pulse">EN VIVO</span>
+                    ) : (
+                      <span className="text-xs text-gray-400">{dayjs(m.matchDate).format('D MMM HH:mm')}</span>
+                    )}
+                  </div>
+                  {/* Away */}
+                  <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
+                    <span className={`text-sm font-bold truncate ${awayWins ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+                      {m.awayTeam?.code ?? 'TBD'}
+                    </span>
+                    {m.awayTeam?.flagUrl
+                      ? <img src={m.awayTeam.flagUrl} className="w-6 h-4 object-contain rounded flex-shrink-0" />
+                      : <div className="w-6 h-4 bg-gray-200 dark:bg-slate-600 rounded flex-shrink-0" />}
+                  </div>
+                  {finished && <span className="w-16 text-right text-[10px] text-gray-400 flex-shrink-0">{dayjs(m.matchDate).format('D MMM')}</span>}
                 </div>
               );
             })}
