@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../services/adminApi';
+
+type TeamRef = { id: string; code: string; name: string; flagUrl?: string };
 
 interface BMatch {
   id: string;
   round: number;
-  homeTeam: { code: string; name: string; flagUrl?: string } | null;
-  awayTeam: { code: string; name: string; flagUrl?: string } | null;
+  homeTeam: TeamRef | null;
+  awayTeam: TeamRef | null;
   homeScore: number | null;
   awayScore: number | null;
   homePenalties: number | null;
@@ -65,10 +67,22 @@ function winnerSide(m: BMatch | undefined): 'home' | 'away' | null {
 }
 
 interface NodeInfo {
-  team: BMatch['homeTeam'] | null;
+  team: TeamRef | null;
   won: boolean;
   lost: boolean;
   matchRound: number;
+}
+
+interface DragState {
+  srcLayer: number;
+  srcSlot: number;
+  team: TeamRef | null;
+  matchId: string;
+  side: 'home' | 'away';
+  svgX: number;
+  svgY: number;
+  startX: number;
+  startY: number;
 }
 
 function buildNode(layer: number, slot: number, byRound: Record<number, BMatch>): NodeInfo {
@@ -237,6 +251,49 @@ function EditModal({ match, onClose, onSaved }: {
 export function BracketCircle() {
   const [editingMatch, setEditingMatch] = useState<BMatch | null>(null);
   const [hoveredRound, setHoveredRound] = useState<number | null>(null);
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ layer: number; slot: number } | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const qc = useQueryClient();
+
+  const toSVG = useCallback((e: React.MouseEvent): { x: number; y: number } => {
+    const svg = svgRef.current;
+    if (!svg) return { x: 0, y: 0 };
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    const inv = svg.getScreenCTM()?.inverse();
+    if (!inv) return { x: 0, y: 0 };
+    const sp = pt.matrixTransform(inv);
+    return { x: sp.x, y: sp.y };
+  }, []);
+
+  const handleSwap = useCallback(async (
+    d: DragState, dst: { layer: number; slot: number }, byRound: Record<number, BMatch>
+  ) => {
+    const srcMatch = byRound[matchRoundFor(d.srcLayer, d.srcSlot)];
+    const dstMatch = byRound[matchRoundFor(dst.layer, dst.slot)];
+    if (!srcMatch || !dstMatch || srcMatch.id === dstMatch.id) return;
+
+    const dstSide = dst.slot % 2 === 0 ? 'home' : 'away';
+    const dstTeam = dstSide === 'home' ? dstMatch.homeTeam : dstMatch.awayTeam;
+
+    const srcPatch: Record<string, unknown> =
+      d.side === 'home'
+        ? { homeTeamId: dstTeam?.id ?? null, homeLabel: dstTeam?.code ?? null }
+        : { awayTeamId: dstTeam?.id ?? null, awayLabel: dstTeam?.code ?? null };
+
+    const dstPatch: Record<string, unknown> =
+      dstSide === 'home'
+        ? { homeTeamId: d.team?.id ?? null, homeLabel: d.team?.code ?? null }
+        : { awayTeamId: d.team?.id ?? null, awayLabel: d.team?.code ?? null };
+
+    await Promise.all([
+      adminApi.editMatchFull(srcMatch.id, srcPatch),
+      adminApi.editMatchFull(dstMatch.id, dstPatch),
+    ]);
+    qc.invalidateQueries({ queryKey: ['admin-bracket-circular'] });
+    qc.invalidateQueries({ queryKey: ['admin-bracket'] });
+  }, [qc]);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['admin-bracket-circular'],
@@ -372,9 +429,11 @@ export function BracketCircle() {
         </clipPath>
       );
 
-      const bg     = !info.team ? '#0f172a' : info.lost ? '#131c2e' : '#1e293b';
-      const border = info.won ? '#22c55e' : isH ? '#3b82f6' : info.lost ? '#1e293b' : info.team ? '#3f5068' : '#1e293b';
-      const bw     = info.won || isH ? 2.5 : 1.5;
+      const isDrop = dropTarget?.layer === layer && dropTarget?.slot === slot;
+      const isDragSrc = drag?.srcLayer === layer && drag?.srcSlot === slot;
+      const bg     = isDrop ? '#1e3a5f' : !info.team ? '#0f172a' : info.lost ? '#131c2e' : '#1e293b';
+      const border = isDrop ? '#60a5fa' : info.won ? '#22c55e' : isH ? '#3b82f6' : info.lost ? '#1e293b' : info.team ? '#3f5068' : '#1e293b';
+      const bw     = isDrop ? 3 : info.won || isH ? 2.5 : 1.5;
 
       if (info.won) {
         circles.push(
@@ -386,13 +445,32 @@ export function BracketCircle() {
 
       circles.push(
         <g key={`n-${layer}-${slot}`}
-          style={{ cursor: m ? 'pointer' : 'default' }}
-          onClick={() => m && setEditingMatch(m)}
-          onMouseEnter={() => m && setHoveredRound(info.matchRound)}
-          onMouseLeave={() => setHoveredRound(null)}
+          style={{ cursor: info.team ? 'grab' : (m ? 'pointer' : 'default') }}
+          onMouseDown={(e) => {
+            if (!info.team || !m) return;
+            e.preventDefault();
+            const { x: sx, y: sy } = toSVG(e);
+            setDrag({
+              srcLayer: layer, srcSlot: slot,
+              team: info.team, matchId: m.id,
+              side: slot % 2 === 0 ? 'home' : 'away',
+              svgX: sx, svgY: sy, startX: sx, startY: sy,
+            });
+          }}
+          onMouseEnter={() => {
+            if (drag && m && !(drag.srcLayer === layer && drag.srcSlot === slot)) {
+              setDropTarget({ layer, slot });
+            } else if (!drag && m) {
+              setHoveredRound(info.matchRound);
+            }
+          }}
+          onMouseLeave={() => {
+            if (drag) setDropTarget(null);
+            else setHoveredRound(null);
+          }}
         >
           <circle cx={x} cy={y} r={r} fill={bg} stroke={border} strokeWidth={bw} />
-          {info.team?.flagUrl && (
+          {info.team?.flagUrl && !isDragSrc && (
             <image href={info.team.flagUrl}
               x={x - r + 1} y={y - r + 1}
               width={(r - 1) * 2} height={(r - 1) * 2}
@@ -401,11 +479,13 @@ export function BracketCircle() {
               opacity={info.lost ? 0.2 : 1}
             />
           )}
+          {isDragSrc && (
+            <text x={x} y={y + 4} textAnchor="middle" fill="#475569" fontSize={10} fontFamily="monospace">···</text>
+          )}
           {!info.team && (
             <text x={x} y={y + 4} textAnchor="middle" fill="#334155" fontSize={10} fontFamily="monospace">?</text>
           )}
-          {/* Team code label */}
-          {info.team && layer <= 2 && (
+          {info.team && layer <= 2 && !isDragSrc && (
             <text x={x} y={y + r + 13}
               textAnchor="middle"
               fontSize={layer === 0 ? 9 : layer === 1 ? 10.5 : 11}
@@ -459,7 +539,30 @@ export function BracketCircle() {
         </div>
 
         <div className="bg-slate-950 rounded-2xl overflow-hidden">
-          <svg viewBox={`0 0 ${S} ${S}`} style={{ width: '100%', maxHeight: '85vh', display: 'block' }}>
+          <svg
+            ref={svgRef}
+            viewBox={`0 0 ${S} ${S}`}
+            style={{ width: '100%', maxHeight: '85vh', display: 'block', userSelect: 'none' }}
+            onMouseMove={(e) => {
+              if (!drag) return;
+              const { x, y } = toSVG(e);
+              setDrag(prev => prev ? { ...prev, svgX: x, svgY: y } : null);
+            }}
+            onMouseUp={(e) => {
+              if (!drag) return;
+              const { x, y } = toSVG(e);
+              const moved = Math.hypot(x - drag.startX, y - drag.startY);
+              if (moved < 8) {
+                const m = byRound[matchRoundFor(drag.srcLayer, drag.srcSlot)];
+                if (m) setEditingMatch(m);
+              } else if (dropTarget) {
+                handleSwap(drag, dropTarget, byRound);
+              }
+              setDrag(null);
+              setDropTarget(null);
+            }}
+            onMouseLeave={() => { setDrag(null); setDropTarget(null); }}
+          >
             <defs>{clipDefs}</defs>
 
             <rect width={S} height={S} fill="#020617" />
@@ -490,6 +593,30 @@ export function BracketCircle() {
               fontSize={9} fontWeight="bold" fontFamily="sans-serif" letterSpacing={1.5}>
               2026
             </text>
+
+            {/* Drag ghost */}
+            {drag && (
+              <g style={{ pointerEvents: 'none' }}>
+                <circle cx={drag.svgX} cy={drag.svgY} r={28}
+                  fill="#1e293b" stroke="#60a5fa" strokeWidth={2.5} opacity={0.9} />
+                {drag.team?.flagUrl && (
+                  <image href={drag.team.flagUrl}
+                    x={drag.svgX - 27} y={drag.svgY - 27}
+                    width={54} height={54}
+                    clipPath="url(#ghost-clip)"
+                    preserveAspectRatio="xMidYMid slice"
+                  />
+                )}
+                <clipPath id="ghost-clip">
+                  <circle cx={drag.svgX} cy={drag.svgY} r={27} />
+                </clipPath>
+                <text x={drag.svgX} y={drag.svgY + 41}
+                  textAnchor="middle" fontSize={11} fill="#60a5fa"
+                  fontFamily="monospace" fontWeight="bold">
+                  {drag.team?.code ?? '?'}
+                </text>
+              </g>
+            )}
           </svg>
         </div>
       </div>
