@@ -278,6 +278,67 @@ export function Dashboard() {
         </div>
       )}
 
+      {/* ── Octavos de Final ──────────────────────────────── */}
+      {tournament?.r16Matches?.length > 0 && (
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-slate-700 flex items-center gap-2">
+            <Trophy size={16} className="text-yellow-500" />
+            <h2 className="font-semibold dark:text-white">Octavos de Final</h2>
+            <span className="ml-auto text-xs text-gray-400">
+              {tournament.r16Matches.filter((m: any) => m.status === 'FINISHED').length} / {tournament.r16Matches.length} jugados
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 dark:divide-slate-700">
+            {tournament.r16Matches.map((m: any) => {
+              const finished = m.status === 'FINISHED';
+              const live = m.status === 'LIVE' || m.status === 'HALF_TIME';
+              return (
+                <div key={m.id} className={`p-4 ${live ? 'bg-red-50 dark:bg-red-950/10' : ''}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    {/* Home */}
+                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                      {m.homeTeam?.flagUrl
+                        ? <img src={m.homeTeam.flagUrl} className="w-6 h-4 object-contain rounded flex-shrink-0" />
+                        : <div className="w-6 h-4 bg-gray-200 dark:bg-slate-600 rounded flex-shrink-0" />}
+                      <span className={`text-sm font-bold truncate ${finished && m.homeScore > m.awayScore ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+                        {m.homeTeam?.code ?? 'TBD'}
+                      </span>
+                    </div>
+                    {/* Score */}
+                    <div className="text-center flex-shrink-0 px-1">
+                      {finished ? (
+                        <span className="text-sm font-black dark:text-white tabular-nums">
+                          {m.homeScore} - {m.awayScore}
+                          {m.homePenalties != null && (
+                            <span className="text-[10px] text-gray-400 block">({m.homePenalties}-{m.awayPenalties}p)</span>
+                          )}
+                        </span>
+                      ) : live ? (
+                        <span className="text-xs font-bold text-red-500 animate-pulse">EN VIVO</span>
+                      ) : (
+                        <span className="text-xs text-gray-400">vs</span>
+                      )}
+                    </div>
+                    {/* Away */}
+                    <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
+                      <span className={`text-sm font-bold truncate ${finished && m.awayScore > m.homeScore ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+                        {m.awayTeam?.code ?? 'TBD'}
+                      </span>
+                      {m.awayTeam?.flagUrl
+                        ? <img src={m.awayTeam.flagUrl} className="w-6 h-4 object-contain rounded flex-shrink-0" />
+                        : <div className="w-6 h-4 bg-gray-200 dark:bg-slate-600 rounded flex-shrink-0" />}
+                    </div>
+                  </div>
+                  <p className="text-center text-[10px] text-gray-400 mt-1.5">
+                    {dayjs(m.matchDate).format('D MMM · HH:mm')}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ── Predicciones + Top Predictores ────────────────── */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Desglose de predicciones */}

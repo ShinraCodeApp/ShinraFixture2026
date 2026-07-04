@@ -378,7 +378,7 @@ export class AdminController {
       ROUND_OF_16: 'Octavos de Final', QUARTER_FINAL: 'Cuartos de Final',
       SEMI_FINAL: 'Semifinales', FINAL: 'Final',
     };
-    const [liveMatches, nextMatches, staleMatches, matchesPlayed, totalMatches] = await Promise.all([
+    const [liveMatches, nextMatches, staleMatches, matchesPlayed, totalMatches, r16Matches] = await Promise.all([
       prisma.match.findMany({
         where: { status: { in: ['LIVE', 'HALF_TIME'] }, tournament: { type: 'WORLD_CUP' } },
         include: { homeTeam: { select: { name: true, code: true, flagUrl: true } }, awayTeam: { select: { name: true, code: true, flagUrl: true } } },
@@ -395,6 +395,11 @@ export class AdminController {
       }),
       prisma.match.count({ where: { status: 'FINISHED', tournament: { type: 'WORLD_CUP' } } }),
       prisma.match.count({ where: { tournament: { type: 'WORLD_CUP' } } }),
+      prisma.match.findMany({
+        where: { stage: 'ROUND_OF_16', tournament: { type: 'WORLD_CUP' } },
+        include: { homeTeam: { select: { code: true, name: true, flagUrl: true } }, awayTeam: { select: { code: true, name: true, flagUrl: true } } },
+        orderBy: { round: 'asc' },
+      }),
     ]);
     const currentStage = liveMatches[0]?.stage ?? nextMatches[0]?.stage ?? 'ROUND_OF_32';
     res.json({
@@ -407,6 +412,7 @@ export class AdminController {
         liveMatches,
         nextMatches,
         staleMatches,
+        r16Matches,
       },
     });
   }
