@@ -153,9 +153,14 @@ export class AdminController {
   }
 
   static async listMatches(req: Request, res: Response): Promise<void> {
-    const { status, page = '1', limit = '20' } = req.query;
+    const { status, stage, page = '1', limit = '20' } = req.query;
     const where: any = {};
     if (status) where.status = status;
+    if (stage === 'knockout') {
+      where.stage = { in: ['ROUND_OF_32', 'ROUND_OF_16', 'QUARTER_FINAL', 'SEMI_FINAL', 'FINAL'] };
+    } else if (stage) {
+      where.stage = stage;
+    }
 
     const [items, total] = await Promise.all([
       prisma.match.findMany({
@@ -164,7 +169,7 @@ export class AdminController {
           homeTeam: { select: { id: true, name: true, code: true, flagUrl: true } },
           awayTeam: { select: { id: true, name: true, code: true, flagUrl: true } },
         },
-        orderBy: { matchDate: 'desc' },
+        orderBy: { round: 'asc' },
         skip: (parseInt(page as string) - 1) * parseInt(limit as string),
         take: parseInt(limit as string),
       }),
