@@ -30,6 +30,13 @@ const LAYER_ROUNDS: Record<number, number[]> = {
   4: [104],
 };
 
+// Outer ring order: reordered so each R32 pair visually connects radially to the correct R16 slot.
+// Pairs 8-9: R84(POR)→R93 home, R83(ESP)→R93 away
+// Pairs 10-11: R81→R94 home, R82→R94 away (USA/BEL sources)
+// Pairs 12-13: R87(ARG)→R95 home, R86(EGY)→R95 away
+// Pairs 14-15: R85(SUI)→R96 home, R88(COL)→R96 away
+const OUTER_R32 = [73,74,75,76,77,78,79,80, 84,83,81,82, 87,86,85,88];
+
 const STAGE_LABELS = ['16avos', 'Octavos', 'Cuartos', 'Semis', 'Final'];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -42,9 +49,8 @@ function slotXY(layer: number, slot: number): [number, number] {
 }
 
 function matchRoundFor(layer: number, slot: number): number {
-  return layer === 0
-    ? 73 + Math.floor(slot / 2)
-    : LAYER_ROUNDS[layer][Math.floor(slot / 2)];
+  if (layer === 0) return OUTER_R32[Math.floor(slot / 2)];
+  return LAYER_ROUNDS[layer][Math.floor(slot / 2)];
 }
 
 function winnerSide(m: BMatch | undefined): 'home' | 'away' | null {
