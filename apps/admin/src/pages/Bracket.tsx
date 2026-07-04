@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { adminApi } from '../services/adminApi';
+import { BracketCircle } from './BracketCircle';
 
 interface BMatch {
   id: string;
@@ -130,6 +131,8 @@ function BracketColumn({ label, pairs, byRound, compact }: {
 }
 
 export function BracketPage() {
+  const [view, setView] = useState<'linear' | 'circular'>('circular');
+
   const { data, isLoading } = useQuery({
     queryKey: ['admin-bracket'],
     queryFn: () => adminApi.getMatches({ stage: 'knockout', limit: '200' }),
@@ -150,10 +153,35 @@ export function BracketPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold dark:text-white">Llaves del Mundial 2026</h1>
-        <p className="text-slate-500 text-sm">Fase eliminatoria — 48 equipos</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold dark:text-white">Llaves del Mundial 2026</h1>
+          <p className="text-slate-500 text-sm">Fase eliminatoria — 48 equipos</p>
+        </div>
+        <div className="flex gap-1 bg-slate-800 rounded-xl p-1 flex-shrink-0">
+          <button
+            onClick={() => setView('circular')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+              view === 'circular' ? 'bg-primary-500 text-white' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            🌐 Circular
+          </button>
+          <button
+            onClick={() => setView('linear')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+              view === 'linear' ? 'bg-primary-500 text-white' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            ≡ Lista
+          </button>
+        </div>
       </div>
+
+      {view === 'circular' && <BracketCircle />}
+
+      {view === 'linear' && (
+      <>
 
       <div className="bg-slate-900 rounded-2xl p-6 overflow-x-auto">
         <div className="flex gap-4 items-start min-w-max">
@@ -291,6 +319,8 @@ export function BracketPage() {
           </div>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }
