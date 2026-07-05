@@ -26,15 +26,19 @@ const NODE_R   = [ 26,  22,  20,  24, 30];
 const SLOT_CNT = [ 32,  16,   8,   4,  2];
 
 const LAYER_ROUNDS: Record<number, number[]> = {
-  1: [89, 90, 91, 92, 93, 94, 95, 96],
+  // Ordered to match the visual clockwise layout (from 12 o'clock):
+  // pos0=R90(PAR/FRA), pos1=R91(BRA/NOR), pos2=R92(MEX/ENG), pos3=R95(ARG/EGY),
+  // pos4=R96(SUI/COL), pos5=R94(USA/BEL), pos6=R93(POR/ESP), pos7=R89(CAN/MAR)
+  1: [90, 91, 92, 95, 96, 94, 93, 89],
   2: [97, 98, 99, 100],
   3: [101, 102],
   4: [104],
 };
 
-// Natural order: R73-R88 sequential so each pair maps to the correct R16 slot.
-// Seed: R89=W73+W74, R90=W75+W76, ..., R93=W81+W82, R94=W83+W84, R95=W85+W86, R96=W87+W88
-const OUTER_R32 = [73,74,75,76,77,78,79,80, 81,82,83,84, 85,86,87,88];
+// Clockwise from 12 o'clock, each position is a R32 match.
+// Pair feeds the adjacent R16 slot: (75+76)→R90, (77+78)→R91, ..., (74+73)→R89
+// 3rd-place matches (85,86,87,88) interleaved so ARG/EGY,SUI/COL,BEL/USA align visually
+const OUTER_R32 = [75, 76, 77, 78, 79, 80, 85, 86, 88, 87, 84, 83, 82, 81, 74, 73];
 
 const STAGE_LABELS = ['16avos', 'Octavos', 'Cuartos', 'Semis', 'Final'];
 
