@@ -1,8 +1,29 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Swords, RefreshCw } from 'lucide-react';
+import { Swords, RefreshCw, Shield } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 import { BracketCircle } from './BracketCircle';
+
+// Round of 32 matchups (from image bracket + actual results)
+// R85 excluded — Argentina's 3rd-place opponent can't be read from image; fix via drag-and-drop
+const R32_ACTUAL = [
+  { round: 73, homeCode: 'RSA', awayCode: 'CAN' }, // South Africa vs Canada → CAN wins → R89
+  { round: 74, homeCode: 'NED', awayCode: 'MAR' }, // Netherlands vs Morocco → MAR wins → R89
+  { round: 75, homeCode: 'GER', awayCode: 'PAR' }, // Germany vs Paraguay → PAR wins → R90
+  { round: 76, homeCode: 'FRA', awayCode: 'SWE' }, // France vs Sweden → FRA wins → R90
+  { round: 77, homeCode: 'BRA', awayCode: 'JPN' }, // Brazil vs Japan → BRA wins → R91
+  { round: 78, homeCode: 'IRL', awayCode: 'NOR' }, // Ireland vs Norway → NOR wins → R91
+  { round: 79, homeCode: 'MEX', awayCode: 'ECU' }, // Mexico vs Ecuador → MEX wins → R92
+  { round: 80, homeCode: 'ENG', awayCode: 'COD' }, // England vs DR Congo → ENG wins → R92
+  { round: 81, homeCode: 'POR', awayCode: 'CRO' }, // Portugal vs Croatia → POR wins → R93
+  { round: 82, homeCode: 'ESP', awayCode: 'AUT' }, // Spain vs Austria → ESP wins → R93
+  { round: 83, homeCode: 'USA', awayCode: 'BIH' }, // USA vs Bosnia → USA wins → R94
+  { round: 84, homeCode: 'BEL', awayCode: 'SEN' }, // Belgium vs Senegal → BEL wins → R94
+  // R85: ARG vs ???  — fix via drag-and-drop (bandera no legible en imagen)
+  { round: 86, homeCode: 'AUS', awayCode: 'EGY' }, // Australia vs Egypt → EGY wins → R95
+  { round: 87, homeCode: 'SUI', awayCode: 'ALG' }, // Switzerland vs Algeria → SUI wins → R96
+  { round: 88, homeCode: 'COL', awayCode: 'GHA' }, // Colombia vs Ghana → COL wins → R96
+];
 
 const R16_ACTUAL = [
   { round: 89, homeCode: 'CAN', awayCode: 'MAR', matchDate: '2026-07-04T17:00:00Z' },
@@ -146,6 +167,7 @@ export function BracketPage() {
   const qc = useQueryClient();
   const [view, setView] = useState<'linear' | 'circular'>('circular');
   const [fixingR16, setFixingR16] = useState(false);
+  const [fixingR32, setFixingR32] = useState(false);
   const [fixMsg, setFixMsg] = useState<string | null>(null);
 
   const handleFixR16 = async () => {
@@ -163,6 +185,23 @@ export function BracketPage() {
     } finally {
       setFixingR16(false);
       setTimeout(() => setFixMsg(null), 5000);
+    }
+  };
+
+  const handleFixR32 = async () => {
+    setFixingR32(true);
+    setFixMsg(null);
+    try {
+      const result = await adminApi.fixKnockoutTeams(R32_ACTUAL, 'ROUND_OF_32');
+      const ok = result?.results?.filter((r: string) => r.startsWith('OK')).length ?? 0;
+      setFixMsg(`✓ ${ok}/${R32_ACTUAL.length} 16avos corregidos (R85-ARG draggealo)`);
+      qc.invalidateQueries({ queryKey: ['admin-bracket'] });
+      qc.invalidateQueries({ queryKey: ['admin-bracket-circular'] });
+    } catch {
+      setFixMsg('Error al corregir 16avos');
+    } finally {
+      setFixingR32(false);
+      setTimeout(() => setFixMsg(null), 8000);
     }
   };
 
@@ -197,6 +236,15 @@ export function BracketPage() {
               {fixMsg}
             </span>
           )}
+          <button
+            onClick={handleFixR32}
+            disabled={fixingR32}
+            title="Asigna los equipos reales a los 16avos (R73-R88) según el bracket oficial"
+            className="flex items-center gap-2 px-4 py-2 bg-sky-700 hover:bg-sky-600 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            <Shield size={14} />
+            {fixingR32 ? 'Corrigiendo...' : 'Fix 16vos'}
+          </button>
           <button
             onClick={handleFixR16}
             disabled={fixingR16}

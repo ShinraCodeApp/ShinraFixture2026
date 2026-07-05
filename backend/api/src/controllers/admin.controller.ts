@@ -543,10 +543,11 @@ export class AdminController {
   }
 
   // Fix knockout round team assignments when bracket propagation placed wrong teams
-  // Body: { matches: [{ round, homeCode, awayCode, matchDate? }] }
+  // Body: { matches: [{ round, homeCode, awayCode, matchDate? }], stage? }
   static async fixKnockoutTeams(req: Request, res: Response): Promise<void> {
-    const { matches } = req.body as {
+    const { matches, stage: matchStage = 'ROUND_OF_16' } = req.body as {
       matches: { round: number; homeCode: string; awayCode: string; matchDate?: string }[];
+      stage?: string;
     };
     if (!Array.isArray(matches) || matches.length === 0) {
       res.status(400).json({ success: false, error: 'matches array required' });
@@ -573,22 +574,25 @@ export class AdminController {
         awayTeamId: awayTeam.id,
         homeLabel: homeTeam.code,
         awayLabel: awayTeam.code,
-        stage: 'ROUND_OF_16',
+        stage: matchStage,
       };
       if (m.matchDate) updateData.matchDate = new Date(m.matchDate);
       await prisma.match.update({ where: { id: match.id }, data: updateData });
       await cache.delPattern(`match:${match.id}*`);
 
-      // Delete ESPN-synced duplicates with same teams but no round number
-      const deleted = await prisma.match.deleteMany({
-        where: {
-          round: null,
-          homeTeamId: homeTeam.id,
-          awayTeamId: awayTeam.id,
-          id: { not: match.id },
-        },
-      });
-      const deletedMsg = deleted.count > 0 ? ` (borró ${deleted.count} duplicado/s)` : '';
+      let deletedMsg = '';
+      if (matchStage === 'ROUND_OF_16') {
+        // Delete ESPN-synced duplicates with same teams but no round number
+        const deleted = await prisma.match.deleteMany({
+          where: {
+            round: null,
+            homeTeamId: homeTeam.id,
+            awayTeamId: awayTeam.id,
+            id: { not: match.id },
+          },
+        });
+        if (deleted.count > 0) deletedMsg = ` (borró ${deleted.count} duplicado/s)`;
+      }
       results.push(`OK R${m.round}: ${homeTeam.name} vs ${awayTeam.name}${deletedMsg}`);
     }
 

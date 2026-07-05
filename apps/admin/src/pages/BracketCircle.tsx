@@ -32,12 +32,9 @@ const LAYER_ROUNDS: Record<number, number[]> = {
   4: [104],
 };
 
-// Outer ring order: reordered so each R32 pair visually connects radially to the correct R16 slot.
-// Pairs 8-9: R84(POR)→R93 home, R83(ESP)→R93 away
-// Pairs 10-11: R81→R94 home, R82→R94 away (USA/BEL sources)
-// Pairs 12-13: R87(ARG)→R95 home, R86(EGY)→R95 away
-// Pairs 14-15: R85(SUI)→R96 home, R88(COL)→R96 away
-const OUTER_R32 = [73,74,75,76,77,78,79,80, 84,83,81,82, 87,86,85,88];
+// Natural order: R73-R88 sequential so each pair maps to the correct R16 slot.
+// Seed: R89=W73+W74, R90=W75+W76, ..., R93=W81+W82, R94=W83+W84, R95=W85+W86, R96=W87+W88
+const OUTER_R32 = [73,74,75,76,77,78,79,80, 81,82,83,84, 85,86,87,88];
 
 const STAGE_LABELS = ['16avos', 'Octavos', 'Cuartos', 'Semis', 'Final'];
 

@@ -89,8 +89,8 @@ export const adminApi = {
     const res = await api.post('/admin/sync/wc-results');
     return res.data;
   },
-  fixKnockoutTeams: async (matches: { round: number; homeCode: string; awayCode: string; matchDate?: string }[]) => {
-    const res = await api.post('/admin/migrations/fix-knockout-teams', { matches });
+  fixKnockoutTeams: async (matches: { round: number; homeCode: string; awayCode: string; matchDate?: string }[], stage = 'ROUND_OF_16') => {
+    const res = await api.post('/admin/migrations/fix-knockout-teams', { matches, stage });
     return res.data;
   },
 
