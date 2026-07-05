@@ -19,7 +19,7 @@ const R32_ACTUAL = [
   { round: 82, homeCode: 'ESP', awayCode: 'AUT' }, // Spain vs Austria → ESP wins → R93
   { round: 83, homeCode: 'USA', awayCode: 'BIH' }, // USA vs Bosnia → USA wins → R94
   { round: 84, homeCode: 'BEL', awayCode: 'SEN' }, // Belgium vs Senegal → BEL wins → R94
-  // R85: ARG vs ???  — fix via drag-and-drop (bandera no legible en imagen)
+  { round: 85, homeCode: 'ARG', awayCode: 'CPV' }, // Argentina vs Cape Verde → ARG wins → R95
   { round: 86, homeCode: 'AUS', awayCode: 'EGY' }, // Australia vs Egypt → EGY wins → R95
   { round: 87, homeCode: 'SUI', awayCode: 'ALG' }, // Switzerland vs Algeria → SUI wins → R96
   { round: 88, homeCode: 'COL', awayCode: 'GHA' }, // Colombia vs Ghana → COL wins → R96
@@ -194,7 +194,7 @@ export function BracketPage() {
     try {
       const result = await adminApi.fixKnockoutTeams(R32_ACTUAL, 'ROUND_OF_32');
       const ok = result?.results?.filter((r: string) => r.startsWith('OK')).length ?? 0;
-      setFixMsg(`✓ ${ok}/${R32_ACTUAL.length} 16avos corregidos (R85-ARG draggealo)`);
+      setFixMsg(`✓ ${ok}/${R32_ACTUAL.length} 16avos corregidos`);
       qc.invalidateQueries({ queryKey: ['admin-bracket'] });
       qc.invalidateQueries({ queryKey: ['admin-bracket-circular'] });
     } catch {
