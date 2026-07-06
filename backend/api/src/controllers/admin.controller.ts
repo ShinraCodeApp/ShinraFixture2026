@@ -630,6 +630,8 @@ export class AdminController {
         },
       });
       await cache.delPattern(`match:${match.id}*`);
+      // Propagate winner to next round (fixes QF teams after R16 scores are corrected)
+      await BracketService.propagateWinner(match.id).catch(() => {});
       const penStr = m.homePenalties != null ? ` (pen ${m.homePenalties}-${m.awayPenalties})` : '';
       results.push(`OK R${m.round}: ${m.homeScore}-${m.awayScore}${penStr}`);
     }
