@@ -12,7 +12,7 @@ const R32_ACTUAL = [
   { round: 75, homeCode: 'GER', awayCode: 'PAR' }, // Germany vs Paraguay → PAR wins → R90
   { round: 76, homeCode: 'FRA', awayCode: 'SWE' }, // France vs Sweden → FRA wins → R90
   { round: 77, homeCode: 'BRA', awayCode: 'JPN' }, // Brazil vs Japan → BRA wins → R91
-  { round: 78, homeCode: 'IRL', awayCode: 'NOR' }, // Ireland vs Norway → NOR wins → R91
+  { round: 78, homeCode: 'CIV', awayCode: 'NOR' }, // Ivory Coast vs Norway → NOR wins → R91
   { round: 79, homeCode: 'MEX', awayCode: 'ECU' }, // Mexico vs Ecuador → MEX wins → R92
   { round: 80, homeCode: 'ENG', awayCode: 'COD' }, // England vs DR Congo → ENG wins → R92
   { round: 81, homeCode: 'POR', awayCode: 'CRO' }, // Portugal vs Croatia → POR wins → R93
