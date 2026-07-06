@@ -26,14 +26,15 @@ const R32_ACTUAL = [
 ];
 
 const R16_ACTUAL = [
-  { round: 89, homeCode: 'CAN', awayCode: 'MAR', matchDate: '2026-07-04T17:00:00Z' },
-  { round: 90, homeCode: 'PAR', awayCode: 'FRA', matchDate: '2026-07-04T21:00:00Z' },
-  { round: 91, homeCode: 'BRA', awayCode: 'NOR', matchDate: '2026-07-05T20:00:00Z' },
-  { round: 92, homeCode: 'MEX', awayCode: 'ENG', matchDate: '2026-07-06T00:00:00Z' },
-  { round: 93, homeCode: 'POR', awayCode: 'ESP', matchDate: '2026-07-06T19:00:00Z' },
-  { round: 94, homeCode: 'USA', awayCode: 'BEL', matchDate: '2026-07-07T00:00:00Z' },
-  { round: 95, homeCode: 'ARG', awayCode: 'EGY', matchDate: '2026-07-07T16:00:00Z' },
-  { round: 96, homeCode: 'SUI', awayCode: 'COL', matchDate: '2026-07-07T20:00:00Z' },
+  // home = equipo que viene del par "izquierdo" en el bracket circular (OUTER_R32 pos par)
+  { round: 89, homeCode: 'MAR', awayCode: 'CAN', matchDate: '2026-07-04T17:00:00Z' }, // MAR(R74) + CAN(R73)
+  { round: 90, homeCode: 'FRA', awayCode: 'PAR', matchDate: '2026-07-04T21:00:00Z' }, // FRA(R76) + PAR(R75)
+  { round: 91, homeCode: 'BRA', awayCode: 'NOR', matchDate: '2026-07-05T20:00:00Z' }, // BRA(R77) + NOR(R78)
+  { round: 92, homeCode: 'MEX', awayCode: 'ENG', matchDate: '2026-07-06T00:00:00Z' }, // MEX(R79) + ENG(R80)
+  { round: 93, homeCode: 'ESP', awayCode: 'POR', matchDate: '2026-07-06T19:00:00Z' }, // ESP(R82) + POR(R81)
+  { round: 94, homeCode: 'BEL', awayCode: 'USA', matchDate: '2026-07-07T00:00:00Z' }, // BEL(R84) + USA(R83)
+  { round: 95, homeCode: 'ARG', awayCode: 'EGY', matchDate: '2026-07-07T16:00:00Z' }, // ARG(R85) + EGY(R86)
+  { round: 96, homeCode: 'COL', awayCode: 'SUI', matchDate: '2026-07-07T20:00:00Z' }, // COL(R88) + SUI(R87)
 ];
 
 interface BMatch {
