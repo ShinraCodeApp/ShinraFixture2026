@@ -46,7 +46,7 @@ const STAGE_LABELS = ['16avos', 'Octavos', 'Cuartos', 'Semis', 'Final'];
 function slotXY(layer: number, slot: number): [number, number] {
   const outerSpan   = Math.pow(2, layer);
   const outerCenter = slot * outerSpan + (outerSpan - 1) / 2;
-  const deg         = outerCenter * (360 / 32) - 90;
+  const deg         = (outerCenter - 0.5) * (360 / 32) - 90;
   const rad         = (deg * Math.PI) / 180;
   return [CX + RADII[layer] * Math.cos(rad), CY + RADII[layer] * Math.sin(rad)];
 }
@@ -351,8 +351,8 @@ export function BracketCircle() {
       // Outer pair bracket arc — visually groups the two opponents
       if (layer === 0) {
         const arcR = RADII[0] + NODE_R[0] + 10;
-        const degA = (pair * 2)     * (360 / 32) - 90;
-        const degB = (pair * 2 + 1) * (360 / 32) - 90;
+        const degA = (pair * 2 - 0.5) * (360 / 32) - 90;
+        const degB = (pair * 2 + 0.5) * (360 / 32) - 90;
         const radA = (degA * Math.PI) / 180;
         const radB = (degB * Math.PI) / 180;
         const x1 = CX + arcR * Math.cos(radA), y1 = CY + arcR * Math.sin(radA);
