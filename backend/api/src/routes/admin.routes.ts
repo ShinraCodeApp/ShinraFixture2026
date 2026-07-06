@@ -62,3 +62,4 @@ adminRoutes.post('/sync/wc-results', AdminController.syncWCResults);
 // Migrations / one-time fixes
 adminRoutes.post('/migrations/fix-r32-teams', AdminController.fixR32Teams);
 adminRoutes.post('/migrations/fix-knockout-teams', AdminController.fixKnockoutTeams);
+adminRoutes.post('/migrations/fix-match-scores', AdminController.fixMatchScores);

@@ -37,6 +37,32 @@ const R16_ACTUAL = [
   { round: 96, homeCode: 'COL', awayCode: 'SUI', matchDate: '2026-07-07T20:00:00Z' }, // COL(R88) + SUI(R87)
 ];
 
+// Scores correctos verificados en ESPN (R32 = 16avos, R16 = octavos jugados)
+const CORRECT_SCORES = [
+  // R32 — todos jugados
+  { round: 73, homeScore: 0, awayScore: 1, homePenalties: null, awayPenalties: null }, // RSA 0-1 CAN
+  { round: 74, homeScore: 1, awayScore: 1, homePenalties: 2,    awayPenalties: 3    }, // NED 1-1 MAR (pen 2-3)
+  { round: 75, homeScore: 1, awayScore: 1, homePenalties: 3,    awayPenalties: 4    }, // GER 1-1 PAR (pen 3-4)
+  { round: 76, homeScore: 3, awayScore: 0, homePenalties: null, awayPenalties: null }, // FRA 3-0 SWE
+  { round: 77, homeScore: 2, awayScore: 1, homePenalties: null, awayPenalties: null }, // BRA 2-1 JPN
+  { round: 78, homeScore: 1, awayScore: 2, homePenalties: null, awayPenalties: null }, // CIV 1-2 NOR
+  { round: 79, homeScore: 2, awayScore: 0, homePenalties: null, awayPenalties: null }, // MEX 2-0 ECU
+  { round: 80, homeScore: 2, awayScore: 1, homePenalties: null, awayPenalties: null }, // ENG 2-1 COD
+  { round: 81, homeScore: 2, awayScore: 1, homePenalties: null, awayPenalties: null }, // POR 2-1 CRO
+  { round: 82, homeScore: 3, awayScore: 0, homePenalties: null, awayPenalties: null }, // ESP 3-0 AUT
+  { round: 83, homeScore: 2, awayScore: 0, homePenalties: null, awayPenalties: null }, // USA 2-0 BIH
+  { round: 84, homeScore: 3, awayScore: 2, homePenalties: null, awayPenalties: null }, // BEL 3-2 SEN
+  { round: 85, homeScore: 3, awayScore: 2, homePenalties: null, awayPenalties: null }, // ARG 3-2 CPV
+  { round: 86, homeScore: 1, awayScore: 1, homePenalties: 2,    awayPenalties: 4    }, // AUS 1-1 EGY (pen 2-4)
+  { round: 87, homeScore: 2, awayScore: 0, homePenalties: null, awayPenalties: null }, // SUI 2-0 ALG
+  { round: 88, homeScore: 1, awayScore: 0, homePenalties: null, awayPenalties: null }, // COL 1-0 GHA
+  // R16 — jugados (home/away según nuestro bracket, scores según ESPN)
+  { round: 89, homeScore: 3, awayScore: 0, homePenalties: null, awayPenalties: null }, // MAR 3-0 CAN
+  { round: 90, homeScore: 1, awayScore: 0, homePenalties: null, awayPenalties: null }, // FRA 1-0 PAR
+  { round: 91, homeScore: 1, awayScore: 2, homePenalties: null, awayPenalties: null }, // BRA 1-2 NOR
+  { round: 92, homeScore: 2, awayScore: 3, homePenalties: null, awayPenalties: null }, // MEX 2-3 ENG
+];
+
 interface BMatch {
   id: string;
   round: number;
@@ -169,6 +195,7 @@ export function BracketPage() {
   const [view, setView] = useState<'linear' | 'circular'>('circular');
   const [fixingR16, setFixingR16] = useState(false);
   const [fixingR32, setFixingR32] = useState(false);
+  const [fixingScores, setFixingScores] = useState(false);
   const [fixMsg, setFixMsg] = useState<string | null>(null);
 
   const handleFixR16 = async () => {
@@ -186,6 +213,23 @@ export function BracketPage() {
     } finally {
       setFixingR16(false);
       setTimeout(() => setFixMsg(null), 5000);
+    }
+  };
+
+  const handleFixScores = async () => {
+    setFixingScores(true);
+    setFixMsg(null);
+    try {
+      const result = await adminApi.fixMatchScores(CORRECT_SCORES);
+      const ok = result?.results?.filter((r: string) => r.startsWith('OK')).length ?? 0;
+      setFixMsg(`✓ ${ok}/${CORRECT_SCORES.length} scores corregidos`);
+      qc.invalidateQueries({ queryKey: ['admin-bracket'] });
+      qc.invalidateQueries({ queryKey: ['admin-bracket-circular'] });
+    } catch {
+      setFixMsg('Error al corregir scores');
+    } finally {
+      setFixingScores(false);
+      setTimeout(() => setFixMsg(null), 8000);
     }
   };
 
@@ -237,6 +281,15 @@ export function BracketPage() {
               {fixMsg}
             </span>
           )}
+          <button
+            onClick={handleFixScores}
+            disabled={fixingScores}
+            title="Corrige los scores de 16avos y octavos jugados según ESPN"
+            className="flex items-center gap-2 px-4 py-2 bg-violet-700 hover:bg-violet-600 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            <RefreshCw size={14} />
+            {fixingScores ? 'Actualizando...' : 'Fix Scores'}
+          </button>
           <button
             onClick={handleFixR32}
             disabled={fixingR32}

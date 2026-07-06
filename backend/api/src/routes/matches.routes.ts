@@ -374,6 +374,13 @@ matchRoutes.post('/espn-sync', async (req, res) => {
           },
         });
       } else {
+        // Protect FINISHED WC knockout matches from non-WC sources (general soccer, friendlies, etc.)
+        // These endpoints return stale or mismatched data that overwrites correct results.
+        const knockoutStages = ['ROUND_OF_32', 'ROUND_OF_16', 'QUARTER_FINAL', 'SEMI_FINAL', 'FINAL'];
+        if (!event._isWcSource && match.status === 'FINISHED' && knockoutStages.includes(match.stage as string)) {
+          continue;
+        }
+
         const prevStatus = match.status;
         match = await prisma.match.update({
           where: { id: match.id },

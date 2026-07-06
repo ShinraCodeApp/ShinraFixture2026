@@ -600,4 +600,41 @@ export class AdminController {
     await cache.delPattern('tournament:*');
     res.json({ success: true, results });
   }
+
+  // Bulk-update match scores by round number (for correcting ESPN sync errors)
+  // Body: { matches: [{ round, homeScore, awayScore, homePenalties?, awayPenalties? }] }
+  static async fixMatchScores(req: Request, res: Response): Promise<void> {
+    const { matches } = req.body as {
+      matches: { round: number; homeScore: number; awayScore: number; homePenalties?: number | null; awayPenalties?: number | null }[];
+    };
+    if (!Array.isArray(matches) || matches.length === 0) {
+      res.status(400).json({ success: false, error: 'matches array required' });
+      return;
+    }
+
+    const results: string[] = [];
+    for (const m of matches) {
+      const match = await prisma.match.findFirst({ where: { round: m.round } });
+      if (!match) {
+        results.push(`SKIP R${m.round}: match not found`);
+        continue;
+      }
+      await prisma.match.update({
+        where: { id: match.id },
+        data: {
+          homeScore: m.homeScore,
+          awayScore: m.awayScore,
+          homePenalties: m.homePenalties ?? null,
+          awayPenalties: m.awayPenalties ?? null,
+          status: 'FINISHED',
+        },
+      });
+      await cache.delPattern(`match:${match.id}*`);
+      const penStr = m.homePenalties != null ? ` (pen ${m.homePenalties}-${m.awayPenalties})` : '';
+      results.push(`OK R${m.round}: ${m.homeScore}-${m.awayScore}${penStr}`);
+    }
+
+    await cache.delPattern('tournament:*');
+    res.json({ success: true, results });
+  }
 }

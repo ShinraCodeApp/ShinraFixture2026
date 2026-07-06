@@ -93,6 +93,10 @@ export const adminApi = {
     const res = await api.post('/admin/migrations/fix-knockout-teams', { matches, stage });
     return res.data;
   },
+  fixMatchScores: async (matches: { round: number; homeScore: number; awayScore: number; homePenalties?: number | null; awayPenalties?: number | null }[]) => {
+    const res = await api.post('/admin/migrations/fix-match-scores', { matches });
+    return res.data;
+  },
 
   // Users
   getUsers: async (params?: Record<string, string>) => {
