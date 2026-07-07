@@ -104,6 +104,27 @@ export class NewsService {
     });
   }
 
+  static async listAdmin() {
+    const items = await prisma.news.findMany({
+      select: {
+        id: true, title: true, slug: true, excerpt: true, imageUrl: true,
+        author: true, category: true, tags: true, isPremium: true,
+        isFeatured: true, isPublished: true, viewsCount: true,
+        publishedAt: true, createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    });
+    return { items, total: items.length };
+  }
+
+  static async unpublish(id: string) {
+    return prisma.news.update({
+      where: { id },
+      data: { isPublished: false },
+    });
+  }
+
   static async delete(id: string): Promise<void> {
     await prisma.news.delete({ where: { id } });
     await cache.delPattern('news:*');

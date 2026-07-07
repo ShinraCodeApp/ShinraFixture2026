@@ -42,8 +42,18 @@ export class NewsController {
     res.json({ success: true, data: news });
   }
 
+  static async listAdmin(req: Request, res: Response): Promise<void> {
+    const data = await NewsService.listAdmin();
+    res.json({ success: true, data });
+  }
+
   static async publish(req: Request, res: Response): Promise<void> {
     const news = await NewsService.publish(req.params.id);
+    res.json({ success: true, data: news });
+  }
+
+  static async unpublish(req: Request, res: Response): Promise<void> {
+    const news = await NewsService.unpublish(req.params.id);
     res.json({ success: true, data: news });
   }
 

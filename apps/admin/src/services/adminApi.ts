@@ -161,13 +161,14 @@ export const adminApi = {
 
   // News
   getNews: async () => {
-    const res = await api.get('/news?limit=50');
+    const res = await api.get('/news/admin-list');
     return res.data;
   },
   createNews: async (data: Record<string, unknown>) => api.post('/news', data),
   updateNews: async (id: string, data: Record<string, unknown>) => api.patch(`/news/${id}`, data),
   deleteNews: async (id: string) => api.delete(`/news/${id}`),
   publishNews: async (id: string) => api.patch(`/news/${id}/publish`),
+  unpublishNews: async (id: string) => api.patch(`/news/${id}/unpublish`),
 
   // Ads
   getAds: async () => {
