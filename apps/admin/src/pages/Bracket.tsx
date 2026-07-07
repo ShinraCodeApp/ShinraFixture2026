@@ -267,18 +267,29 @@ export function BracketPage() {
     try {
       const ops: Promise<unknown>[] = [];
 
-      // Si el dropdown quedó en "-- equipo --", conservar el código original
       const origHome = editMatch.homeTeam?.code ?? '';
       const origAway = editMatch.awayTeam?.code ?? '';
-      const finalHome = editForm.homeCode || origHome;
-      const finalAway = editForm.awayCode || origAway;
+      const homeChanged = editForm.homeCode !== origHome;
+      const awayChanged = editForm.awayCode !== origAway;
 
-      const teamsChanged = finalHome !== origHome || finalAway !== origAway;
-      if (teamsChanged && finalHome && finalAway) {
-        ops.push(adminApi.fixKnockoutTeams(
-          [{ round: editMatch.round, homeCode: finalHome, awayCode: finalAway }],
-          stageForRound(editMatch.round)
-        ));
+      if (homeChanged || awayChanged) {
+        const finalHome = editForm.homeCode;
+        const finalAway = editForm.awayCode;
+
+        if (!finalHome || !finalAway) {
+          // Al menos un equipo se borra → usar PATCH con null
+          const findId = (code: string) => allTeams.find((t: TeamItem) => t.code === code)?.id ?? null;
+          const patch: Record<string, unknown> = {};
+          if (homeChanged) patch.homeTeamId = finalHome ? findId(finalHome) : null;
+          if (awayChanged) patch.awayTeamId = finalAway ? findId(finalAway) : null;
+          ops.push(adminApi.editMatchFull(editMatch.id, patch));
+        } else {
+          // Ambos equipos presentes → fixKnockoutTeams
+          ops.push(adminApi.fixKnockoutTeams(
+            [{ round: editMatch.round, homeCode: finalHome, awayCode: finalAway }],
+            stageForRound(editMatch.round)
+          ));
+        }
       }
 
       const hs = parseInt(editForm.homeScore);
