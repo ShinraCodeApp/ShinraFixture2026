@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, Image, StyleSheet,
-  ActivityIndicator, TouchableOpacity, RefreshControl,
+  ActivityIndicator, TouchableOpacity, RefreshControl, Animated,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -219,6 +219,53 @@ function KnockoutCard({
         <Text style={[s.advLabel, { color: appColors.textSecondary }]}>{label}</Text>
       )}
     </TouchableOpacity>
+  );
+}
+
+// Trophy above Final
+function TrophyBadge({ dbMatch }: { dbMatch?: DbMatch }) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scaleAnim, { toValue: 1.2, duration: 850, useNativeDriver: true }),
+        Animated.timing(scaleAnim, { toValue: 0.92, duration: 850, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
+
+  const finished = dbMatch?.status === 'FINISHED';
+  let champion: DbMatch['homeTeam'] | null = null;
+  if (finished && dbMatch?.homeScore != null && dbMatch?.awayScore != null) {
+    champion = dbMatch.homeScore >= dbMatch.awayScore ? dbMatch.homeTeam : dbMatch.awayTeam;
+  }
+
+  const cy = yC(3, 0);
+  const cardTop = cy - CH / 2 - 10;
+  const trophyTop = cardTop - 96;
+
+  return (
+    <View style={{ position: 'absolute', left: FX + CW / 2 - 50, top: trophyTop, width: 100, alignItems: 'center' }}>
+      <Animated.Text style={{ fontSize: 44, transform: [{ scale: scaleAnim }] }}>
+        🏆
+      </Animated.Text>
+      {champion ? (
+        <View style={{ alignItems: 'center', marginTop: 3 }}>
+          {champion?.flagUrl ? (
+            <Image source={{ uri: champion.flagUrl }} style={{ width: 38, height: 26, borderRadius: 3 }} resizeMode="contain" />
+          ) : null}
+          <Text style={{ color: '#FFD700', fontSize: 10, fontWeight: 'bold', marginTop: 2, textAlign: 'center' }}>
+            {champion?.name ?? champion?.code}
+          </Text>
+          <Text style={{ color: '#FFD700', fontSize: 9, opacity: 0.8 }}>🥇 Campeón</Text>
+        </View>
+      ) : (
+        <Text style={{ color: '#666', fontSize: 9, marginTop: 3, textAlign: 'center' }}>Por definir</Text>
+      )}
+    </View>
   );
 }
 
@@ -585,6 +632,9 @@ export function BracketScreen() {
                     appColors={appColors}
                     nav={nav}
                   />
+
+                  {/* Trophy */}
+                  <TrophyBadge dbMatch={ko.fin[0]} />
 
                   {/* Final */}
                   <FinalCard
