@@ -99,6 +99,16 @@ export function Dashboard() {
   const { data: stats } = useQuery({ queryKey: ['admin-stats'], queryFn: adminApi.getDashboardStats });
   const { data: activityData } = useQuery({ queryKey: ['admin-activity'], queryFn: adminApi.getActivityData, refetchInterval: 5 * 60_000 });
   const { data: tournament } = useQuery({ queryKey: ['admin-tournament-status'], queryFn: adminApi.getTournamentStatus, refetchInterval: 60_000 });
+  const { data: bracketData } = useQuery({ queryKey: ['admin-bracket'], queryFn: () => adminApi.getMatches({ stage: 'knockout', limit: '200' }), staleTime: 60_000 });
+
+  const finalMatch = (bracketData?.data?.items ?? []).find((m: any) => m.round === 104);
+  const champion: { code: string; name?: string; flagUrl?: string } | null = (() => {
+    if (!finalMatch || finalMatch.status !== 'FINISHED') return null;
+    const homeWins = finalMatch.homePenalties != null
+      ? finalMatch.homePenalties > finalMatch.awayPenalties
+      : finalMatch.homeScore > finalMatch.awayScore;
+    return homeWins ? finalMatch.homeTeam : finalMatch.awayTeam;
+  })();
 
   const matchStatusPie = tournament
     ? [
@@ -199,6 +209,46 @@ export function Dashboard() {
           )}
         </div>
       )}
+
+      {/* ── Trofeo / Campeón ──────────────────────────────── */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-yellow-900/30 via-yellow-600/10 to-yellow-900/30 border border-yellow-500/30 rounded-2xl p-6 flex items-center gap-6">
+        <style>{`
+          @keyframes dashTrophyGlow {
+            0%, 100% { transform: scale(1) translateY(0); filter: drop-shadow(0 0 10px rgba(250,204,21,0.55)); }
+            50% { transform: scale(1.1) translateY(-5px); filter: drop-shadow(0 0 30px rgba(250,204,21,1)); }
+          }
+        `}</style>
+        <span style={{ fontSize: 72, display: 'block', animation: 'dashTrophyGlow 2.4s ease-in-out infinite', lineHeight: 1, flexShrink: 0 }}>
+          🏆
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-yellow-600 dark:text-yellow-500 text-xs font-bold uppercase tracking-widest mb-2">
+            Copa Mundial 2026 — Campeón
+          </p>
+          {champion ? (
+            <div className="flex items-center gap-3">
+              {champion.flagUrl && (
+                <img src={champion.flagUrl} className="w-14 h-9 object-contain rounded shadow-lg" />
+              )}
+              <div>
+                <p className="text-3xl font-black dark:text-white">{champion.name ?? champion.code}</p>
+                <p className="text-yellow-400 text-sm font-semibold mt-0.5">🥇 ¡Campeón del Mundo!</p>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p className="text-2xl font-black text-gray-400 dark:text-gray-500">Por definir</p>
+              {tournament && (
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                  {tournament.matchesPlayed} de {tournament.totalMatches} partidos jugados
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="absolute top-3 right-5 text-yellow-400/15 text-7xl select-none pointer-events-none">⭐</div>
+        <div className="absolute bottom-2 right-20 text-yellow-400/10 text-4xl select-none pointer-events-none">⭐</div>
+      </div>
 
       {/* ── Stat Cards ─────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
