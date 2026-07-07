@@ -267,11 +267,16 @@ export function BracketPage() {
     try {
       const ops: Promise<unknown>[] = [];
 
-      const teamsChanged = editForm.homeCode !== (editMatch.homeTeam?.code ?? '') ||
-                           editForm.awayCode !== (editMatch.awayTeam?.code ?? '');
-      if (teamsChanged && editForm.homeCode && editForm.awayCode) {
+      // Si el dropdown quedó en "-- equipo --", conservar el código original
+      const origHome = editMatch.homeTeam?.code ?? '';
+      const origAway = editMatch.awayTeam?.code ?? '';
+      const finalHome = editForm.homeCode || origHome;
+      const finalAway = editForm.awayCode || origAway;
+
+      const teamsChanged = finalHome !== origHome || finalAway !== origAway;
+      if (teamsChanged && finalHome && finalAway) {
         ops.push(adminApi.fixKnockoutTeams(
-          [{ round: editMatch.round, homeCode: editForm.homeCode, awayCode: editForm.awayCode }],
+          [{ round: editMatch.round, homeCode: finalHome, awayCode: finalAway }],
           stageForRound(editMatch.round)
         ));
       }
@@ -284,12 +289,16 @@ export function BracketPage() {
         ops.push(adminApi.fixMatchScores([{ round: editMatch.round, homeScore: hs, awayScore: as_, homePenalties: hp, awayPenalties: ap }]));
       }
 
-      await Promise.all(ops);
-      qc.invalidateQueries({ queryKey: ['admin-bracket'] });
-      qc.invalidateQueries({ queryKey: ['admin-bracket-circular'] });
-      qc.invalidateQueries({ queryKey: ['admin-tournament-status'] });
+      if (ops.length > 0) {
+        await Promise.all(ops);
+        qc.invalidateQueries({ queryKey: ['admin-bracket'] });
+        qc.invalidateQueries({ queryKey: ['admin-bracket-circular'] });
+        qc.invalidateQueries({ queryKey: ['admin-tournament-status'] });
+        setFixMsg('✓ Partido actualizado');
+      } else {
+        setFixMsg('Sin cambios');
+      }
       setEditMatch(null);
-      setFixMsg('✓ Partido actualizado');
       setTimeout(() => setFixMsg(null), 4000);
     } catch {
       setFixMsg('Error al guardar');
