@@ -206,11 +206,28 @@ function BracketColumn({ label, pairs, byRound, compact }: {
 }
 
 interface EditForm {
+  homeCode: string;
+  awayCode: string;
   homeScore: string;
   awayScore: string;
   homePen: string;
   awayPen: string;
   usePen: boolean;
+}
+
+interface TeamItem {
+  id: string;
+  code: string;
+  name: string;
+  shortName: string;
+}
+
+function stageForRound(round: number): string {
+  if (round <= 88) return 'ROUND_OF_32';
+  if (round <= 96) return 'ROUND_OF_16';
+  if (round <= 100) return 'QUARTER_FINAL';
+  if (round <= 102) return 'SEMI_FINAL';
+  return 'FINAL';
 }
 
 export function BracketPage() {
@@ -221,12 +238,21 @@ export function BracketPage() {
   const [fixingScores, setFixingScores] = useState(false);
   const [fixMsg, setFixMsg] = useState<string | null>(null);
   const [editMatch, setEditMatch] = useState<BMatch | null>(null);
-  const [editForm, setEditForm] = useState<EditForm>({ homeScore: '', awayScore: '', homePen: '', awayPen: '', usePen: false });
+  const [editForm, setEditForm] = useState<EditForm>({ homeCode: '', awayCode: '', homeScore: '', awayScore: '', homePen: '', awayPen: '', usePen: false });
   const [saving, setSaving] = useState(false);
+
+  const { data: teamsData } = useQuery({
+    queryKey: ['teams-list'],
+    queryFn: adminApi.getTeams,
+    staleTime: 300_000,
+  });
+  const allTeams: TeamItem[] = (teamsData?.data ?? []).slice().sort((a: TeamItem, b: TeamItem) => a.code.localeCompare(b.code));
 
   const openEdit = (m: BMatch) => {
     setEditMatch(m);
     setEditForm({
+      homeCode: m.homeTeam?.code ?? '',
+      awayCode: m.awayTeam?.code ?? '',
       homeScore: m.homeScore != null ? String(m.homeScore) : '',
       awayScore: m.awayScore != null ? String(m.awayScore) : '',
       homePen: m.homePenalties != null ? String(m.homePenalties) : '',
@@ -237,14 +263,28 @@ export function BracketPage() {
 
   const saveEdit = async () => {
     if (!editMatch) return;
-    const hs = parseInt(editForm.homeScore);
-    const as_ = parseInt(editForm.awayScore);
-    if (isNaN(hs) || isNaN(as_)) return;
     setSaving(true);
     try {
-      const hp = editForm.usePen && editForm.homePen !== '' ? parseInt(editForm.homePen) : null;
-      const ap = editForm.usePen && editForm.awayPen !== '' ? parseInt(editForm.awayPen) : null;
-      await adminApi.fixMatchScores([{ round: editMatch.round, homeScore: hs, awayScore: as_, homePenalties: hp, awayPenalties: ap }]);
+      const ops: Promise<unknown>[] = [];
+
+      const teamsChanged = editForm.homeCode !== (editMatch.homeTeam?.code ?? '') ||
+                           editForm.awayCode !== (editMatch.awayTeam?.code ?? '');
+      if (teamsChanged && editForm.homeCode && editForm.awayCode) {
+        ops.push(adminApi.fixKnockoutTeams(
+          [{ round: editMatch.round, homeCode: editForm.homeCode, awayCode: editForm.awayCode }],
+          stageForRound(editMatch.round)
+        ));
+      }
+
+      const hs = parseInt(editForm.homeScore);
+      const as_ = parseInt(editForm.awayScore);
+      if (!isNaN(hs) && !isNaN(as_)) {
+        const hp = editForm.usePen && editForm.homePen !== '' ? parseInt(editForm.homePen) : null;
+        const ap = editForm.usePen && editForm.awayPen !== '' ? parseInt(editForm.awayPen) : null;
+        ops.push(adminApi.fixMatchScores([{ round: editMatch.round, homeScore: hs, awayScore: as_, homePenalties: hp, awayPenalties: ap }]));
+      }
+
+      await Promise.all(ops);
       qc.invalidateQueries({ queryKey: ['admin-bracket'] });
       qc.invalidateQueries({ queryKey: ['admin-bracket-circular'] });
       qc.invalidateQueries({ queryKey: ['admin-tournament-status'] });
@@ -547,11 +587,41 @@ export function BracketPage() {
               </button>
             </div>
 
+            {/* Team selectors */}
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex-1">
+                <label className="text-xs text-slate-500 block mb-1">Local</label>
+                <select
+                  value={editForm.homeCode}
+                  onChange={e => setEditForm(f => ({ ...f, homeCode: e.target.value }))}
+                  className="w-full bg-slate-700 text-white text-sm rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">-- equipo --</option>
+                  {allTeams.map((t: TeamItem) => (
+                    <option key={t.code} value={t.code}>{t.code} – {t.shortName ?? t.name}</option>
+                  ))}
+                </select>
+              </div>
+              <span className="text-slate-600 mt-4">vs</span>
+              <div className="flex-1">
+                <label className="text-xs text-slate-500 block mb-1">Visitante</label>
+                <select
+                  value={editForm.awayCode}
+                  onChange={e => setEditForm(f => ({ ...f, awayCode: e.target.value }))}
+                  className="w-full bg-slate-700 text-white text-sm rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">-- equipo --</option>
+                  {allTeams.map((t: TeamItem) => (
+                    <option key={t.code} value={t.code}>{t.code} – {t.shortName ?? t.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Score inputs */}
             <div className="flex items-end gap-3 mb-4">
               <div className="flex-1 text-center">
-                <label className="text-xs text-slate-400 block mb-1 font-medium">
-                  {editMatch.homeTeam?.code ?? 'Local'}
-                </label>
+                <label className="text-xs text-slate-400 block mb-1 font-medium">Goles local</label>
                 <input
                   type="number" min="0" max="20"
                   value={editForm.homeScore}
@@ -561,9 +631,7 @@ export function BracketPage() {
               </div>
               <span className="text-slate-500 font-bold text-xl pb-3">-</span>
               <div className="flex-1 text-center">
-                <label className="text-xs text-slate-400 block mb-1 font-medium">
-                  {editMatch.awayTeam?.code ?? 'Visitante'}
-                </label>
+                <label className="text-xs text-slate-400 block mb-1 font-medium">Goles visit.</label>
                 <input
                   type="number" min="0" max="20"
                   value={editForm.awayScore}
