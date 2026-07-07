@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Swords, RefreshCw, Shield } from 'lucide-react';
+import { Swords, RefreshCw, Shield, Pencil, X } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 import { BracketCircle } from './BracketCircle';
 
@@ -61,6 +61,8 @@ const CORRECT_SCORES = [
   { round: 90, homeScore: 1, awayScore: 0, homePenalties: null, awayPenalties: null }, // FRA 1-0 PAR
   { round: 91, homeScore: 1, awayScore: 2, homePenalties: null, awayPenalties: null }, // BRA 1-2 NOR
   { round: 92, homeScore: 2, awayScore: 3, homePenalties: null, awayPenalties: null }, // MEX 2-3 ENG
+  { round: 93, homeScore: 0, awayScore: 1, homePenalties: null, awayPenalties: null }, // ESP 0-1 POR
+  { round: 94, homeScore: 1, awayScore: 4, homePenalties: null, awayPenalties: null }, // BEL 1-4 USA
 ];
 
 interface BMatch {
@@ -87,7 +89,11 @@ function getWinner(m: BMatch): 'home' | 'away' | null {
   return null;
 }
 
-function MatchCard({ m, compact = false }: { m: BMatch | undefined; compact?: boolean }) {
+function MatchCard({ m, compact = false, onEdit }: {
+  m: BMatch | undefined;
+  compact?: boolean;
+  onEdit?: (m: BMatch) => void;
+}) {
   if (!m) return (
     <div className={`bg-slate-800/50 rounded-xl border border-slate-700/50 ${compact ? 'p-2' : 'p-3'}`}>
       <TeamRow code="TBD" name="Por definir" score={null} pen={null} isWinner={false} compact={compact} />
@@ -100,7 +106,16 @@ function MatchCard({ m, compact = false }: { m: BMatch | undefined; compact?: bo
   const finished = m.status === 'FINISHED';
 
   return (
-    <div className={`bg-slate-800 rounded-xl border ${finished ? 'border-slate-600' : 'border-slate-700'} ${compact ? 'p-2' : 'p-3'} min-w-[130px]`}>
+    <div className={`relative group bg-slate-800 rounded-xl border ${finished ? 'border-slate-600' : 'border-slate-700'} ${compact ? 'p-2' : 'p-3'} min-w-[130px]`}>
+      {onEdit && (
+        <button
+          onClick={() => onEdit(m)}
+          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-1 rounded-md bg-slate-700 hover:bg-slate-600 transition-opacity z-10"
+          title="Editar resultado"
+        >
+          <Pencil size={10} className="text-slate-300" />
+        </button>
+      )}
       <TeamRow
         code={m.homeTeam?.code ?? 'TBD'}
         name={m.homeTeam?.name ?? ''}
@@ -190,6 +205,14 @@ function BracketColumn({ label, pairs, byRound, compact }: {
   );
 }
 
+interface EditForm {
+  homeScore: string;
+  awayScore: string;
+  homePen: string;
+  awayPen: string;
+  usePen: boolean;
+}
+
 export function BracketPage() {
   const qc = useQueryClient();
   const [view, setView] = useState<'linear' | 'circular'>('circular');
@@ -197,6 +220,43 @@ export function BracketPage() {
   const [fixingR32, setFixingR32] = useState(false);
   const [fixingScores, setFixingScores] = useState(false);
   const [fixMsg, setFixMsg] = useState<string | null>(null);
+  const [editMatch, setEditMatch] = useState<BMatch | null>(null);
+  const [editForm, setEditForm] = useState<EditForm>({ homeScore: '', awayScore: '', homePen: '', awayPen: '', usePen: false });
+  const [saving, setSaving] = useState(false);
+
+  const openEdit = (m: BMatch) => {
+    setEditMatch(m);
+    setEditForm({
+      homeScore: m.homeScore != null ? String(m.homeScore) : '',
+      awayScore: m.awayScore != null ? String(m.awayScore) : '',
+      homePen: m.homePenalties != null ? String(m.homePenalties) : '',
+      awayPen: m.awayPenalties != null ? String(m.awayPenalties) : '',
+      usePen: m.homePenalties != null,
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editMatch) return;
+    const hs = parseInt(editForm.homeScore);
+    const as_ = parseInt(editForm.awayScore);
+    if (isNaN(hs) || isNaN(as_)) return;
+    setSaving(true);
+    try {
+      const hp = editForm.usePen && editForm.homePen !== '' ? parseInt(editForm.homePen) : null;
+      const ap = editForm.usePen && editForm.awayPen !== '' ? parseInt(editForm.awayPen) : null;
+      await adminApi.fixMatchScores([{ round: editMatch.round, homeScore: hs, awayScore: as_, homePenalties: hp, awayPenalties: ap }]);
+      qc.invalidateQueries({ queryKey: ['admin-bracket'] });
+      qc.invalidateQueries({ queryKey: ['admin-bracket-circular'] });
+      qc.invalidateQueries({ queryKey: ['admin-tournament-status'] });
+      setEditMatch(null);
+      setFixMsg('✓ Partido actualizado');
+      setTimeout(() => setFixMsg(null), 4000);
+    } catch {
+      setFixMsg('Error al guardar');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleFixR16 = async () => {
     setFixingR16(true);
@@ -342,8 +402,8 @@ export function BracketPage() {
             <div className="flex flex-col gap-3">
               {BRACKET[0].pairs.slice(0, 4).map(([r1, r2]) => (
                 <div key={r1} className="flex flex-col gap-1.5">
-                  <MatchCard m={byRound[r1]} />
-                  <MatchCard m={byRound[r2]} />
+                  <MatchCard m={byRound[r1]} onEdit={openEdit} />
+                  <MatchCard m={byRound[r2]} onEdit={openEdit} />
                 </div>
               ))}
             </div>
@@ -360,8 +420,8 @@ export function BracketPage() {
             <div className="flex flex-col gap-[52px]">
               {BRACKET[1].pairs.slice(0, 2).map(([r1, r2]) => (
                 <div key={r1} className="flex flex-col gap-1.5">
-                  <MatchCard m={byRound[r1]} />
-                  <MatchCard m={byRound[r2]} />
+                  <MatchCard m={byRound[r1]} onEdit={openEdit} />
+                  <MatchCard m={byRound[r2]} onEdit={openEdit} />
                 </div>
               ))}
             </div>
@@ -376,8 +436,8 @@ export function BracketPage() {
             <p className="text-center text-xs font-bold text-primary-400 uppercase tracking-widest mb-2">Cuartos</p>
             <div className="flex flex-col gap-[160px]">
               <div className="flex flex-col gap-1.5">
-                <MatchCard m={byRound[97]} />
-                <MatchCard m={byRound[98]} />
+                <MatchCard m={byRound[97]} onEdit={openEdit} />
+                <MatchCard m={byRound[98]} onEdit={openEdit} />
               </div>
             </div>
           </div>
@@ -391,7 +451,7 @@ export function BracketPage() {
             <p className="text-center text-xs font-bold text-primary-400 uppercase tracking-widest mb-2">Semi</p>
             <div className="flex flex-col gap-[300px]">
               <div className="flex flex-col gap-1.5">
-                <MatchCard m={byRound[101]} />
+                <MatchCard m={byRound[101]} onEdit={openEdit} />
               </div>
             </div>
           </div>
@@ -403,7 +463,7 @@ export function BracketPage() {
           {/* Final */}
           <div className="flex flex-col gap-1 flex-shrink-0 self-center">
             <p className="text-center text-xs font-black text-yellow-400 uppercase tracking-widest mb-2">⚽ Final</p>
-            <MatchCard m={finalMatch} />
+            <MatchCard m={finalMatch} onEdit={openEdit} />
           </div>
 
           <div className="self-stretch flex flex-col justify-center">
@@ -415,7 +475,7 @@ export function BracketPage() {
             <p className="text-center text-xs font-bold text-primary-400 uppercase tracking-widest mb-2">Semi</p>
             <div className="flex flex-col gap-[300px]">
               <div className="flex flex-col gap-1.5">
-                <MatchCard m={byRound[102]} />
+                <MatchCard m={byRound[102]} onEdit={openEdit} />
               </div>
             </div>
           </div>
@@ -429,8 +489,8 @@ export function BracketPage() {
             <p className="text-center text-xs font-bold text-primary-400 uppercase tracking-widest mb-2">Cuartos</p>
             <div className="flex flex-col gap-[160px]">
               <div className="flex flex-col gap-1.5">
-                <MatchCard m={byRound[99]} />
-                <MatchCard m={byRound[100]} />
+                <MatchCard m={byRound[99]} onEdit={openEdit} />
+                <MatchCard m={byRound[100]} onEdit={openEdit} />
               </div>
             </div>
           </div>
@@ -445,8 +505,8 @@ export function BracketPage() {
             <div className="flex flex-col gap-[52px]">
               {BRACKET[1].pairs.slice(2, 4).map(([r1, r2]) => (
                 <div key={r1} className="flex flex-col gap-1.5">
-                  <MatchCard m={byRound[r1]} />
-                  <MatchCard m={byRound[r2]} />
+                  <MatchCard m={byRound[r1]} onEdit={openEdit} />
+                  <MatchCard m={byRound[r2]} onEdit={openEdit} />
                 </div>
               ))}
             </div>
@@ -462,14 +522,109 @@ export function BracketPage() {
             <div className="flex flex-col gap-3">
               {BRACKET[0].pairs.slice(4, 8).map(([r1, r2]) => (
                 <div key={r1} className="flex flex-col gap-1.5">
-                  <MatchCard m={byRound[r1]} />
-                  <MatchCard m={byRound[r2]} />
+                  <MatchCard m={byRound[r1]} onEdit={openEdit} />
+                  <MatchCard m={byRound[r2]} onEdit={openEdit} />
                 </div>
               ))}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Edit modal */}
+      {editMatch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+          <div className="bg-slate-800 rounded-2xl p-6 w-80 shadow-2xl border border-slate-700">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-white font-bold text-base">Editar R{editMatch.round}</h3>
+                <p className="text-slate-400 text-xs mt-0.5">
+                  {editMatch.homeTeam?.code ?? 'TBD'} vs {editMatch.awayTeam?.code ?? 'TBD'}
+                </p>
+              </div>
+              <button onClick={() => setEditMatch(null)} className="text-slate-500 hover:text-white">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex items-end gap-3 mb-4">
+              <div className="flex-1 text-center">
+                <label className="text-xs text-slate-400 block mb-1 font-medium">
+                  {editMatch.homeTeam?.code ?? 'Local'}
+                </label>
+                <input
+                  type="number" min="0" max="20"
+                  value={editForm.homeScore}
+                  onChange={e => setEditForm(f => ({ ...f, homeScore: e.target.value }))}
+                  className="w-full bg-slate-700 text-white text-center text-2xl font-bold rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <span className="text-slate-500 font-bold text-xl pb-3">-</span>
+              <div className="flex-1 text-center">
+                <label className="text-xs text-slate-400 block mb-1 font-medium">
+                  {editMatch.awayTeam?.code ?? 'Visitante'}
+                </label>
+                <input
+                  type="number" min="0" max="20"
+                  value={editForm.awayScore}
+                  onChange={e => setEditForm(f => ({ ...f, awayScore: e.target.value }))}
+                  className="w-full bg-slate-700 text-white text-center text-2xl font-bold rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 text-sm text-slate-300 mb-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={editForm.usePen}
+                onChange={e => setEditForm(f => ({ ...f, usePen: e.target.checked }))}
+                className="rounded accent-primary-500"
+              />
+              Hubo penales
+            </label>
+
+            {editForm.usePen && (
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-1 text-center">
+                  <label className="text-xs text-slate-500 block mb-1">Pen local</label>
+                  <input
+                    type="number" min="0" max="20"
+                    value={editForm.homePen}
+                    onChange={e => setEditForm(f => ({ ...f, homePen: e.target.value }))}
+                    className="w-full bg-slate-700 text-white text-center rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <span className="text-slate-500 pb-0">-</span>
+                <div className="flex-1 text-center">
+                  <label className="text-xs text-slate-500 block mb-1">Pen visit.</label>
+                  <input
+                    type="number" min="0" max="20"
+                    value={editForm.awayPen}
+                    onChange={e => setEditForm(f => ({ ...f, awayPen: e.target.value }))}
+                    className="w-full bg-slate-700 text-white text-center rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => setEditMatch(null)}
+                className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold rounded-xl transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={saveEdit}
+                disabled={saving || editForm.homeScore === '' || editForm.awayScore === ''}
+                className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white text-sm font-semibold rounded-xl transition-colors"
+              >
+                {saving ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </>
       )}
     </div>
