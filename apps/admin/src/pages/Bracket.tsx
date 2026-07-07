@@ -387,6 +387,10 @@ export function BracketPage() {
   );
 
   const finalMatch = byRound[FINAL_ROUND];
+  const finalWinnerSide = finalMatch ? getWinner(finalMatch) : null;
+  const finalWinner = finalWinnerSide === 'home' ? finalMatch?.homeTeam
+                    : finalWinnerSide === 'away' ? finalMatch?.awayTeam
+                    : null;
 
   return (
     <div className="space-y-4">
@@ -520,8 +524,38 @@ export function BracketPage() {
             <div className="w-4 border-t border-dashed border-yellow-500/50" />
           </div>
 
-          {/* Final */}
-          <div className="flex flex-col gap-1 flex-shrink-0 self-center">
+          {/* Trophy + Final */}
+          <div className="flex flex-col gap-1 flex-shrink-0 self-center items-center">
+            <style>{`
+              @keyframes trophyGlow {
+                0%, 100% { transform: scale(1) translateY(0); filter: drop-shadow(0 0 10px rgba(250,204,21,0.5)); }
+                50% { transform: scale(1.1) translateY(-4px); filter: drop-shadow(0 0 28px rgba(250,204,21,1)); }
+              }
+            `}</style>
+
+            {/* Trofeo animado */}
+            <div className="flex flex-col items-center mb-3">
+              <span style={{ fontSize: 56, display: 'block', animation: 'trophyGlow 2.4s ease-in-out infinite', lineHeight: 1 }}>
+                🏆
+              </span>
+
+              {/* Campeón o Por definir */}
+              {finalWinner ? (
+                <div className="flex items-center gap-2 mt-3 bg-yellow-500/10 border border-yellow-500/40 rounded-xl px-3 py-1.5">
+                  {finalWinner.flagUrl && (
+                    <img src={finalWinner.flagUrl} className="w-7 h-5 object-contain rounded" />
+                  )}
+                  <span className="text-yellow-300 font-black text-sm uppercase tracking-widest">
+                    {finalWinner.name ?? finalWinner.code}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-yellow-700/70 text-[10px] font-semibold uppercase tracking-widest mt-2">
+                  Por definir
+                </p>
+              )}
+            </div>
+
             <p className="text-center text-xs font-black text-yellow-400 uppercase tracking-widest mb-2">⚽ Final</p>
             <MatchCard m={finalMatch} onEdit={openEdit} />
           </div>
