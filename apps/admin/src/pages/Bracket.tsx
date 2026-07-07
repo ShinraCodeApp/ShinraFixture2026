@@ -684,7 +684,11 @@ export function BracketPage() {
               </button>
               <button
                 onClick={saveEdit}
-                disabled={saving || editForm.homeScore === '' || editForm.awayScore === ''}
+                disabled={saving || (
+                  editForm.homeCode === (editMatch?.homeTeam?.code ?? '') &&
+                  editForm.awayCode === (editMatch?.awayTeam?.code ?? '') &&
+                  (editForm.homeScore === '' || editForm.awayScore === '')
+                )}
                 className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white text-sm font-semibold rounded-xl transition-colors"
               >
                 {saving ? 'Guardando...' : 'Guardar'}
