@@ -360,7 +360,7 @@ export function BracketPage() {
     try {
       // 1. Asignar SUI como rival de ARG en cuartos (round 100) con fecha correcta
       await adminApi.fixKnockoutTeams(
-        [{ round: 100, homeCode: 'ARG', awayCode: 'SUI', matchDate: '2026-07-12T02:00:00.000Z' }],
+        [{ round: 100, homeCode: 'ARG', awayCode: 'SUI', matchDate: '2026-07-11T22:00:00.000Z' }],
         'QUARTER_FINAL'
       );
       // 2. Corregir fechas QF conocidas por código de equipo
