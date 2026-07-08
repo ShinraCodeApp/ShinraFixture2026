@@ -236,6 +236,7 @@ export function BracketPage() {
   const [fixingR16, setFixingR16] = useState(false);
   const [fixingR32, setFixingR32] = useState(false);
   const [fixingScores, setFixingScores] = useState(false);
+  const [fixingDates, setFixingDates] = useState(false);
   const [fixMsg, setFixMsg] = useState<string | null>(null);
   const [editMatch, setEditMatch] = useState<BMatch | null>(null);
   const [editForm, setEditForm] = useState<EditForm>({ homeCode: '', awayCode: '', homeScore: '', awayScore: '', homePen: '', awayPen: '', usePen: false });
@@ -353,6 +354,38 @@ export function BracketPage() {
     }
   };
 
+  const handleFixDates = async () => {
+    setFixingDates(true);
+    setFixMsg(null);
+    try {
+      // 1. Asignar SUI como rival de ARG en cuartos (round 100) con fecha correcta
+      await adminApi.fixKnockoutTeams(
+        [{ round: 100, homeCode: 'ARG', awayCode: 'SUI', matchDate: '2026-07-12T02:00:00.000Z' }],
+        'QUARTER_FINAL'
+      );
+      // 2. Corregir fechas QF conocidas por código de equipo
+      const dateResult = await adminApi.fixMatchDates([
+        { homeCode: 'FRA', awayCode: 'MAR', matchDate: '2026-07-09T21:00:00.000Z', venue: 'Gillette Stadium', city: 'Foxborough' },
+        { homeCode: 'ESP', awayCode: 'BEL', matchDate: '2026-07-10T20:00:00.000Z', venue: 'SoFi Stadium', city: 'Inglewood' },
+        { homeCode: 'NOR', awayCode: 'ENG', matchDate: '2026-07-11T22:00:00.000Z', venue: 'Hard Rock Stadium', city: 'Miami Gardens' },
+        // SF y Final por número de round
+        { round: 101, matchDate: '2026-07-14T20:00:00.000Z', venue: 'AT&T Stadium', city: 'Arlington' },
+        { round: 102, matchDate: '2026-07-15T20:00:00.000Z', venue: 'Mercedes-Benz Stadium', city: 'Atlanta' },
+        { round: 103, matchDate: '2026-07-18T19:00:00.000Z', venue: 'Hard Rock Stadium', city: 'Miami Gardens' },
+        { round: 104, matchDate: '2026-07-19T20:00:00.000Z', venue: 'MetLife Stadium', city: 'East Rutherford' },
+      ]);
+      const ok = dateResult?.results?.filter((r: string) => r.startsWith('OK')).length ?? 0;
+      setFixMsg(`✓ Fechas corregidas (${ok}/7 OK)`);
+      qc.invalidateQueries({ queryKey: ['admin-bracket'] });
+      qc.invalidateQueries({ queryKey: ['admin-bracket-circular'] });
+    } catch {
+      setFixMsg('Error al corregir fechas');
+    } finally {
+      setFixingDates(false);
+      setTimeout(() => setFixMsg(null), 8000);
+    }
+  };
+
   const handleFixR32 = async () => {
     setFixingR32(true);
     setFixMsg(null);
@@ -405,6 +438,15 @@ export function BracketPage() {
               {fixMsg}
             </span>
           )}
+          <button
+            onClick={handleFixDates}
+            disabled={fixingDates}
+            title="Corrige fechas QF/SF/Final según ESPN (Jul 9-19) y asigna ARG vs SUI"
+            className="flex items-center gap-2 px-4 py-2 bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            <RefreshCw size={14} />
+            {fixingDates ? 'Corrigiendo...' : 'Fix Fechas'}
+          </button>
           <button
             onClick={handleFixScores}
             disabled={fixingScores}

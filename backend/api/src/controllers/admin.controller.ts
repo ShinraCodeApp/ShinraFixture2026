@@ -639,4 +639,60 @@ export class AdminController {
     await cache.delPattern('tournament:*');
     res.json({ success: true, results });
   }
+
+  // Update matchDate/venue/city. Supports lookup by team codes (any home/away order) OR by round number.
+  // Body: { matches: [{homeCode?, awayCode?, round?, matchDate, venue?, city?}] }
+  static async fixMatchDates(req: Request, res: Response): Promise<void> {
+    const { matches } = req.body as {
+      matches: { round?: number; homeCode?: string; awayCode?: string; matchDate: string; venue?: string; city?: string }[];
+    };
+    if (!Array.isArray(matches) || matches.length === 0) {
+      res.status(400).json({ success: false, error: 'matches array required' });
+      return;
+    }
+
+    const results: string[] = [];
+    for (const m of matches) {
+      let match = null;
+      let label = '';
+
+      if (m.homeCode && m.awayCode) {
+        const [homeTeam, awayTeam] = await Promise.all([
+          prisma.team.findUnique({ where: { code: m.homeCode.toUpperCase() } }),
+          prisma.team.findUnique({ where: { code: m.awayCode.toUpperCase() } }),
+        ]);
+        if (!homeTeam || !awayTeam) {
+          results.push(`SKIP: team not found (${m.homeCode}, ${m.awayCode})`);
+          continue;
+        }
+        match = await prisma.match.findFirst({
+          where: {
+            OR: [
+              { homeTeamId: homeTeam.id, awayTeamId: awayTeam.id },
+              { homeTeamId: awayTeam.id, awayTeamId: homeTeam.id },
+            ],
+          },
+        });
+        label = `${homeTeam.code} vs ${awayTeam.code}`;
+      } else if (m.round != null) {
+        match = await prisma.match.findFirst({ where: { round: m.round } });
+        label = `R${m.round}`;
+      }
+
+      if (!match) {
+        results.push(`SKIP: match not found (${label || JSON.stringify(m)})`);
+        continue;
+      }
+
+      const data: Record<string, unknown> = { matchDate: new Date(m.matchDate) };
+      if (m.venue) data.venue = m.venue;
+      if (m.city) data.city = m.city;
+      await prisma.match.update({ where: { id: match.id }, data });
+      await cache.delPattern(`match:${match.id}*`);
+      results.push(`OK: ${label} → ${m.matchDate}`);
+    }
+
+    await cache.delPattern('tournament:*');
+    res.json({ success: true, results });
+  }
 }

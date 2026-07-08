@@ -97,6 +97,10 @@ export const adminApi = {
     const res = await api.post('/admin/migrations/fix-match-scores', { matches });
     return res.data;
   },
+  fixMatchDates: async (matches: { round?: number; homeCode?: string; awayCode?: string; matchDate: string; venue?: string; city?: string }[]) => {
+    const res = await api.post('/admin/migrations/fix-match-dates', { matches });
+    return res.data;
+  },
 
   // Users
   getUsers: async (params?: Record<string, string>) => {

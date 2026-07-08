@@ -63,3 +63,4 @@ adminRoutes.post('/sync/wc-results', AdminController.syncWCResults);
 adminRoutes.post('/migrations/fix-r32-teams', AdminController.fixR32Teams);
 adminRoutes.post('/migrations/fix-knockout-teams', AdminController.fixKnockoutTeams);
 adminRoutes.post('/migrations/fix-match-scores', AdminController.fixMatchScores);
+adminRoutes.post('/migrations/fix-match-dates', AdminController.fixMatchDates);
