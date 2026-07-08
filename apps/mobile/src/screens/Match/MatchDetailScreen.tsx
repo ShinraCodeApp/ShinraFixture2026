@@ -158,14 +158,15 @@ export function MatchDetailScreen() {
           {/* Home Team */}
           <TouchableOpacity
             style={styles.teamContainer}
-            onPress={() => navigation.navigate('TeamDetail', { teamId: match.homeTeam.id })}
+            onPress={() => match.homeTeam && (navigation as any).navigate('TeamDetail', { teamId: match.homeTeam.id })}
+            disabled={!match.homeTeam}
           >
-            <TeamLogo uri={match.homeTeam.flagUrl} size={56} />
-            <Text style={styles.teamName}>{match.homeTeam.shortName}</Text>
-            {match.homeTeam.fifaRanking && (
+            <TeamLogo uri={match.homeTeam?.flagUrl} size={56} code={match.homeTeam?.code} />
+            <Text style={styles.teamName}>{match.homeTeam?.shortName ?? match.homeTeam?.code ?? 'TBD'}</Text>
+            {match.homeTeam?.fifaRanking ? (
               <Text style={styles.ranking}>#{match.homeTeam.fifaRanking}</Text>
-            )}
-            {getWCHostCode(match.city, match.venue) === match.homeTeam.code && (
+            ) : null}
+            {match.homeTeam?.code && getWCHostCode(match.city, match.venue) === match.homeTeam.code && (
               <Text style={styles.localBadge}>🏠 Local</Text>
             )}
           </TouchableOpacity>
@@ -202,14 +203,15 @@ export function MatchDetailScreen() {
           {/* Away Team */}
           <TouchableOpacity
             style={styles.teamContainer}
-            onPress={() => navigation.navigate('TeamDetail', { teamId: match.awayTeam.id })}
+            onPress={() => match.awayTeam && (navigation as any).navigate('TeamDetail', { teamId: match.awayTeam.id })}
+            disabled={!match.awayTeam}
           >
-            <TeamLogo uri={match.awayTeam.flagUrl} size={56} />
-            <Text style={styles.teamName}>{match.awayTeam.shortName}</Text>
-            {match.awayTeam.fifaRanking && (
+            <TeamLogo uri={match.awayTeam?.flagUrl} size={56} code={match.awayTeam?.code} />
+            <Text style={styles.teamName}>{match.awayTeam?.shortName ?? match.awayTeam?.code ?? 'TBD'}</Text>
+            {match.awayTeam?.fifaRanking ? (
               <Text style={styles.ranking}>#{match.awayTeam.fifaRanking}</Text>
-            )}
-            {getWCHostCode(match.city, match.venue) === match.awayTeam.code && (
+            ) : null}
+            {match.awayTeam?.code && getWCHostCode(match.city, match.venue) === match.awayTeam.code && (
               <Text style={styles.localBadge}>🏠 Local</Text>
             )}
           </TouchableOpacity>
@@ -227,8 +229,8 @@ export function MatchDetailScreen() {
             homeProb={match.homeWinProb ?? 0.4}
             drawProb={match.drawProb ?? 0.25}
             awayProb={match.awayWinProb ?? 0.35}
-            homeName={match.homeTeam.shortName}
-            awayName={match.awayTeam.shortName}
+            homeName={match.homeTeam?.shortName ?? match.homeTeam?.code ?? 'TBD'}
+            awayName={match.awayTeam?.shortName ?? match.awayTeam?.code ?? 'TBD'}
           />
         )}
       </LinearGradient>
@@ -299,13 +301,18 @@ export function MatchDetailScreen() {
             />
           )}
           {activeTab === 'lineups' && <MatchLineups matchId={matchId} />}
-          {activeTab === 'predict' && (isScheduled || isLive) && (
+          {activeTab === 'predict' && (isScheduled || isLive) && match.homeTeam && match.awayTeam && (
             <PredictionInput
               matchId={matchId}
               homeTeam={match.homeTeam}
               awayTeam={match.awayTeam}
               userPrediction={match.userPrediction}
             />
+          )}
+          {activeTab === 'predict' && (isScheduled || isLive) && (!match.homeTeam || !match.awayTeam) && (
+            <View style={{ alignItems: 'center', padding: 32 }}>
+              <Text style={{ color: '#6B7280', fontSize: 14 }}>Los equipos aún no están definidos para este partido</Text>
+            </View>
           )}
           {activeTab === 'predict' && isFinished && (
             <View style={{ alignItems: 'center', padding: 32 }}>
@@ -317,7 +324,7 @@ export function MatchDetailScreen() {
               )}
             </View>
           )}
-          {activeTab === 'predict' && (
+          {activeTab === 'predict' && match.homeTeam && match.awayTeam && (
             <>
               <DuelSection
                 matchId={matchId}
@@ -343,7 +350,7 @@ export function MatchDetailScreen() {
           <Text style={scoreEditStyles.title}>Actualizar marcador</Text>
 
           <View style={scoreEditStyles.row}>
-            <Text style={scoreEditStyles.teamLabel}>{match.homeTeam.shortName}</Text>
+            <Text style={scoreEditStyles.teamLabel}>{match.homeTeam?.shortName ?? match.homeTeam?.code ?? 'Local'}</Text>
             <View style={scoreEditStyles.stepper}>
               <TouchableOpacity style={scoreEditStyles.stepBtn} onPress={() => setEditHome(Math.max(0, editHome - 1))}>
                 <Text style={scoreEditStyles.stepTxt}>−</Text>
@@ -356,7 +363,7 @@ export function MatchDetailScreen() {
           </View>
 
           <View style={scoreEditStyles.row}>
-            <Text style={scoreEditStyles.teamLabel}>{match.awayTeam.shortName}</Text>
+            <Text style={scoreEditStyles.teamLabel}>{match.awayTeam?.shortName ?? match.awayTeam?.code ?? 'Visitante'}</Text>
             <View style={scoreEditStyles.stepper}>
               <TouchableOpacity style={scoreEditStyles.stepBtn} onPress={() => setEditAway(Math.max(0, editAway - 1))}>
                 <Text style={scoreEditStyles.stepTxt}>−</Text>
