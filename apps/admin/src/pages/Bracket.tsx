@@ -365,14 +365,14 @@ export function BracketPage() {
       );
       // 2. Corregir fechas QF conocidas por código de equipo
       const dateResult = await adminApi.fixMatchDates([
-        { homeCode: 'FRA', awayCode: 'MAR', matchDate: '2026-07-09T21:00:00.000Z', venue: 'Gillette Stadium', city: 'Foxborough' },
+        { homeCode: 'FRA', awayCode: 'MAR', matchDate: '2026-07-09T17:00:00.000Z', venue: 'Gillette Stadium', city: 'Foxborough' },
         { homeCode: 'ESP', awayCode: 'BEL', matchDate: '2026-07-10T16:00:00.000Z', venue: 'SoFi Stadium', city: 'Inglewood' },
-        { homeCode: 'NOR', awayCode: 'ENG', matchDate: '2026-07-11T22:00:00.000Z', venue: 'Hard Rock Stadium', city: 'Miami Gardens' },
+        { homeCode: 'NOR', awayCode: 'ENG', matchDate: '2026-07-11T18:00:00.000Z', venue: 'Hard Rock Stadium', city: 'Miami Gardens' },
         // SF y Final por número de round
-        { round: 101, matchDate: '2026-07-14T20:00:00.000Z', venue: 'AT&T Stadium', city: 'Arlington' },
-        { round: 102, matchDate: '2026-07-15T20:00:00.000Z', venue: 'Mercedes-Benz Stadium', city: 'Atlanta' },
-        { round: 103, matchDate: '2026-07-18T19:00:00.000Z', venue: 'Hard Rock Stadium', city: 'Miami Gardens' },
-        { round: 104, matchDate: '2026-07-19T20:00:00.000Z', venue: 'MetLife Stadium', city: 'East Rutherford' },
+        { round: 101, matchDate: '2026-07-14T16:00:00.000Z', venue: 'AT&T Stadium', city: 'Arlington' },
+        { round: 102, matchDate: '2026-07-15T16:00:00.000Z', venue: 'Mercedes-Benz Stadium', city: 'Atlanta' },
+        { round: 103, matchDate: '2026-07-18T18:00:00.000Z', venue: 'Hard Rock Stadium', city: 'Miami Gardens' },
+        { round: 104, matchDate: '2026-07-19T16:00:00.000Z', venue: 'MetLife Stadium', city: 'East Rutherford' },
       ]);
       const ok = dateResult?.results?.filter((r: string) => r.startsWith('OK')).length ?? 0;
       setFixMsg(`✓ Fechas corregidas (${ok}/7 OK)`);
