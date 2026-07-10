@@ -366,7 +366,7 @@ export function BracketPage() {
       // 2. Corregir fechas QF conocidas por código de equipo
       const dateResult = await adminApi.fixMatchDates([
         { homeCode: 'FRA', awayCode: 'MAR', matchDate: '2026-07-09T17:00:00.000Z', venue: 'Gillette Stadium', city: 'Foxborough' },
-        { homeCode: 'ESP', awayCode: 'BEL', matchDate: '2026-07-10T16:00:00.000Z', venue: 'SoFi Stadium', city: 'Inglewood' },
+        { homeCode: 'ESP', awayCode: 'BEL', matchDate: '2026-07-10T22:00:00.000Z', venue: 'SoFi Stadium', city: 'Inglewood' },
         { homeCode: 'NOR', awayCode: 'ENG', matchDate: '2026-07-11T18:00:00.000Z', venue: 'Hard Rock Stadium', city: 'Miami Gardens' },
         // SF y Final por número de round
         { round: 101, matchDate: '2026-07-14T16:00:00.000Z', venue: 'AT&T Stadium', city: 'Arlington' },
