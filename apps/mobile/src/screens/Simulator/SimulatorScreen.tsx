@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { apiService } from '../../services/api';
@@ -28,13 +29,26 @@ export function SimulatorScreen() {
   const [champion, setChampion] = useState<string | null>(null);
   const [shareCode, setShareCode] = useState<string | null>(null);
   const [mode, setMode] = useState<'manual' | 'ai'>('ai');
-  const TOURNAMENT_ID = 'wc-2026'; // Would come from store/API
+
+  const { data: wcTournament } = useQuery({
+    queryKey: ['tournament-wc2026'],
+    queryFn: async () => {
+      const res = await apiService.get('/tournaments');
+      const all: any[] = res.data.data ?? [];
+      return all.find((t: any) => t.type === 'WORLD_CUP' && t.year >= 2026) ?? null;
+    },
+    staleTime: 10 * 60_000,
+  });
 
   const runSimulation = async () => {
+    if (!wcTournament?.id) {
+      Alert.alert('Error', 'No se encontró el torneo del Mundial 2026');
+      return;
+    }
     setIsRunning(true);
     try {
       const endpoint = mode === 'ai' ? '/simulator/run-ai' : '/simulator/run';
-      const response = await apiService.post(endpoint, { tournamentId: TOURNAMENT_ID });
+      const response = await apiService.post(endpoint, { tournamentId: wcTournament.id });
       const data = response.data.data;
       setResults(data.matchResults);
       setChampion(data.champion);

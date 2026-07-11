@@ -43,8 +43,8 @@ export class SimulatorService {
     // Fill in missing matches with AI or statistical simulation
     for (const match of tournament.matches) {
       if (!finalResults[match.id]) {
+        if (!match.homeTeam || !match.awayTeam) continue;
         if (useAI) {
-          const prediction = await AIService.predictMatch(match.id);
           const simResult = AIService.simulateMatch(
             match.homeTeam.fifaRanking ?? 50,
             match.awayTeam.fifaRanking ?? 50
@@ -140,8 +140,12 @@ export class SimulatorService {
       stage: m.stage,
       group: m.group,
       matchDate: m.matchDate,
-      homeTeam: { id: m.homeTeam.id, name: m.homeTeam.name, code: m.homeTeam.code, flagUrl: m.homeTeam.flagUrl },
-      awayTeam: { id: m.awayTeam.id, name: m.awayTeam.name, code: m.awayTeam.code, flagUrl: m.awayTeam.flagUrl },
+      homeTeam: m.homeTeam
+        ? { id: m.homeTeam.id, name: m.homeTeam.name, code: m.homeTeam.code, flagUrl: m.homeTeam.flagUrl }
+        : { id: '', name: 'TBD', code: 'TBD', flagUrl: null },
+      awayTeam: m.awayTeam
+        ? { id: m.awayTeam.id, name: m.awayTeam.name, code: m.awayTeam.code, flagUrl: m.awayTeam.flagUrl }
+        : { id: '', name: 'TBD', code: 'TBD', flagUrl: null },
       result: results[m.id] ?? null,
     }));
   }
