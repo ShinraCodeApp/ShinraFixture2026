@@ -120,7 +120,7 @@ android {
         applicationId 'com.shinra.fixture2026'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 27
+        versionCode 28
         versionName "1.2.3"
     }
     signingConfigs {
