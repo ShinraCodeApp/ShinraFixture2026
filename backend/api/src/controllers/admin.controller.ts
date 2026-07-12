@@ -158,7 +158,7 @@ export class AdminController {
     const where: any = {};
     if (status) where.status = status;
     if (stage === 'knockout') {
-      where.stage = { in: ['ROUND_OF_32', 'ROUND_OF_16', 'QUARTER_FINAL', 'SEMI_FINAL', 'FINAL'] };
+      where.stage = { in: ['ROUND_OF_32', 'ROUND_OF_16', 'QUARTER_FINAL', 'SEMI_FINAL', 'THIRD_PLACE', 'FINAL'] };
     } else if (stage) {
       where.stage = stage;
     }
