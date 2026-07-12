@@ -667,6 +667,17 @@ export function BracketPage() {
         </div>
       </div>
 
+      {/* 3er y 4to puesto */}
+      {byRound[103] && (
+        <div className="bg-slate-900 rounded-2xl p-4 flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🥉</span>
+            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">3er y 4to Puesto</p>
+          </div>
+          <MatchCard m={byRound[103]} onEdit={openEdit} />
+        </div>
+      )}
+
       {/* Edit modal */}
       {editMatch && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
