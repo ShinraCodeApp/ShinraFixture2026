@@ -358,10 +358,14 @@ export function BracketPage() {
     setFixingDates(true);
     setFixMsg(null);
     try {
-      // 1. Asignar SUI como rival de ARG en cuartos (round 100) con fecha correcta
+      // 1. Asignar equipos a cuartos y 3er puesto
       await adminApi.fixKnockoutTeams(
         [{ round: 100, homeCode: 'ARG', awayCode: 'SUI', matchDate: '2026-07-11T22:00:00.000Z' }],
         'QUARTER_FINAL'
+      );
+      await adminApi.fixKnockoutTeams(
+        [{ round: 103, homeCode: 'FRA', awayCode: 'ENG', matchDate: '2026-07-18T18:00:00.000Z' }],
+        'THIRD_PLACE'
       );
       // 2. Corregir fechas QF conocidas por código de equipo
       const dateResult = await adminApi.fixMatchDates([
