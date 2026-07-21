@@ -38,13 +38,14 @@ import { PredictionsPage } from './pages/Predictions';
 import { NotificationsPage } from './pages/Notifications';
 import { NewsPage } from './pages/News';
 import { BracketPage } from './pages/Bracket';
+import { LigasPage } from './pages/Ligas';
 import { AdsPage } from './pages/Ads';
 import { SettingsPage } from './pages/Settings';
 import { LoginPage } from './pages/Login';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import {
   LayoutDashboard, Users, Calendar, Trophy, Zap, Bell, Newspaper,
-  Megaphone, Settings, LogOut, Menu, X, ChevronRight, GitBranch,
+  Megaphone, Settings, LogOut, Menu, X, ChevronRight, GitBranch, TableProperties,
 } from 'lucide-react';
 
 const queryClient = new QueryClient({
@@ -58,6 +59,7 @@ const NAV_ITEMS = [
   { path: '/users', label: 'Usuarios', icon: Users },
   { path: '/matches', label: 'Partidos', icon: Calendar },
   { path: '/bracket', label: 'Llaves', icon: GitBranch },
+  { path: '/ligas', label: 'Ligas', icon: TableProperties },
   { path: '/teams', label: 'Selecciones', icon: Trophy },
   { path: '/predictions', label: 'Predicciones', icon: Zap },
   { path: '/notifications', label: 'Notificaciones', icon: Bell },
@@ -178,6 +180,7 @@ export default function App() {
                       <Route path="/users" element={<UsersPage />} />
                       <Route path="/matches" element={<MatchesPage />} />
                       <Route path="/bracket" element={<BracketPage />} />
+                      <Route path="/ligas" element={<LigasPage />} />
                       <Route path="/teams" element={<TeamsPage />} />
                       <Route path="/predictions" element={<PredictionsPage />} />
                       <Route path="/notifications" element={<NotificationsPage />} />
