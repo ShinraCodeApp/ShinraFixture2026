@@ -1,0 +1,56 @@
+name: Rename App to Shinra Fixture Ligas
+
+on:
+  # rename applied manually on 2026-07-21 — schedule disabled
+  # schedule:
+  #   - cron: '0 2 23 7 *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no commit)'
+        required: false
+        default: 'false'
+
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update app.json name
+        run: |
+          sed -i 's/"name": "ShinraFixture 2026"/"name": "Shinra Fixture Ligas"/' apps/mobile/app.json
+
+      - name: Update HomeScreen hero
+        run: |
+          sed -i 's/>ShinraFixture</>Shinra Fixture Ligas</' apps/mobile/src/screens/Home/HomeScreen.tsx
+          sed -i 's/>Copa Mundial 2026</>Ligas y Torneos</' apps/mobile/src/screens/Home/HomeScreen.tsx
+
+      - name: Update LoginScreen
+        run: |
+          sed -i 's/>ShinraFixture</>Shinra Fixture Ligas</' apps/mobile/src/screens/Auth/LoginScreen.tsx
+          sed -i 's/>Copa Mundial 2026</>Ligas y Torneos</' apps/mobile/src/screens/Auth/LoginScreen.tsx
+
+      - name: Update ShareAppScreen
+        run: |
+          sed -i 's/ShinraFixture 2026/Shinra Fixture Ligas/' apps/mobile/src/screens/Settings/ShareAppScreen.tsx
+
+      - name: Update ProfileScreen version footer
+        run: |
+          sed -i 's/ShinraFixture 2026 v/Shinra Fixture Ligas v/' apps/mobile/src/screens/Profile/ProfileScreen.tsx
+
+      - name: Commit and push
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          git config user.name "ShinraCodeApp"
+          git config user.email "yamilrueda88@gmail.com"
+          git add \
+            apps/mobile/app.json \
+            apps/mobile/src/screens/Home/HomeScreen.tsx \
+            apps/mobile/src/screens/Auth/LoginScreen.tsx \
+            apps/mobile/src/screens/Settings/ShareAppScreen.tsx \
+            apps/mobile/src/screens/Profile/ProfileScreen.tsx
+          git commit -m "feat: rename app to Shinra Fixture Ligas"
+          git push

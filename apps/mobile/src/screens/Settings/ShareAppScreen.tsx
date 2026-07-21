@@ -45,8 +45,8 @@ export function ShareAppScreen() {
         {/* Hero */}
         <LinearGradient colors={['#0D47A1', '#1565C0']} style={styles.hero}>
           <MaterialCommunityIcons name="soccer" size={44} color="white" />
-          <Text style={styles.heroTitle}>ShinraFixture 2026</Text>
-          <Text style={styles.heroSub}>¡Compartí la app con tus amigos y seguí el Mundial juntos!</Text>
+          <Text style={styles.heroTitle}>Shinra Fixture Ligas</Text>
+          <Text style={styles.heroSub}>¡Compartí la app con tus amigos y seguí las ligas juntos!</Text>
         </LinearGradient>
 
         {/* Play Store button */}

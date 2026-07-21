@@ -695,4 +695,90 @@ export class AdminController {
     await cache.delPattern('tournament:*');
     res.json({ success: true, results });
   }
+
+  // Crea/actualiza los torneos de ligas para la temporada 2026/27
+  static async seedLeagues2026(req: Request, res: Response): Promise<void> {
+    const leagues = [
+      {
+        name: 'Torneo Clausura 2026',
+        shortName: 'Clausura 2026',
+        year: 2026,
+        type: 'LIGA_ARG' as const,
+        startDate: new Date('2026-07-23'),
+        endDate: new Date('2026-12-15'),
+        hostCountries: ['Argentina'],
+        isActive: true,
+        isFeatured: true,
+      },
+      {
+        name: 'La Liga 2026/27',
+        shortName: 'La Liga',
+        year: 2026,
+        type: 'LA_LIGA' as const,
+        startDate: new Date('2026-08-15'),
+        endDate: new Date('2027-05-31'),
+        hostCountries: ['Spain'],
+        isActive: false,
+        isFeatured: true,
+      },
+      {
+        name: 'Premier League 2026/27',
+        shortName: 'Premier League',
+        year: 2026,
+        type: 'PREMIER_LEAGUE' as const,
+        startDate: new Date('2026-08-15'),
+        endDate: new Date('2027-05-31'),
+        hostCountries: ['England'],
+        isActive: false,
+        isFeatured: true,
+      },
+      {
+        name: 'Ligue 1 2026/27',
+        shortName: 'Ligue 1',
+        year: 2026,
+        type: 'LIGUE_1' as const,
+        startDate: new Date('2026-08-15'),
+        endDate: new Date('2027-05-25'),
+        hostCountries: ['France'],
+        isActive: false,
+        isFeatured: true,
+      },
+      {
+        name: 'Bundesliga 2026/27',
+        shortName: 'Bundesliga',
+        year: 2026,
+        type: 'BUNDESLIGA' as const,
+        startDate: new Date('2026-08-22'),
+        endDate: new Date('2027-05-15'),
+        hostCountries: ['Germany'],
+        isActive: false,
+        isFeatured: true,
+      },
+      {
+        name: 'Serie A 2026/27',
+        shortName: 'Serie A',
+        year: 2026,
+        type: 'SERIE_A' as const,
+        startDate: new Date('2026-08-23'),
+        endDate: new Date('2027-05-31'),
+        hostCountries: ['Italy'],
+        isActive: false,
+        isFeatured: true,
+      },
+    ];
+
+    const results: string[] = [];
+    for (const league of leagues) {
+      const { type, year, ...rest } = league;
+      await prisma.tournament.upsert({
+        where: { type_year: { type, year } },
+        update: { isActive: rest.isActive, isFeatured: rest.isFeatured, endDate: rest.endDate },
+        create: { type, year, ...rest },
+      });
+      results.push(`OK: ${league.name}`);
+    }
+
+    await cache.delPattern('tournament:*');
+    res.json({ success: true, results });
+  }
 }

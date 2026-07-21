@@ -101,6 +101,10 @@ export const adminApi = {
     const res = await api.post('/admin/migrations/fix-match-dates', { matches });
     return res.data;
   },
+  seedLeagues2026: async () => {
+    const res = await api.post('/admin/migrations/seed-leagues-2026');
+    return res.data;
+  },
 
   // Users
   getUsers: async (params?: Record<string, string>) => {

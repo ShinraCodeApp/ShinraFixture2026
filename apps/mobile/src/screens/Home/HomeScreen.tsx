@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, RefreshControl,
   TouchableOpacity, Dimensions, Image, Platform,
@@ -8,6 +8,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import Animated, {
+  useSharedValue, useAnimatedStyle,
+  withRepeat, withSequence, withTiming, withDelay, Easing,
+} from 'react-native-reanimated';
 import { useQuery } from '@tanstack/react-query';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -99,6 +103,97 @@ const r32s = StyleSheet.create({
   liveDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#00C851' },
   liveTxt: { color: '#00C851', fontSize: 8, fontFamily: typography.fontFamily.bold },
 });
+
+// ── Campeón: partícula de estrella ────────────────────
+function StarParticle({ left, delay }: { left: number; delay: number }) {
+  const y = useSharedValue(0);
+  const op = useSharedValue(0);
+  useEffect(() => {
+    y.value = withDelay(delay, withRepeat(
+      withSequence(
+        withTiming(-38, { duration: 1300, easing: Easing.out(Easing.quad) }),
+        withTiming(0, { duration: 0 }),
+      ), -1, false
+    ));
+    op.value = withDelay(delay, withRepeat(
+      withSequence(
+        withTiming(1, { duration: 350 }),
+        withTiming(0, { duration: 950 }),
+        withTiming(0, { duration: 0 }),
+      ), -1, false
+    ));
+  }, []);
+  const anim = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }], opacity: op.value }));
+  const EMOJIS = ['✨', '⭐', '🌟', '✨', '⭐', '🌟', '✨', '⭐'];
+  return (
+    <Animated.Text style={[{ position: 'absolute', bottom: 6, left, fontSize: 11 }, anim]}>
+      {EMOJIS[left % EMOJIS.length]}
+    </Animated.Text>
+  );
+}
+
+// ── Campeón: banner de festejo ────────────────────────
+function ChampionBanner({ match, navigation }: { match: any; navigation: any }) {
+  const hasPenalties = match.homePenalties !== null && match.awayPenalties !== null;
+  const isHomeWinner = hasPenalties
+    ? (match.homePenalties ?? 0) > (match.awayPenalties ?? 0)
+    : match.homeScore > match.awayScore;
+  const champion = isHomeWinner ? match.homeTeam : match.awayTeam;
+  const runnerUp = isHomeWinner ? match.awayTeam : match.homeTeam;
+
+  const pulse = useSharedValue(1);
+  useEffect(() => {
+    pulse.value = withRepeat(
+      withSequence(withTiming(1.1, { duration: 800 }), withTiming(1, { duration: 800 })),
+      -1, false
+    );
+  }, []);
+  const trophyAnim = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
+
+  const starLefts = [8, 28, 50, 72, 94, 116, 148, 178, 208, 240, 270, 295];
+
+  return (
+    <TouchableOpacity
+      onPress={() => navigation.navigate('MatchDetail', { matchId: match.id })}
+      activeOpacity={0.88}
+      style={{ marginHorizontal: spacing.screen, marginTop: spacing.base, marginBottom: spacing.xs }}
+    >
+      <LinearGradient
+        colors={['#3B1F00', '#A0700A', '#FFD700', '#A0700A', '#3B1F00']}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+        style={{ borderRadius: borderRadius.xl, paddingVertical: spacing.lg, paddingHorizontal: spacing.base, overflow: 'hidden' }}
+      >
+        {starLefts.map((left, i) => (
+          <StarParticle key={i} left={left} delay={i * 180} />
+        ))}
+        <View style={{ alignItems: 'center', gap: 8 }}>
+          <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 10, fontFamily: typography.fontFamily.bold, letterSpacing: 3 }}>
+            🏅 CAMPEÓN MUNDIAL 2026 🏅
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
+            {champion?.flagUrl && (
+              <Image source={{ uri: champion.flagUrl }} style={{ width: 72, height: 48, borderRadius: 6 }} resizeMode="contain" />
+            )}
+            <Animated.Text style={[{ fontSize: 48 }, trophyAnim]}>🏆</Animated.Text>
+            {champion?.flagUrl && (
+              <Image source={{ uri: champion.flagUrl }} style={{ width: 72, height: 48, borderRadius: 6, opacity: 0.25 }} resizeMode="contain" />
+            )}
+          </View>
+          <Text style={{ color: '#FFD700', fontSize: 24, fontFamily: typography.fontFamily.bold, textAlign: 'center' }}>
+            {champion?.name ?? champion?.code ?? ''}
+          </Text>
+          <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, fontFamily: typography.fontFamily.semiBold }}>
+            {match.homeTeam?.code} {match.homeScore}–{match.awayScore} {match.awayTeam?.code}
+            {hasPenalties ? `  (${match.homePenalties}–${match.awayPenalties} pen.)` : ''}
+          </Text>
+          <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>
+            Subcampeón: {runnerUp?.name ?? runnerUp?.code ?? ''}
+          </Text>
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+}
 
 // ── Colores y datos por tipo de torneo ────────────────
 const TOURNAMENT_THEME: Record<string, { emoji: string; colors: [string, string]; label: string }> = {
@@ -254,6 +349,18 @@ export function HomeScreen() {
     enabled: isWorldCupStarted,
   });
 
+  const { data: finalMatch } = useQuery({
+    queryKey: ['home-final-match'],
+    queryFn: async () => {
+      const res = await apiService.get('/matches/stage/FINAL?tournamentType=WORLD_CUP');
+      const matches: any[] = res.data.data ?? [];
+      return matches.find((m: any) => m.status === 'FINISHED') ?? null;
+    },
+    staleTime: 5 * 60_000,
+    refetchInterval: 60_000,
+    enabled: isWorldCupStarted,
+  });
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]} edges={['top']}>
       <ScrollView
@@ -269,8 +376,8 @@ export function HomeScreen() {
                 <Text style={styles.heroGreeting}>
                   {user ? `Hola, ${user.displayName.split(' ')[0]} 👋` : 'Bienvenido'}
                 </Text>
-                <Text style={styles.heroTitle}>ShinraFixture</Text>
-                <Text style={styles.heroSubtitle}>Copa Mundial 2026</Text>
+                <Text style={styles.heroTitle}>Shinra Fixture Ligas</Text>
+                <Text style={styles.heroSubtitle}>Ligas y Torneos</Text>
               </View>
               <View style={styles.heroActions}>
                 <TouchableOpacity style={styles.notifButton} onPress={() => navigation.navigate('Notifications')}>
@@ -353,6 +460,11 @@ export function HomeScreen() {
             )}
           </View>
         </LinearGradient>
+
+        {/* ── Campeón Mundial ──────────────────────── */}
+        {finalMatch && (
+          <ChampionBanner match={finalMatch} navigation={navigation} />
+        )}
 
         {/* ── 16vos de Final ──────────────────────── */}
         {isWorldCupStarted && (r32Matches as any[]).length > 0 && (

@@ -237,6 +237,7 @@ export function BracketPage() {
   const [fixingR32, setFixingR32] = useState(false);
   const [fixingScores, setFixingScores] = useState(false);
   const [fixingDates, setFixingDates] = useState(false);
+  const [seedingLeagues, setSeedingLeagues] = useState(false);
   const [fixMsg, setFixMsg] = useState<string | null>(null);
   const [editMatch, setEditMatch] = useState<BMatch | null>(null);
   const [editForm, setEditForm] = useState<EditForm>({ homeCode: '', awayCode: '', homeScore: '', awayScore: '', homePen: '', awayPen: '', usePen: false });
@@ -376,7 +377,7 @@ export function BracketPage() {
         { round: 101, matchDate: '2026-07-14T19:00:00.000Z', venue: 'AT&T Stadium', city: 'Arlington' },
         { round: 102, matchDate: '2026-07-15T19:00:00.000Z', venue: 'Mercedes-Benz Stadium', city: 'Atlanta' },
         { round: 103, matchDate: '2026-07-18T18:00:00.000Z', venue: 'Hard Rock Stadium', city: 'Miami Gardens' },
-        { round: 104, matchDate: '2026-07-19T16:00:00.000Z', venue: 'MetLife Stadium', city: 'East Rutherford' },
+        { round: 104, matchDate: '2026-07-19T19:00:00.000Z', venue: 'MetLife Stadium', city: 'East Rutherford' },
       ]);
       const ok = dateResult?.results?.filter((r: string) => r.startsWith('OK')).length ?? 0;
       setFixMsg(`✓ Fechas corregidas (${ok}/7 OK)`);
@@ -416,6 +417,19 @@ export function BracketPage() {
   const matches: BMatch[] = data?.data?.items ?? [];
   const byRound: Record<number, BMatch> = {};
   for (const m of matches) byRound[m.round] = m;
+
+  const handleSeedLeagues = async () => {
+    setSeedingLeagues(true);
+    setFixMsg(null);
+    try {
+      const res = await adminApi.seedLeagues2026();
+      setFixMsg(`✓ ${res.results?.length ?? 0} ligas activadas`);
+    } catch (e: any) {
+      setFixMsg('✗ Error al activar ligas');
+    } finally {
+      setSeedingLeagues(false);
+    }
+  };
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-64">
@@ -477,6 +491,15 @@ export function BracketPage() {
           >
             <Swords size={14} />
             {fixingR16 ? 'Corrigiendo...' : 'Fix Octavos'}
+          </button>
+          <button
+            onClick={handleSeedLeagues}
+            disabled={seedingLeagues}
+            title="Crea los torneos de ligas 2026/27 en la base de datos (Clausura, La Liga, Premier, Ligue 1, Bundesliga, Serie A)"
+            className="flex items-center gap-2 px-4 py-2 bg-rose-700 hover:bg-rose-600 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            🏆
+            {seedingLeagues ? 'Activando...' : 'Activar Ligas'}
           </button>
           <div className="flex gap-1 bg-slate-800 rounded-xl p-1">
             <button

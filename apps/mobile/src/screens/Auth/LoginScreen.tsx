@@ -65,8 +65,8 @@ export function LoginScreen() {
                   <Text style={styles.logoText}>S</Text>
                 </View>
               </View>
-              <Text style={styles.title}>ShinraFixture</Text>
-              <Text style={styles.subtitle}>Copa Mundial 2026</Text>
+              <Text style={styles.title}>Shinra Fixture Ligas</Text>
+              <Text style={styles.subtitle}>Ligas y Torneos</Text>
             </View>
 
             <View style={styles.form}>
