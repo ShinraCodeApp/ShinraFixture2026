@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '../services/adminApi';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { api, adminApi } from '../services/adminApi';
+import { Bell } from 'lucide-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 dayjs.locale('es');
@@ -29,6 +30,24 @@ function getStatus(t: any) {
 
 export function LigasPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [notifMsg, setNotifMsg] = useState<string | null>(null);
+
+  const notifyMutation = useMutation({
+    mutationFn: () => adminApi.sendNotification({
+      title: '🏆 ¡Nuevas ligas disponibles en Shinra Fixture!',
+      body: '🇦🇷 Clausura 23 Jul · 🇪🇸 La Liga 15 Ago · 🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier 15 Ago · 🇩🇪 Bundesliga 22 Ago · 🇮🇹 Serie A 23 Ago',
+      type: 'NEWS',
+      target: 'ALL',
+    }),
+    onSuccess: () => {
+      setNotifMsg('✓ Notificación enviada a todos los usuarios');
+      setTimeout(() => setNotifMsg(null), 5000);
+    },
+    onError: () => {
+      setNotifMsg('✗ Error al enviar notificación');
+      setTimeout(() => setNotifMsg(null), 4000);
+    },
+  });
 
   const { data: tournaments = [] } = useQuery({
     queryKey: ['admin-tournaments'],
@@ -68,9 +87,27 @@ export function LigasPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold dark:text-white">Ligas 2026/27</h1>
-        <p className="text-slate-500 text-sm mt-1">Seguimiento de ligas y torneos activos</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold dark:text-white">Ligas 2026/27</h1>
+          <p className="text-slate-500 text-sm mt-1">Seguimiento de ligas y torneos activos</p>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {notifMsg && (
+            <span className={`text-xs font-medium px-3 py-1.5 rounded-lg ${notifMsg.startsWith('✓') ? 'bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400' : 'bg-red-100 text-red-700'}`}>
+              {notifMsg}
+            </span>
+          )}
+          <button
+            onClick={() => notifyMutation.mutate()}
+            disabled={notifyMutation.isPending}
+            title="Envía una notificación push a todos los usuarios con las fechas de inicio de las ligas"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            <Bell size={14} />
+            {notifyMutation.isPending ? 'Enviando...' : 'Notificar Inicio de Ligas'}
+          </button>
+        </div>
       </div>
 
       {/* Tabs de ligas */}
