@@ -84,7 +84,9 @@ export function LigasPage() {
     queryFn: async () => {
       try {
         const res = await api.get(`/teams/standings/${selected.id}`);
-        return (res.data.data ?? []) as any[];
+        const raw = res.data.data;
+        // API returns { A: [...], B: [...] } for WC groups; flatten for league view
+        return (Array.isArray(raw) ? raw : Object.values(raw ?? {}).flat()) as any[];
       } catch { return []; }
     },
     enabled: !!selected?.id,
