@@ -136,6 +136,8 @@ export function MatchesScreen() {
     return true;
   });
 
+  const STATUS_ORDER: Record<string, number> = { LIVE: 0, HALF_TIME: 0, SCHEDULED: 1, FINISHED: 2, POSTPONED: 3, CANCELLED: 3 };
+
   const allSections = Object.entries(
     filteredMatches.reduce<Record<string, any[]>>((acc, m) => {
       const key = dayjs(m.matchDate).format('YYYY-MM-DD');
@@ -145,7 +147,15 @@ export function MatchesScreen() {
     }, {})
   )
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, data]) => ({ title: dayjs(date).format('dddd, D [de] MMMM YYYY'), dateKey: date, data }));
+    .map(([date, data]) => ({
+      title: dayjs(date).format('dddd, D [de] MMMM YYYY'),
+      dateKey: date,
+      data: [...data].sort((a, b) => {
+        const statusDiff = (STATUS_ORDER[a.status] ?? 1) - (STATUS_ORDER[b.status] ?? 1);
+        if (statusDiff !== 0) return statusDiff;
+        return new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime();
+      }),
+    }));
 
   // Auto-collapse past sections on first load
   useEffect(() => {
