@@ -10,6 +10,9 @@ import { NotificationService } from '../services/notifications.service';
 import { BracketScoringService } from '../services/bracketScoring.service';
 import { AIService } from '../services/ai.service';
 import { PlayerStatsService } from '../services/playerStats.service';
+import { importLeagueFixtures } from '../services/leagueFixtures.service';
+
+const LEAGUE_TYPES = ['LIGA_ARG', 'LA_LIGA', 'PREMIER_LEAGUE', 'BUNDESLIGA', 'SERIE_A', 'LIGUE_1'];
 
 const cache = new CacheService();
 
@@ -101,6 +104,17 @@ export function startCronJobs(): void {
   cron.schedule('0 15 * * *', async () => {
     const result = await sendDailyMatchesNotification();
     logger.info(`Daily match notification: ${result}`);
+  });
+
+  // ── Daily league fixture import + score update (05:00 UTC = 02:00 ART) ──
+  cron.schedule('0 5 * * *', async () => {
+    logger.info('Running daily league fixtures sync...');
+    await syncLeagueFixtures();
+  });
+
+  // ── League standings recalculation from match results (every 30 min) ────
+  cron.schedule('*/30 * * * *', async () => {
+    await updateLeagueStandings();
   });
 
   // ── Clean expired refresh tokens (daily) ─────────────
@@ -394,6 +408,82 @@ export async function sendDailyMatchesNotification(): Promise<string> {
   await NotificationService.sendBroadcast(title, body, NotificationType.MATCH_START);
   logger.info(`Daily notification sent: ${matches.length} matches, ${totalTournaments} tournaments`);
   return `OK: ${matches.length} partidos notificados`;
+}
+
+async function syncLeagueFixtures(): Promise<void> {
+  const tournaments = await prisma.tournament.findMany({
+    where: { type: { in: LEAGUE_TYPES as any[] } },
+    select: { type: true, name: true },
+  });
+  for (const t of tournaments) {
+    try {
+      const result = await importLeagueFixtures(t.type as string);
+      logger.info(`League sync [${t.type}]: ${result}`);
+    } catch (err: any) {
+      logger.warn(`League sync failed [${t.type}]: ${err.message}`);
+    }
+  }
+}
+
+async function updateLeagueStandings(): Promise<void> {
+  const tournaments = await prisma.tournament.findMany({
+    where: { type: { in: LEAGUE_TYPES as any[] } },
+    select: { id: true, type: true },
+  });
+
+  for (const tournament of tournaments) {
+    try {
+      const matches = await prisma.match.findMany({
+        where: { tournamentId: tournament.id, status: 'FINISHED' },
+        select: { homeTeamId: true, awayTeamId: true, homeScore: true, awayScore: true },
+      });
+      if (matches.length === 0) continue;
+
+      const stats: Record<string, { played: number; won: number; drawn: number; lost: number; gf: number; ga: number }> = {};
+      const ensure = (id: string) => { if (!stats[id]) stats[id] = { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0 }; };
+
+      for (const m of matches) {
+        if (!m.homeTeamId || !m.awayTeamId || m.homeScore == null || m.awayScore == null) continue;
+        ensure(m.homeTeamId); ensure(m.awayTeamId);
+        const h = stats[m.homeTeamId], a = stats[m.awayTeamId];
+        h.played++; h.gf += m.homeScore; h.ga += m.awayScore;
+        a.played++; a.gf += m.awayScore; a.ga += m.homeScore;
+        if (m.homeScore > m.awayScore) { h.won++; a.lost++; }
+        else if (m.homeScore < m.awayScore) { a.won++; h.lost++; }
+        else { h.drawn++; a.drawn++; }
+      }
+
+      // Find or create a virtual group 'A' for league (no real groups)
+      let group = await prisma.tournamentGroup.findFirst({ where: { tournamentId: tournament.id, letter: 'A' } });
+      if (!group) {
+        group = await prisma.tournamentGroup.create({
+          data: { tournamentId: tournament.id, letter: 'A', name: 'General' },
+        });
+      }
+
+      const sorted = Object.entries(stats).sort(([, a], [, b]) => {
+        const pA = a.won * 3 + a.drawn, pB = b.won * 3 + b.drawn;
+        if (pB !== pA) return pB - pA;
+        const dA = a.gf - a.ga, dB = b.gf - b.ga;
+        if (dB !== dA) return dB - dA;
+        return b.gf - a.gf;
+      });
+
+      for (let i = 0; i < sorted.length; i++) {
+        const [teamId, s] = sorted[i];
+        const pts = s.won * 3 + s.drawn;
+        await prisma.tournamentGroupTeam.upsert({
+          where: { groupId_teamId: { groupId: group.id, teamId } },
+          update: { played: s.played, won: s.won, drawn: s.drawn, lost: s.lost, goalsFor: s.gf, goalsAgainst: s.ga, goalDifference: s.gf - s.ga, points: pts, position: i + 1 },
+          create: { groupId: group.id, teamId, played: s.played, won: s.won, drawn: s.drawn, lost: s.lost, goalsFor: s.gf, goalsAgainst: s.ga, goalDifference: s.gf - s.ga, points: pts, position: i + 1 },
+        });
+      }
+
+      await cache.del(`standings:${tournament.id}`);
+    } catch (err: any) {
+      logger.warn(`League standings update failed [${tournament.type}]: ${err.message}`);
+    }
+  }
 }
 
 // Syncs WC results unconditionally — runs even when no match is live.
