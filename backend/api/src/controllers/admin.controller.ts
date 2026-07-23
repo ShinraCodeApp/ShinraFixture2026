@@ -7,6 +7,7 @@ import { NotificationService } from '../services/notifications.service';
 import { PredictionService } from '../services/predictions.service';
 import { CacheService } from '../config/redis';
 import { BracketService } from '../services/bracket.service';
+import { sendDailyMatchesNotification } from '../jobs/cron';
 
 const cache = new CacheService();
 
@@ -694,6 +695,11 @@ export class AdminController {
 
     await cache.delPattern('tournament:*');
     res.json({ success: true, results });
+  }
+
+  static async sendDailyNotification(req: Request, res: Response): Promise<void> {
+    const result = await sendDailyMatchesNotification();
+    res.json({ success: true, result });
   }
 
   // Crea/actualiza los torneos de ligas para la temporada 2026/27

@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import axios from 'axios';
-import { MatchStatus } from '@prisma/client';
+import { MatchStatus, NotificationType } from '@prisma/client';
 import { prisma } from '../config/database';
 import { CacheService } from '../config/redis';
 import { logger } from '../utils/logger';
@@ -95,6 +95,12 @@ export function startCronJobs(): void {
     PlayerStatsService.syncTournamentLeaderboards(wc.id).catch((e) =>
       logger.warn('PlayerStats cron failed:', e)
     );
+  });
+
+  // ── Daily match notification at 12:00 PM ART (15:00 UTC) ────────────────
+  cron.schedule('0 15 * * *', async () => {
+    const result = await sendDailyMatchesNotification();
+    logger.info(`Daily match notification: ${result}`);
   });
 
   // ── Clean expired refresh tokens (daily) ─────────────
@@ -319,6 +325,75 @@ async function warmupCache(): Promise<void> {
   // Warmup frequently accessed cache keys
   await cache.del('matches:live');
   await cache.del('matches:today');
+}
+
+const TOURNAMENT_EMOJI: Record<string, string> = {
+  LIGA_ARG: '🇦🇷', LA_LIGA: '🇪🇸', PREMIER_LEAGUE: '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  BUNDESLIGA: '🇩🇪', SERIE_A: '🇮🇹', LIGUE_1: '🇫🇷',
+  WORLD_CUP: '🌍', COPA_AMERICA: '🌎', CHAMPIONS_LEAGUE: '👑',
+  EURO: '⭐', LIBERTADORES: '🦅',
+};
+
+export async function sendDailyMatchesNotification(): Promise<string> {
+  const now = new Date();
+  // Use ART (UTC-3) day boundaries
+  const artOffset = 3 * 60 * 60 * 1000;
+  const artNow = new Date(now.getTime() - artOffset);
+  const startOfArtDay = new Date(artNow);
+  startOfArtDay.setUTCHours(0, 0, 0, 0);
+  const endOfArtDay = new Date(artNow);
+  endOfArtDay.setUTCHours(23, 59, 59, 999);
+  // Convert back to UTC for DB query
+  const startUTC = new Date(startOfArtDay.getTime() + artOffset);
+  const endUTC   = new Date(endOfArtDay.getTime()   + artOffset);
+
+  const matches = await prisma.match.findMany({
+    where: {
+      matchDate: { gte: startUTC, lte: endUTC },
+      status: { in: [MatchStatus.SCHEDULED, MatchStatus.LIVE] },
+    },
+    include: {
+      homeTeam: { select: { shortName: true, code: true } },
+      awayTeam: { select: { shortName: true, code: true } },
+      tournament: { select: { shortName: true, type: true } },
+    },
+    orderBy: { matchDate: 'asc' },
+    take: 12,
+  });
+
+  if (matches.length === 0) return 'Sin partidos hoy — notificación no enviada';
+
+  // Group by tournament
+  const byTournament: Record<string, typeof matches> = {};
+  for (const m of matches) {
+    const key = m.tournament?.shortName ?? 'Otros';
+    if (!byTournament[key]) byTournament[key] = [];
+    byTournament[key].push(m);
+  }
+
+  const firstType = matches[0].tournament?.type ?? '';
+  const emoji = TOURNAMENT_EMOJI[firstType] ?? '⚽';
+  const totalTournaments = Object.keys(byTournament).length;
+
+  // Title
+  const title = `⚽ ${matches.length} partido${matches.length > 1 ? 's' : ''} hoy · ${Object.keys(byTournament).slice(0, 2).join(' · ')}`;
+
+  // Body: show up to 3 matches with ART times
+  const bodyLines = matches.slice(0, 3).map((m) => {
+    const home = m.homeTeam?.shortName ?? m.homeTeam?.code ?? '?';
+    const away = m.awayTeam?.shortName ?? m.awayTeam?.code ?? '?';
+    const artTime = new Date(m.matchDate.getTime() - artOffset);
+    const hh = String(artTime.getUTCHours()).padStart(2, '0');
+    const mm = String(artTime.getUTCMinutes()).padStart(2, '0');
+    return `${home} vs ${away} ${hh}:${mm}`;
+  });
+  if (matches.length > 3) bodyLines.push(`+${matches.length - 3} más`);
+
+  const body = bodyLines.join(' · ');
+
+  await NotificationService.sendBroadcast(title, body, NotificationType.MATCH_START);
+  logger.info(`Daily notification sent: ${matches.length} matches, ${totalTournaments} tournaments`);
+  return `OK: ${matches.length} partidos notificados`;
 }
 
 // Syncs WC results unconditionally — runs even when no match is live.

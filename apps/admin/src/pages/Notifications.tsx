@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Bell, Send } from 'lucide-react';
-import { adminApi } from '../services/adminApi';
+import { Bell, Send, Calendar } from 'lucide-react';
+import { adminApi, api } from '../services/adminApi';
 
 const NOTIFICATION_TYPES = ['SYSTEM', 'NEWS', 'MATCH_START', 'GOAL', 'PREDICTION_RESULT', 'QUINIELA_UPDATE'];
 const TARGETS = [
@@ -13,6 +13,7 @@ const TARGETS = [
 export function NotificationsPage() {
   const [form, setForm] = useState({ title: '', body: '', type: 'SYSTEM', target: 'ALL' });
   const [sent, setSent] = useState(false);
+  const [dailyMsg, setDailyMsg] = useState<string | null>(null);
 
   const sendMutation = useMutation({
     mutationFn: () => adminApi.sendNotification(form),
@@ -23,6 +24,21 @@ export function NotificationsPage() {
     },
   });
 
+  const dailyMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.post('/admin/notifications/daily-matches');
+      return res.data;
+    },
+    onSuccess: (data) => {
+      setDailyMsg(`✓ ${data.result}`);
+      setTimeout(() => setDailyMsg(null), 5000);
+    },
+    onError: () => {
+      setDailyMsg('✗ Error al enviar');
+      setTimeout(() => setDailyMsg(null), 4000);
+    },
+  });
+
   const canSend = form.title.trim() && form.body.trim();
 
   return (
@@ -30,6 +46,31 @@ export function NotificationsPage() {
       <div>
         <h1 className="text-2xl font-bold dark:text-white">Notificaciones</h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm">Envío de notificaciones push a los usuarios</p>
+      </div>
+
+      {/* Notificación rápida de partidos del día */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-5 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-white font-bold flex items-center gap-2">
+            <Calendar size={16} /> Partidos del día
+          </p>
+          <p className="text-blue-100 text-xs mt-1">
+            Envía automáticamente a las 12:00 PM (ART) · También podés dispararlo manualmente ahora
+          </p>
+          {dailyMsg && (
+            <p className={`text-xs font-semibold mt-2 ${dailyMsg.startsWith('✓') ? 'text-green-200' : 'text-red-200'}`}>
+              {dailyMsg}
+            </p>
+          )}
+        </div>
+        <button
+          onClick={() => dailyMutation.mutate()}
+          disabled={dailyMutation.isPending}
+          className="flex items-center gap-2 px-5 py-2.5 bg-white text-blue-700 hover:bg-blue-50 disabled:opacity-50 font-bold text-sm rounded-xl transition-colors flex-shrink-0"
+        >
+          <Bell size={14} />
+          {dailyMutation.isPending ? 'Enviando...' : 'Notificar ahora'}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
