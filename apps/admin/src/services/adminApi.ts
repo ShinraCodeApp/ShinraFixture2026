@@ -161,7 +161,7 @@ export const adminApi = {
 
   // Notifications
   sendNotification: async (data: { title: string; body: string; type: string; target: string }) =>
-    api.post('/notifications/broadcast', data),
+    api.post('/admin/notifications/broadcast', data),
   getNotifications: async () => {
     const res = await api.get('/admin/notifications');
     return res.data;
