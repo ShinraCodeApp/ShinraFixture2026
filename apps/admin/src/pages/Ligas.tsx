@@ -96,7 +96,8 @@ export function LigasPage() {
     queryFn: async () => {
       try {
         const res = await api.get(`/matches?tournamentId=${selected.id}&limit=20`);
-        return (res.data.data ?? []) as any[];
+        const d = res.data.data;
+        return (Array.isArray(d) ? d : d?.items ?? []) as any[];
       } catch { return []; }
     },
     enabled: !!selected?.id,
