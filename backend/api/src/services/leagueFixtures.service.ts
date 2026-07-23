@@ -1,19 +1,19 @@
 import axios from 'axios';
 import dayjs from 'dayjs';
-import { MatchStatus } from '@prisma/client';
+import { MatchStatus, Region } from '@prisma/client';
 import { prisma } from '../config/database';
 import { logger } from '../utils/logger';
 import { CacheService } from '../config/redis';
 
 const cache = new CacheService();
 
-const ESPN_SLUGS: Record<string, { slug: string; region: string }> = {
-  LIGA_ARG:       { slug: 'arg.1',  region: 'CONMEBOL' },
-  LA_LIGA:        { slug: 'esp.1',  region: 'UEFA' },
-  PREMIER_LEAGUE: { slug: 'eng.1',  region: 'UEFA' },
-  BUNDESLIGA:     { slug: 'ger.1',  region: 'UEFA' },
-  SERIE_A:        { slug: 'ita.1',  region: 'UEFA' },
-  LIGUE_1:        { slug: 'fra.1',  region: 'UEFA' },
+const ESPN_SLUGS: Record<string, { slug: string; region: Region }> = {
+  LIGA_ARG:       { slug: 'arg.1',  region: Region.CONMEBOL },
+  LA_LIGA:        { slug: 'esp.1',  region: Region.UEFA },
+  PREMIER_LEAGUE: { slug: 'eng.1',  region: Region.UEFA },
+  BUNDESLIGA:     { slug: 'ger.1',  region: Region.UEFA },
+  SERIE_A:        { slug: 'ita.1',  region: Region.UEFA },
+  LIGUE_1:        { slug: 'fra.1',  region: Region.UEFA },
 };
 
 function mapStatus(stateStr: string): MatchStatus {
@@ -22,7 +22,7 @@ function mapStatus(stateStr: string): MatchStatus {
   return MatchStatus.SCHEDULED;
 }
 
-async function findOrCreateTeam(code: string, competitor: any, region: string) {
+async function findOrCreateTeam(code: string, competitor: any, region: Region) {
   if (!code) return null;
   let team = await prisma.team.findFirst({ where: { code } });
   if (!team) {
