@@ -12,7 +12,7 @@ import { AIService } from '../services/ai.service';
 import { PlayerStatsService } from '../services/playerStats.service';
 import { importLeagueFixtures } from '../services/leagueFixtures.service';
 
-const LEAGUE_TYPES = ['LIGA_ARG', 'LA_LIGA', 'PREMIER_LEAGUE', 'BUNDESLIGA', 'SERIE_A', 'LIGUE_1'];
+const LEAGUE_TYPES = ['LIGA_ARG', 'LA_LIGA', 'PREMIER_LEAGUE', 'BUNDESLIGA', 'SERIE_A', 'LIGUE_1', 'SUDAMERICANA', 'LIBERTADORES', 'CHAMPIONS_LEAGUE'];
 
 const cache = new CacheService();
 

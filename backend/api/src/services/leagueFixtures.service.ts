@@ -8,12 +8,15 @@ import { CacheService } from '../config/redis';
 const cache = new CacheService();
 
 const ESPN_SLUGS: Record<string, { slug: string; region: Region }> = {
-  LIGA_ARG:       { slug: 'arg.1',  region: Region.CONMEBOL },
-  LA_LIGA:        { slug: 'esp.1',  region: Region.UEFA },
-  PREMIER_LEAGUE: { slug: 'eng.1',  region: Region.UEFA },
-  BUNDESLIGA:     { slug: 'ger.1',  region: Region.UEFA },
-  SERIE_A:        { slug: 'ita.1',  region: Region.UEFA },
-  LIGUE_1:        { slug: 'fra.1',  region: Region.UEFA },
+  LIGA_ARG:         { slug: 'arg.1',                 region: Region.CONMEBOL },
+  LA_LIGA:          { slug: 'esp.1',                 region: Region.UEFA },
+  PREMIER_LEAGUE:   { slug: 'eng.1',                 region: Region.UEFA },
+  BUNDESLIGA:       { slug: 'ger.1',                 region: Region.UEFA },
+  SERIE_A:          { slug: 'ita.1',                 region: Region.UEFA },
+  LIGUE_1:          { slug: 'fra.1',                 region: Region.UEFA },
+  SUDAMERICANA:     { slug: 'conmebol.sudamericana', region: Region.CONMEBOL },
+  LIBERTADORES:     { slug: 'conmebol.libertadores', region: Region.CONMEBOL },
+  CHAMPIONS_LEAGUE: { slug: 'UEFA.champions',        region: Region.UEFA },
 };
 
 function mapStatus(stateStr: string): MatchStatus {
