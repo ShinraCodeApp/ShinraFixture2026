@@ -65,4 +65,5 @@ adminRoutes.post('/migrations/fix-knockout-teams', AdminController.fixKnockoutTe
 adminRoutes.post('/migrations/fix-match-scores', AdminController.fixMatchScores);
 adminRoutes.post('/migrations/fix-match-dates', AdminController.fixMatchDates);
 adminRoutes.post('/migrations/seed-leagues-2026', AdminController.seedLeagues2026);
+adminRoutes.post('/migrations/import-league-fixtures', AdminController.importLeagueFixtures);
 adminRoutes.post('/notifications/daily-matches', AdminController.sendDailyNotification);

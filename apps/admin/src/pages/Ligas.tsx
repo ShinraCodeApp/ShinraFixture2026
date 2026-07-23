@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, adminApi } from '../services/adminApi';
-import { Bell } from 'lucide-react';
+import { Bell, Download } from 'lucide-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 dayjs.locale('es');
@@ -31,6 +31,24 @@ function getStatus(t: any) {
 export function LigasPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [notifMsg, setNotifMsg] = useState<string | null>(null);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
+  const qc = useQueryClient();
+
+  const importMutation = useMutation({
+    mutationFn: async (type: string) => {
+      const res = await api.post('/admin/migrations/import-league-fixtures', { tournamentType: type });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      setImportMsg(data.result ?? '✓ Importado');
+      qc.invalidateQueries({ queryKey: ['admin-league-matches'] });
+      setTimeout(() => setImportMsg(null), 8000);
+    },
+    onError: (e: any) => {
+      setImportMsg(`✗ ${e?.response?.data?.error ?? 'Error al importar'}`);
+      setTimeout(() => setImportMsg(null), 6000);
+    },
+  });
 
   const notifyMutation = useMutation({
     mutationFn: () => adminApi.sendNotification({
@@ -93,10 +111,21 @@ export function LigasPage() {
           <p className="text-slate-500 text-sm mt-1">Seguimiento de ligas y torneos activos</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {notifMsg && (
-            <span className={`text-xs font-medium px-3 py-1.5 rounded-lg ${notifMsg.startsWith('✓') ? 'bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400' : 'bg-red-100 text-red-700'}`}>
-              {notifMsg}
+          {(notifMsg || importMsg) && (
+            <span className={`text-xs font-medium px-3 py-1.5 rounded-lg max-w-xs truncate ${(importMsg ?? notifMsg ?? '').startsWith('✓') ? 'bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400' : 'bg-red-100 text-red-700'}`}>
+              {importMsg ?? notifMsg}
             </span>
+          )}
+          {selected && (
+            <button
+              onClick={() => importMutation.mutate(selected.type)}
+              disabled={importMutation.isPending}
+              title={`Importa el fixture de ${selected.shortName ?? selected.name} desde ESPN para los próximos 90 días`}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+            >
+              <Download size={14} />
+              {importMutation.isPending ? 'Importando...' : `Importar Fixture ESPN`}
+            </button>
           )}
           <button
             onClick={() => notifyMutation.mutate()}

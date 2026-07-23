@@ -8,6 +8,7 @@ import { PredictionService } from '../services/predictions.service';
 import { CacheService } from '../config/redis';
 import { BracketService } from '../services/bracket.service';
 import { sendDailyMatchesNotification } from '../jobs/cron';
+import { importLeagueFixtures } from '../services/leagueFixtures.service';
 
 const cache = new CacheService();
 
@@ -695,6 +696,16 @@ export class AdminController {
 
     await cache.delPattern('tournament:*');
     res.json({ success: true, results });
+  }
+
+  static async importLeagueFixtures(req: Request, res: Response): Promise<void> {
+    const { tournamentType } = req.body as { tournamentType: string };
+    if (!tournamentType) {
+      res.status(400).json({ success: false, error: 'tournamentType requerido' });
+      return;
+    }
+    const result = await importLeagueFixtures(tournamentType);
+    res.json({ success: true, result });
   }
 
   static async sendDailyNotification(req: Request, res: Response): Promise<void> {

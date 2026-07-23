@@ -319,7 +319,7 @@ export function ProfileScreen() {
           <Text style={[styles.logoutText, { color: colors.error }]}>Cerrar sesión</Text>
         </TouchableOpacity>
 
-        <Text style={[styles.version, { color: appColors.textSecondary }]}>Shinra Fixture Ligas v1.0.0</Text>
+        <Text style={[styles.version, { color: appColors.textSecondary }]}>Shinra Fixture Ligas v1.2.4</Text>
 
         {/* ── Branding ─────────────────────────── */}
         <View style={styles.branding}>
