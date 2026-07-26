@@ -120,8 +120,11 @@ android {
         applicationId 'com.shinra.fixture2026'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 29
-        versionName "1.2.4"
+        versionCode 30
+        versionName "1.2.5"
+        ndk {
+            abiFilters "arm64-v8a", "armeabi-v7a"
+        }
     }
     signingConfigs {
         debug {

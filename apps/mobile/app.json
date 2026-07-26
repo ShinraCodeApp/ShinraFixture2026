@@ -32,7 +32,7 @@
         "color": "#001489"
       },
       "package": "com.shinra.fixture2026",
-      "versionCode": 29,
+      "versionCode": 30,
       "navigationBarColor": "#001489",
       "blockedPermissions": [
         "android.permission.READ_MEDIA_IMAGES",
