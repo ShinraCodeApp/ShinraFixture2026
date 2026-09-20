@@ -84,4 +84,9 @@ apps/mobile/*.p12
 apps/mobile/*.mobileprovision
 apps/mobile/*.orig.*
 apps/mobile/web-build/
+apps/mobile/dist-android/
+apps/mobile/**/*.jks
+apps/mobile/**/*.keystore
+apps/mobile/**/gradle.properties.md
+apps/mobile/**/*.keystore.b64.txt
 .claude/
