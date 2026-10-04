@@ -90,3 +90,7 @@ apps/mobile/**/*.keystore
 apps/mobile/**/gradle.properties.md
 apps/mobile/**/*.keystore.b64.txt
 .claude/
+
+# archivos temporales del editor
+Untitled-*.json
+nul

@@ -15,4 +15,11 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
+// Force Metro server root to apps/mobile — prevents SDK 52 auto-detection from
+// using the yarn workspace root, which would break entry file resolution.
+config.server = {
+  ...config.server,
+  unstable_serverRoot: projectRoot,
+};
+
 module.exports = config;
