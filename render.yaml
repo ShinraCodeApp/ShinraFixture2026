@@ -1,0 +1,26 @@
+# Render (plan gratis): API de ShinraFixture2026. Reemplaza a Railway, que
+# dejó de existir. Base de datos: Neon (gratis). Redis es opcional (sin él la
+# API funciona igual, solo sin caché).
+services:
+  - type: web
+    name: shinrafixture-api
+    runtime: docker
+    plan: free
+    region: ohio
+    dockerContext: backend/api
+    dockerfilePath: backend/api/Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL # Neon: Connection string sin "pooling" (postgresql://...?sslmode=require)
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: GEMINI_API_KEY # la misma clave gratis de Gemini (opcional)
+        sync: false
+      - key: FOOTBALL_DATA_API_KEY # football-data.org gratis (opcional, para resultados)
+        sync: false
