@@ -20,6 +20,8 @@ services:
         generateValue: true
       - key: JWT_REFRESH_SECRET
         generateValue: true
+      - key: ADMIN_SEED_PASSWORD # contraseña nueva de admin@shinrafixture.com (mín. 12); sin esto queda bloqueado
+        sync: false
       - key: GEMINI_API_KEY # la misma clave gratis de Gemini (opcional)
         sync: false
       - key: FOOTBALL_DATA_API_KEY # football-data.org gratis (opcional, para resultados)

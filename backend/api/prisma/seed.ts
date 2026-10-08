@@ -694,13 +694,24 @@ async function seedFriendlyMatches() {
   return tournament;
 }
 
+// La contraseña del admin sale de ADMIN_SEED_PASSWORD (variable de Render). Antes
+// había una fija en este archivo y el repo es público: cualquiera podía entrar
+// como admin. Sin la variable, la cuenta queda con una contraseña aleatoria
+// que nadie conoce (bloqueada) hasta que se configure. Corre en cada arranque.
+async function adminPasswordHash(): Promise<{ hash: string; fromEnv: boolean }> {
+  const fromEnv = process.env.ADMIN_SEED_PASSWORD;
+  if (fromEnv && fromEnv.length >= 12) return { hash: await bcrypt.hash(fromEnv, 12), fromEnv: true };
+  const random = require('crypto').randomBytes(32).toString('base64url');
+  return { hash: await bcrypt.hash(random, 12), fromEnv: false };
+}
+
 async function seedAdminUser() {
   console.log('👤 Creating admin user...');
-  const passwordHash = await bcrypt.hash('Admin2026!', 12);
+  const { hash: passwordHash, fromEnv } = await adminPasswordHash();
 
   await prisma.user.upsert({
     where: { email: 'admin@shinrafixture.com' },
-    update: {},
+    update: { passwordHash },
     create: {
       email: 'admin@shinrafixture.com',
       username: 'shinra_admin',
@@ -715,7 +726,11 @@ async function seedAdminUser() {
     },
   });
 
-  console.log('✅ Admin user: admin@shinrafixture.com / Admin2026!');
+  console.log(
+    fromEnv
+      ? '✅ Admin user: admin@shinrafixture.com (contraseña de ADMIN_SEED_PASSWORD)'
+      : '⚠️  ADMIN_SEED_PASSWORD no definida (mín. 12): admin@shinrafixture.com queda bloqueado',
+  );
 }
 
 async function seedAchievements() {
@@ -1944,6 +1959,7 @@ const friendliesOnly = process.argv.includes('--friendlies-only');
 if (friendliesOnly) {
   seedFriendlyMatches()
     .then(() => { console.log('✅ Friendly matches refreshed!'); })
+    .then(() => seedAdminUser())
     .catch((e) => { console.error('Friendly seed failed:', e); process.exit(1); })
     .finally(async () => { await prisma.$disconnect(); });
 } else {

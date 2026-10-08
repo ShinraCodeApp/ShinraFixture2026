@@ -2,7 +2,13 @@ import { Resend } from 'resend';
 import { config } from '../config';
 import { logger } from '../utils/logger';
 
-const resend = new Resend(config.email.resendApiKey);
+// Sin RESEND_API_KEY el servidor arranca igual y no manda mails. Antes el
+// cliente se creaba al cargar el archivo y tiraba abajo la API si faltaba la clave.
+let resend: Resend | null = null;
+function client(): Resend {
+  if (!resend) resend = new Resend(config.email.resendApiKey);
+  return resend;
+}
 
 export class EmailService {
   private static async send(to: string, subject: string, html: string): Promise<void> {
@@ -11,7 +17,7 @@ export class EmailService {
       return;
     }
     try {
-      await resend.emails.send({
+      await client().emails.send({
         from: `${config.email.fromName} <${config.email.fromEmail}>`,
         to,
         subject,
