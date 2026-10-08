@@ -104,6 +104,14 @@ enum TournamentType {
   SERIE_A
   LIGUE_1
   LIGA_ARG
+  PRIMERA_NACIONAL
+  COPA_ARGENTINA
+  BRASILEIRAO
+  EREDIVISIE
+  PRIMEIRA_LIGA
+  EUROPA_LEAGUE
+  LIGA_MX
+  MLS
 }
 
 enum Region {
@@ -293,6 +301,7 @@ model Team {
   name          String
   shortName     String
   code          String    @unique  // BRA, ARG, FRA, etc.
+  espnId        String?   @unique  // id del equipo en ESPN (evita confundir equipos con la misma sigla)
   flagUrl       String?
   shieldUrl     String?
   region        Region

@@ -21,6 +21,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
 import { setupSocketHandlers } from './socket/handlers';
 import { startCronJobs } from './jobs/cron';
+import { syncAllLeagues } from './services/leagueFixtures.service';
 import * as Sentry from '@sentry/node';
 
 async function bootstrap() {
@@ -113,6 +114,8 @@ async function bootstrap() {
 
   // ── Start Cron Jobs ────────────────────────────────
   startCronJobs();
+  // Al despertar, actualizar partidos y tablas de todas las ligas (en segundo plano)
+  setTimeout(() => void syncAllLeagues(), 60_000);
 
   // ── Start Server ───────────────────────────────────
   httpServer.listen(config.port, () => {

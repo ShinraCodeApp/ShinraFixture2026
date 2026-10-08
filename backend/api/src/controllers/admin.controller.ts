@@ -460,8 +460,9 @@ export class AdminController {
     const { value } = req.body;
     const config = await prisma.appConfig.upsert({
       where: { key },
-      update: { value: String(value) },
-      create: { key, value: String(value) },
+      // listas/objetos (p. ej. "sponsors") se guardan como JSON; el resto como texto
+      update: { value: typeof value === 'object' && value !== null ? value : String(value) },
+      create: { key, value: typeof value === 'object' && value !== null ? value : String(value) },
     });
     res.json({ success: true, data: config });
   }
