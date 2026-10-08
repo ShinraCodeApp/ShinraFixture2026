@@ -41,7 +41,12 @@ router.use(['/matches', '/tournaments'], refreshLeagues);
  */
 router.get('/sponsors', async (req, res) => {
   const row = await prisma.appConfig.findUnique({ where: { key: 'sponsors' } });
-  const all: any[] = Array.isArray(row?.value) ? (row!.value as any[]) : [];
+  // desde el panel admin puede llegar como texto JSON
+  let raw: any = row?.value;
+  if (typeof raw === 'string') {
+    try { raw = JSON.parse(raw); } catch { raw = []; }
+  }
+  const all: any[] = Array.isArray(raw) ? raw : [];
   const league = typeof req.query.league === 'string' ? req.query.league : null;
   const now = Date.now();
   const data = all
