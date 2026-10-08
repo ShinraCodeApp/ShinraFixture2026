@@ -5,9 +5,13 @@ import { logger } from '../utils/logger';
 
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
+// El servidor (Render gratis) se duerme sin uso y tarda ~1 minuto en despertar:
+// lo despertamos al abrir la app y esperamos más que antes (15 s cortaba antes).
+fetch(API_URL.replace(/\/api\/v1\/?$/, '') + '/health').catch(() => null);
+
 export const apiService: AxiosInstance = axios.create({
   baseURL: API_URL,
-  timeout: 15000,
+  timeout: 90000,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
