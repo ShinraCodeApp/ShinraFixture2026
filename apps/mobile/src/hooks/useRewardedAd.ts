@@ -1,12 +1,11 @@
 import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { useSelector } from 'react-redux';
-import { RootState } from '../store';
+import { useIsPro } from '../services/pro';
 import { showRewardedAd } from '../services/ads';
 
 export function useRewardedAd() {
   const [loading, setLoading] = useState(false);
-  const isPremium = useSelector((s: RootState) => s.auth.user?.isPremium ?? false);
+  const isPremium = useIsPro();
 
   const watchAdForReward = useCallback(async (
     onRewarded: () => void | Promise<void>,

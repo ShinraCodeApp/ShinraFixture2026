@@ -1,85 +1,67 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useSelector, useDispatch } from 'react-redux';
 
 import { useAppTheme } from '../../hooks/useAppTheme';
-import { RootState } from '../../store';
-import { apiService } from '../../services/api';
+import { buyPro, getProPrice, isBillingAvailable, restorePro, useIsPro } from '../../services/pro';
 import { colors, spacing, typography, borderRadius, shadows } from '../../theme';
 
-interface Feature {
-  icon: string;
-  label: string;
-  free: string | boolean;
-  premium: string | boolean;
-}
-
-const FEATURES: Feature[] = [
-  { icon: 'lightning-bolt',    label: 'Predicciones',       free: 'Ilimitadas',   premium: 'Ilimitadas' },
-  { icon: 'account-group',     label: 'Quinielas (crear)',   free: '2',            premium: '10' },
-  { icon: 'account-group',     label: 'Quinielas (unirse)',  free: '5',            premium: 'Ilimitadas' },
-  { icon: 'account-multiple',  label: 'Amigos',              free: '10',           premium: 'Ilimitados' },
-  { icon: 'robot',             label: 'Análisis IA',         free: '2/día',        premium: 'Ilimitados' },
-  { icon: 'sword-cross',       label: 'Duelos',              free: 'Próximamente', premium: 'Próximamente' },
-  { icon: 'star',              label: 'Badge Premium',       free: false,          premium: true },
-  { icon: 'bell-ring',         label: 'Notificaciones push', free: 'Básicas',      premium: 'Completas' },
-  { icon: 'chart-bar',         label: 'Estadísticas',        free: 'Básicas',      premium: 'Avanzadas' },
-  { icon: 'headset',           label: 'Soporte',             free: 'Comunidad',    premium: 'Prioritario' },
+// "Pro – sin anuncios": compra única con Google Play Billing (política de
+// pagos de Play: los bienes digitales se cobran dentro de la app con Play).
+const BENEFITS: { icon: string; title: string; text: string }[] = [
+  { icon: 'cancel',              title: 'Sin banners',        text: 'Fixture, resultados y tablas sin publicidad.' },
+  { icon: 'play-circle-outline', title: 'Sin videos',         text: 'Los análisis con IA se abren directo, sin mirar anuncios.' },
+  { icon: 'cellphone-check',     title: 'Pago único',         text: 'Se paga una sola vez. Sin suscripción ni renovaciones.' },
+  { icon: 'restore',             title: 'Queda en tu cuenta', text: 'Si cambiás de celular, tocá "Restaurar compra".' },
+  { icon: 'heart',               title: 'Apoyás la app',      text: 'Ayudás a mantener al día los datos de todas las ligas.' },
 ];
 
 export function PremiumScreen() {
   const navigation = useNavigation<any>();
   const { appColors } = useAppTheme();
-  const { user } = useSelector((state: RootState) => state.auth);
-  const dispatch = useDispatch<any>();
-  const isPremium = user?.isPremium ?? false;
-  const [checkingPayment, setCheckingPayment] = useState(false);
+  const isPro = useIsPro();
+  const [price, setPrice] = useState<string | null>(null);
+  const [busy, setBusy] = useState<'buy' | 'restore' | null>(null);
+  const billing = isBillingAvailable();
 
-  // Play Store policy: digital subscriptions must be purchased outside the app (web)
-  // and the app only verifies the status. MercadoPago redirect in-app violates billing policy.
-  const WEB_PREMIUM_URL = 'https://shinrafixture.com/premium';
+  useEffect(() => {
+    getProPrice().then(setPrice);
+  }, []);
 
-  const handleSubscribe = (plan: 'monthly' | 'annual') => {
-    const url = `${WEB_PREMIUM_URL}?plan=${plan}`;
-    Linking.openURL(url);
-  };
-
-  const handleCheckPayment = async () => {
-    setCheckingPayment(true);
+  const handleBuy = async () => {
+    setBusy('buy');
     try {
-      const res = await apiService.get('/auth/me');
-      const updatedUser = res.data?.data?.user ?? res.data?.data;
-      if (updatedUser?.isPremium) {
-        dispatch({ type: 'auth/updateUser', payload: updatedUser });
-        Alert.alert('¡Premium activado!', 'Ya podés disfrutar todas las funciones Premium.');
-      } else {
-        Alert.alert('Aún no activo', 'Si ya compraste Premium en la web, puede tardar unos segundos. Intentá de nuevo.');
+      if (await buyPro()) {
+        Alert.alert('¡Gracias!', 'Pro activado: ya no vas a ver anuncios.');
       }
-    } catch {
-      Alert.alert('Error', 'No se pudo verificar el estado Premium. Intentá de nuevo.');
+    } catch (e: any) {
+      const msg = e?.code === 'pending'
+        ? 'El pago quedó pendiente. Pro se activa solo cuando Google lo acredite.'
+        : 'No se pudo completar la compra. Revisá tu conexión e intentá de nuevo.';
+      Alert.alert('Compra', msg);
     } finally {
-      setCheckingPayment(false);
+      setBusy(null);
     }
   };
 
-  const renderCell = (value: string | boolean, highlight: boolean) => {
-    if (value === true) {
-      return <MaterialCommunityIcons name="check-circle" size={18} color={highlight ? '#F59E0B' : colors.success} />;
+  const handleRestore = async () => {
+    setBusy('restore');
+    try {
+      const has = await restorePro();
+      Alert.alert(
+        has ? 'Compra restaurada' : 'Sin compras',
+        has ? 'Pro está activo en este celular.' : 'Esta cuenta de Google no tiene Pro comprado.',
+      );
+    } catch {
+      Alert.alert('Error', 'No se pudo consultar Google Play. Intentá de nuevo.');
+    } finally {
+      setBusy(null);
     }
-    if (value === false) {
-      return <MaterialCommunityIcons name="close-circle-outline" size={18} color={appColors.textSecondary} />;
-    }
-    return (
-      <Text style={[styles.cellText, { color: highlight ? '#F59E0B' : appColors.text }]}>
-        {value}
-      </Text>
-    );
   };
 
   return (
@@ -89,12 +71,11 @@ export function PremiumScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="chevron-back" size={24} color={appColors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: appColors.text }]}>Premium</Text>
+        <Text style={[styles.headerTitle, { color: appColors.text }]}>Pro</Text>
         <View style={styles.backBtn} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-
         {/* Hero */}
         <LinearGradient
           colors={['#92400e', '#F59E0B', '#FCD34D']}
@@ -103,112 +84,72 @@ export function PremiumScreen() {
           style={styles.hero}
         >
           <MaterialCommunityIcons name="star-circle" size={48} color="white" />
-          <Text style={styles.heroTitle}>ShinraFixture Premium</Text>
-          <Text style={styles.heroSub}>Desbloqueá todo el potencial del Mundial 2026</Text>
-          {isPremium && (
+          <Text style={styles.heroTitle}>ShinraFixture Pro</Text>
+          <Text style={styles.heroSub}>Todas las ligas, sin anuncios</Text>
+          {isPro && (
             <View style={styles.activeBadge}>
               <MaterialCommunityIcons name="check-decagram" size={16} color="#92400e" />
-              <Text style={styles.activeBadgeText}>Premium activo</Text>
+              <Text style={styles.activeBadgeText}>Pro activo</Text>
             </View>
           )}
         </LinearGradient>
 
-        {/* Pricing */}
-        {!isPremium && (
-          <>
-            <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>PLANES</Text>
-            <View style={styles.plansRow}>
-              {/* Monthly */}
-              <TouchableOpacity style={[styles.planCard, { backgroundColor: appColors.surface }, shadows.md]} onPress={() => handleSubscribe('monthly')} activeOpacity={0.85}>
-                <Text style={[styles.planName, { color: appColors.text }]}>Mensual</Text>
-                <Text style={[styles.planPrice, { color: colors.primary }]}>$4.99</Text>
-                <Text style={[styles.planPeriod, { color: appColors.textSecondary }]}>/ mes</Text>
-                <View style={[styles.planBtn, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.planBtnText}>Suscribirse</Text>
-                </View>
-              </TouchableOpacity>
-
-              {/* Annual */}
-              <TouchableOpacity style={[styles.planCard, styles.planCardFeatured, shadows.lg]} onPress={() => handleSubscribe('annual')} activeOpacity={0.85}>
-                <View style={styles.saveBadge}>
-                  <Text style={styles.saveBadgeText}>AHORRÁS 33%</Text>
-                </View>
-                <Text style={[styles.planName, { color: 'white' }]}>Anual</Text>
-                <Text style={[styles.planPrice, { color: '#FCD34D' }]}>$39.99</Text>
-                <Text style={[styles.planPeriod, { color: 'rgba(255,255,255,0.7)' }]}>/ año</Text>
-                <View style={[styles.planBtn, { backgroundColor: '#FCD34D' }]}>
-                  <Text style={[styles.planBtnText, { color: '#92400e' }]}>Mejor valor</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            {/* Verificar estado después de comprar en la web */}
-            <TouchableOpacity style={[styles.checkBtn, { backgroundColor: appColors.surface }]} onPress={handleCheckPayment} disabled={checkingPayment} activeOpacity={0.85}>
-              {checkingPayment
-                ? <ActivityIndicator size="small" color={colors.primary} />
-                : <>
-                    <MaterialCommunityIcons name="check-circle-outline" size={20} color={colors.primary} />
-                    <Text style={[styles.checkBtnText, { color: colors.primary }]}>Ya compré en la web — verificar</Text>
-                  </>
-              }
-            </TouchableOpacity>
-          </>
-        )}
-
-        {/* Comparison table */}
-        <Text style={[styles.sectionTitle, { color: appColors.textSecondary }]}>COMPARACIÓN</Text>
-        <View style={[styles.table, { backgroundColor: appColors.surface }, shadows.sm]}>
-          {/* Column headers */}
-          <View style={[styles.tableRow, styles.tableHeader, { borderBottomColor: appColors.border }]}>
-            <View style={styles.colFeature}>
-              <Text style={[styles.colHeaderText, { color: appColors.textSecondary }]}>Función</Text>
-            </View>
-            <View style={styles.colValue}>
-              <Text style={[styles.colHeaderText, { color: appColors.textSecondary }]}>Gratis</Text>
-            </View>
-            <View style={styles.colValue}>
-              <LinearGradient colors={['#F59E0B', '#FCD34D']} style={styles.premiumHeaderBg}>
-                <Text style={styles.premiumHeaderText}>⭐ Premium</Text>
-              </LinearGradient>
-            </View>
-          </View>
-
-          {FEATURES.map((f, i) => (
+        {/* Beneficios */}
+        <View style={[styles.card, { backgroundColor: appColors.surface }, shadows.sm]}>
+          {BENEFITS.map((b, i) => (
             <View
-              key={f.label + i}
+              key={b.title}
               style={[
-                styles.tableRow,
-                i < FEATURES.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: appColors.border },
+                styles.benefitRow,
+                i < BENEFITS.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: appColors.border },
               ]}
             >
-              <View style={styles.colFeature}>
-                <MaterialCommunityIcons name={f.icon as any} size={16} color={appColors.textSecondary} style={{ marginRight: 6 }} />
-                <Text style={[styles.featureLabel, { color: appColors.text }]} numberOfLines={1}>{f.label}</Text>
+              <MaterialCommunityIcons name={b.icon as any} size={22} color="#F59E0B" />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.benefitTitle, { color: appColors.text }]}>{b.title}</Text>
+                <Text style={[styles.benefitText, { color: appColors.textSecondary }]}>{b.text}</Text>
               </View>
-              <View style={styles.colValue}>{renderCell(f.free, false)}</View>
-              <View style={styles.colValue}>{renderCell(f.premium, true)}</View>
             </View>
           ))}
         </View>
 
-        {/* CTA */}
-        {!isPremium && (
-          <TouchableOpacity onPress={() => handleSubscribe('annual')} activeOpacity={0.9} style={{ marginTop: spacing.base }}>
+        {!isPro && (
+          <TouchableOpacity
+            onPress={handleBuy}
+            disabled={busy !== null || !billing}
+            activeOpacity={0.9}
+            style={{ marginTop: spacing.base }}
+            accessibilityRole="button"
+          >
             <LinearGradient colors={['#92400e', '#F59E0B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaButton}>
-              <MaterialCommunityIcons name="star-circle" size={22} color="white" />
-              <Text style={styles.ctaText}>Activar Premium</Text>
-              <Ionicons name="open-outline" size={18} color="white" />
+              {busy === 'buy'
+                ? <ActivityIndicator color="white" />
+                : <>
+                    <MaterialCommunityIcons name="google-play" size={22} color="white" />
+                    <Text style={styles.ctaText}>{price ? `Quitar anuncios · ${price}` : 'Quitar anuncios'}</Text>
+                  </>}
             </LinearGradient>
           </TouchableOpacity>
         )}
 
-        {/* Web purchase notice */}
-        <View style={styles.mpBranding}>
-          <MaterialCommunityIcons name="web" size={14} color={appColors.textSecondary} />
-          <Text style={[styles.disclaimer, { color: appColors.textSecondary, marginTop: 0 }]}>
-            La suscripción se gestiona en <Text style={{ fontFamily: typography.fontFamily.bold }}>shinrafixture.com</Text>. Podés cancelar en cualquier momento.
-          </Text>
-        </View>
+        <TouchableOpacity
+          style={[styles.checkBtn, { backgroundColor: appColors.surface }]}
+          onPress={handleRestore}
+          disabled={busy !== null || !billing}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+        >
+          {busy === 'restore'
+            ? <ActivityIndicator size="small" color={colors.primary} />
+            : <>
+                <MaterialCommunityIcons name="restore" size={20} color={colors.primary} />
+                <Text style={[styles.checkBtnText, { color: colors.primary }]}>Restaurar compra</Text>
+              </>}
+        </TouchableOpacity>
+
+        <Text style={[styles.disclaimer, { color: appColors.textSecondary }]}>
+          El pago lo procesa Google Play. Es un pago único: no se renueva ni se vuelve a cobrar.
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -239,55 +180,18 @@ const styles = StyleSheet.create({
   },
   activeBadgeText: { color: '#92400e', fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.sm },
 
-  // Plans
-  sectionTitle: {
-    fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.semiBold,
-    letterSpacing: 0.8, marginBottom: spacing.sm, marginTop: spacing.base,
-  },
-  plansRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.sm },
-  planCard: {
-    flex: 1, borderRadius: borderRadius.xl, padding: spacing.base, alignItems: 'center', gap: spacing.xs,
-  },
-  planCardFeatured: { backgroundColor: '#92400e' },
-  saveBadge: {
-    backgroundColor: '#FCD34D', borderRadius: borderRadius.full,
-    paddingHorizontal: spacing.sm, paddingVertical: 2, marginBottom: spacing.xs,
-  },
-  saveBadgeText: { color: '#92400e', fontSize: 10, fontFamily: typography.fontFamily.black },
-  planName: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold },
-  planPrice: { fontSize: 28, fontFamily: typography.fontFamily.black },
-  planPeriod: { fontSize: typography.fontSize.xs },
-  planBtn: {
-    width: '100%', paddingVertical: spacing.sm, borderRadius: borderRadius.md,
-    alignItems: 'center', marginTop: spacing.xs,
-  },
-  planBtnText: { color: 'white', fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.sm },
-
-  // Table
-  table: { borderRadius: borderRadius.lg, overflow: 'hidden' },
-  tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm },
-  tableHeader: { borderBottomWidth: StyleSheet.hairlineWidth },
-  colFeature: { flex: 2, flexDirection: 'row', alignItems: 'center', paddingLeft: spacing.base },
-  colValue: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  colHeaderText: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.semiBold, letterSpacing: 0.5 },
-  premiumHeaderBg: { paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: borderRadius.sm },
-  premiumHeaderText: { color: '#92400e', fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.black },
-  cellText: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.medium, textAlign: 'center' },
-  featureLabel: { fontSize: typography.fontSize.xs, fontFamily: typography.fontFamily.medium, flex: 1 },
+  // Beneficios
+  card: { borderRadius: borderRadius.lg, overflow: 'hidden' },
+  benefitRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.base },
+  benefitTitle: { fontSize: typography.fontSize.base, fontFamily: typography.fontFamily.bold },
+  benefitText: { fontSize: typography.fontSize.sm, marginTop: 2 },
 
   // CTA
   ctaButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
-    borderRadius: borderRadius.xl, paddingVertical: spacing.md,
+    borderRadius: borderRadius.xl, paddingVertical: spacing.md, minHeight: 52,
   },
   ctaText: { color: 'white', fontFamily: typography.fontFamily.black, fontSize: typography.fontSize.lg },
-  disclaimer: {
-    fontSize: typography.fontSize.xs, textAlign: 'center', marginTop: spacing.base, lineHeight: 18, flex: 1,
-  },
-  mpBranding: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    justifyContent: 'center', marginTop: spacing.base,
-  },
   checkBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
     borderRadius: borderRadius.xl, paddingVertical: spacing.md,
@@ -295,4 +199,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   checkBtnText: { fontFamily: typography.fontFamily.bold, fontSize: typography.fontSize.base },
+  disclaimer: {
+    fontSize: typography.fontSize.xs, textAlign: 'center', marginTop: spacing.base, lineHeight: 18,
+  },
 });

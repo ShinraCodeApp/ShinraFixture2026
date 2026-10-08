@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useSelector } from 'react-redux';
-import { RootState } from '../../store';
+import { useIsPro } from '../../services/pro';
 import { AD_UNIT_IDS, BannerAdSize } from '../../services/ads';
 
 // Lazy-load BannerAd para evitar crash al importar react-native-google-mobile-ads
@@ -21,9 +20,9 @@ interface Props {
 }
 
 export function AdBanner({ size = BannerAdSize.BANNER }: Props) {
-  const isPremium = useSelector((s: RootState) => s.auth.user?.isPremium ?? false);
+  const isPro = useIsPro();
 
-  if (isPremium || !BannerAd) return null;
+  if (isPro || !BannerAd) return null;
 
   return (
     <AdErrorBoundary>

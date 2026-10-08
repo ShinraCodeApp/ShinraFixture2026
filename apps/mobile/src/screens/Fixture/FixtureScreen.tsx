@@ -10,6 +10,7 @@ import { useAppTheme } from '../../hooks/useAppTheme';
 import { apiService } from '../../services/api';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 import { StandingsTab } from '../../components/standings/StandingsTab';
+import { SponsorBanner } from '../../components/sponsors/SponsorBanner';
 import { selectTournament } from '../../store/slices/tournamentSlice';
 import { RootState } from '../../store';
 
@@ -18,6 +19,8 @@ const TOURNAMENT_ICONS: Record<string, string> = {
   CHAMPIONS_LEAGUE: '👑', LIBERTADORES: '🦅', SUDAMERICANA: '🌎', FRIENDLY: '🤝',
   PREMIER_LEAGUE: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', LA_LIGA: '🇪🇸', BUNDESLIGA: '🇩🇪', SERIE_A: '🇮🇹',
   LIGUE_1: '🇫🇷', LIGA_ARG: '🇦🇷', LEAGUE: '🏆',
+  PRIMERA_NACIONAL: '🇦🇷', COPA_ARGENTINA: '🇦🇷', BRASILEIRAO: '🇧🇷', EREDIVISIE: '🇳🇱',
+  PRIMEIRA_LIGA: '🇵🇹', EUROPA_LEAGUE: '🇪🇺', LIGA_MX: '🇲🇽', MLS: '🇺🇸',
 };
 
 export function FixtureScreen() {
@@ -43,7 +46,7 @@ export function FixtureScreen() {
 
   const activeTournament = selectedId
     ? tournaments.find((t: any) => t.id === selectedId)
-    : tournaments.find((t: any) => t.type === 'WORLD_CUP') ?? tournaments[0];
+    : tournaments.find((t: any) => t.type === 'LIGA_ARG') ?? tournaments[0];
 
   return (
     <View style={[styles.container, { backgroundColor: appColors.background }]}>
@@ -53,7 +56,7 @@ export function FixtureScreen() {
           <View style={{ flex: 1 }}>
             <Text style={[styles.title, { color: appColors.text }]}>Fixture</Text>
             <Text style={[styles.subtitle, { color: appColors.textSecondary }]} numberOfLines={1}>
-              {activeTournament?.name ?? 'Copa Mundial 2026'}
+              {activeTournament?.name ?? 'Todas las ligas'}
             </Text>
           </View>
           {activeTournament?.type === 'WORLD_CUP' && (
@@ -104,6 +107,8 @@ export function FixtureScreen() {
             />
           </View>
         )}
+
+        <SponsorBanner league={activeTournament?.type} />
 
         {/* Búsqueda */}
         <View style={[styles.searchBar, { backgroundColor: appColors.surface + 'CC', borderBottomColor: appColors.border }]}>

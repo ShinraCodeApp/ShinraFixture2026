@@ -14,6 +14,7 @@ import com.facebook.soloader.SoLoader
 
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
+import com.shinra.fixture2026.billing.ProBillingPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -21,9 +22,8 @@ class MainApplication : Application(), ReactApplication {
         this,
         object : DefaultReactNativeHost(this) {
           override fun getPackages(): List<ReactPackage> {
-            // Packages that cannot be autolinked yet can be added manually here, for example:
-            // packages.add(new MyReactNativePackage());
-            return PackageList(this).packages
+            // Compra "Pro – sin anuncios" (Play Billing 8, módulo propio)
+            return PackageList(this).packages.apply { add(ProBillingPackage()) }
           }
 
           override fun getJSMainModuleName(): String = ".expo/.virtual-metro-entry"

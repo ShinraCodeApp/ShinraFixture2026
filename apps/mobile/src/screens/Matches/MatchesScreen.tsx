@@ -34,6 +34,8 @@ const TOURNAMENT_ICONS: Record<string, string> = {
   CHAMPIONS_LEAGUE: '👑', LIBERTADORES: '🦅', SUDAMERICANA: '🌎', FRIENDLY: '🤝',
   PREMIER_LEAGUE: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', LA_LIGA: '🇪🇸', BUNDESLIGA: '🇩🇪', SERIE_A: '🇮🇹',
   LIGUE_1: '🇫🇷', LIGA_ARG: '🇦🇷', LEAGUE: '🏆',
+  PRIMERA_NACIONAL: '🇦🇷', COPA_ARGENTINA: '🇦🇷', BRASILEIRAO: '🇧🇷', EREDIVISIE: '🇳🇱',
+  PRIMEIRA_LIGA: '🇵🇹', EUROPA_LEAGUE: '🇪🇺', LIGA_MX: '🇲🇽', MLS: '🇺🇸',
 };
 
 export function MatchesScreen() {

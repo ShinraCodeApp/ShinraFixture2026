@@ -35,12 +35,14 @@ import { ThemeProvider } from './src/theme/ThemeProvider';
 import { LoadingScreen } from './src/screens/Loading/LoadingScreen';
 import { OfflineBanner } from './src/components/common/OfflineBanner';
 import { initAds, loadInterstitial } from './src/services/ads';
+import { initPro } from './src/services/pro';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // Inicializar AdMob con delay para no bloquear el startup de RN
 setTimeout(() => {
   initAds().then(() => loadInterstitial()).catch(() => {});
+  initPro().catch(() => {});
 }, 3000);
 
 // Sincronizar TanStack Query online/offline con el estado real de la red
